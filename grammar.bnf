@@ -1,0 +1,124 @@
+// JUS Programlama Dili EBNF/BNF Gramer Dosyası
+// JUS Programming Language EBNF/BNF Grammar File
+// Versiyon: 1.0
+// Kodlama: UTF-8
+
+// Ana Program Yapısı - Main Program Structure
+<program> ::= <statement>*
+
+// İfade Türleri - Statement Types
+<statement> ::= <var_decl> | <print_stmt> | <if_stmt> | <loop_stmt> | <func_decl> | <func_call> | <assignment> | <expression_stmt> | <return_stmt>
+
+// Değişken Tanımlama - Variable Declaration
+<var_decl> ::= "değişken" <IDENT> "=" <expression>
+
+// Değişken Atama - Variable Assignment
+<assignment> ::= <IDENT> "=" <expression>
+
+// Yazdırma İfadesi - Print Statement
+<print_stmt> ::= "yaz" <expression>
+
+// Koşul İfadesi - Conditional Statement
+<if_stmt> ::= "eğer" <expression> ":" <statement>* [ "değilse" ":" <statement>* ]
+
+// Döngü İfadesi - Loop Statement
+<loop_stmt> ::= "tekrar" <NUMBER> [ "kez" ] ":" <statement>*
+
+// Fonksiyon Tanımlama - Function Declaration
+<func_decl> ::= "fonksiyon" <IDENT> "(" [ <param_list> ] ")" ":" <statement>*
+
+// Fonksiyon Çağrısı - Function Call
+<func_call> ::= <IDENT> "(" [ <arg_list> ] ")"
+
+// Dönüş İfadesi - Return Statement
+<return_stmt> ::= "dönüş" [ <expression> ]
+
+// İfade İfadesi - Expression Statement
+<expression_stmt> ::= <expression>
+
+// Parametre Listesi - Parameter List
+<param_list> ::= <IDENT> ( "," <IDENT> )*
+
+// Argüman Listesi - Argument List
+<arg_list> ::= <expression> ( "," <expression> )*
+
+// İfadeler - Expressions (Operator Precedence)
+<expression> ::= <logical_or>
+
+<logical_or> ::= <logical_and> ( "veya" <logical_and> )*
+
+<logical_and> ::= <equality> ( "ve" <equality> )*
+
+<equality> ::= <comparison> ( ( "==" | "!=" ) <comparison> )*
+
+<comparison> ::= <term> ( ( ">" | ">=" | "<" | "<=" ) <term> )*
+
+<term> ::= <factor> ( ( "+" | "-" ) <factor> )*
+
+<factor> ::= <unary> ( ( "*" | "/" | "%" ) <unary> )*
+
+<unary> ::= ( "!" | "-" ) <unary> | <primary>
+
+<primary> ::= <NUMBER> | <STRING> | <BOOLEAN> | <IDENT> | <func_call> | "(" <expression> ")"
+
+// Terminal Semboller - Terminal Symbols
+<IDENT> ::= <letter> ( <letter> | <digit> | "_" )*
+
+<NUMBER> ::= <digit>+ [ "." <digit>+ ]
+
+<STRING> ::= '"' <character>* '"'
+
+<BOOLEAN> ::= "doğru" | "yanlış"
+
+// Karakter Sınıfları - Character Classes
+<letter> ::= "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" | "ç" | "ğ" | "ı" | "ö" | "ş" | "ü" | "Ç" | "Ğ" | "İ" | "Ö" | "Ş" | "Ü"
+
+<digit> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
+
+<character> ::= <letter> | <digit> | <special_char>
+
+<special_char> ::= " " | "!" | "@" | "#" | "$" | "%" | "^" | "&" | "*" | "(" | ")" | "-" | "_" | "+" | "=" | "[" | "]" | "{" | "}" | "|" | "\" | ":" | ";" | "'" | "<" | ">" | "," | "." | "?" | "/" | "~" | "`"
+
+// Beyaz Boşluk - Whitespace
+<whitespace> ::= " " | "\t"
+
+// Yeni Satır - Newline
+<newline> ::= "\n" | "\r\n"
+
+// Yorum Satırı - Comment
+<comment> ::= "//" <any_char>* <newline>
+
+// Herhangi Karakter - Any Character
+<any_char> ::= <letter> | <digit> | <special_char> | <whitespace>
+
+// Anahtar Kelimeler - Reserved Keywords
+// Bu kelimeler identifier olarak kullanılamaz
+// These words cannot be used as identifiers
+<reserved_keywords> ::= "değişken" | "yaz" | "eğer" | "değilse" | "tekrar" | "kez" | "fonksiyon" | "dönüş" | "doğru" | "yanlış" | "ve" | "veya"
+
+// Operatörler - Operators
+<arithmetic_op> ::= "+" | "-" | "*" | "/" | "%"
+<comparison_op> ::= ">" | ">=" | "<" | "<=" | "==" | "!="
+<logical_op> ::= "ve" | "veya" | "!"
+<assignment_op> ::= "="
+
+// Ayırıcılar - Delimiters
+<delimiters> ::= "(" | ")" | "{" | "}" | "[" | "]" | "," | ";" | ":"
+
+// İsteğe Bağlı - Optional Elements
+// Bazı kurallar isteğe bağlı elementlere sahiptir
+// Some rules have optional elements
+// Örnek: tekrar 5 kez: -> "kez" isteğe bağlı
+// Example: tekrar 5 kez: -> "kez" is optional
+
+// Notlar - Notes:
+// 1. Türkçe karakterler (ç, ğ, ı, ö, ş, ü) desteklenir
+// 2. Büyük/küçük harf duyarlılığı vardır
+// 3. Yorumlar "//" ile başlar ve satır sonuna kadar devam eder
+// 4. String literalleri çift tırnak içinde yazılır
+// 5. Sayılar integer ve float formatında olabilir
+// 6. Boolean değerler "doğru" ve "yanlış" olarak yazılır
+// 7. Fonksiyon parametreleri ve argümanları virgülle ayrılır
+// 8. Koşul ve döngü bloklarında ":" kullanılır
+// 9. Operatör önceliği matematiksel kurallara uyar
+// 10. Değişken ve fonksiyon isimleri letter ile başlamalıdır

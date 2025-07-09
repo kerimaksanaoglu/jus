@@ -1,0 +1,155 @@
+# JUS Programming Language .gitignore
+
+# Derleme çıktıları / Build outputs
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# Ana executable
+jus
+jus.exe
+
+# Debug dosyaları / Debug files
+*.pdb
+*.dSYM/
+*.dSYM
+*.gdb_history
+
+# Geliştirme araçları / Development tools
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Geçici dosyalar / Temporary files
+*.tmp
+*.temp
+*.log
+*.cache
+
+# Test çıktıları / Test outputs
+test_output/
+test_results/
+*.test
+
+# Bellek analizi / Memory analysis
+*.valgrind
+*.memcheck
+*.sanitizer
+
+# Derleme önbelleği / Build cache
+.build/
+build/
+out/
+bin/
+obj/
+
+# Makefile çıktıları / Makefile outputs
+*.d
+*.dep
+
+# Sistem dosyaları / System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editör yedekleri / Editor backups
+*~
+*.bak
+*.backup
+*.orig
+*.rej
+
+# Paket yöneticisi / Package managers
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# JUS özel dosyalar / JUS specific files
+*.jus.compiled
+*.jus.debug
+*.jus.tokens
+*.jus.ast
+
+# Geliştirme notları / Development notes
+notes.txt
+TODO.txt
+NOTES.md
+dev_notes/
+
+# Kişisel konfigürasyon / Personal configuration
+.env
+.env.local
+.env.development
+.env.production
+config.local.*
+
+# Dış bağımlılıklar / External dependencies
+third_party/
+vendor/
+external/
+
+# Dokümantasyon oluşturma / Documentation generation
+docs/generated/
+*.pdf
+*.docx
+*.doc
+
+# Performans analizi / Performance analysis
+*.prof
+*.perf
+*.gprof
+
+# Coverage raporları / Coverage reports
+*.gcov
+*.gcda
+*.gcno
+coverage/
+htmlcov/
+
+# Dil dosyaları / Language files
+*.pot
+*.po
+*.mo
+
+# Arşiv dosyaları / Archive files
+*.tar.gz
+*.zip
+*.7z
+*.rar
+
+# IDE ve editör dosyaları / IDE and editor files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+*.code-workspace
+
+# Windows
+*.lnk
+
+# Linux
+*.desktop
+
+# macOS
+*.app
+
+# Yaygın geliştirme dosyaları / Common development files
+*.patch
+*.diff
+*.rej
+*.orig
+*.conflict

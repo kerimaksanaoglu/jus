@@ -1,0 +1,248 @@
+name: JUS CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup GCC (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc make
+        
+    - name: Setup GCC (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install gcc make
+        
+    - name: Setup MinGW (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        choco install mingw make
+        
+    - name: Build JUS
+      run: make
+      
+    - name: Test basic functionality
+      run: |
+        echo 'yaz "Merhaba JUS!"' > test.jus
+        ./jus test.jus
+      shell: bash
+      
+    - name: Run example tests
+      run: |
+        if [ -f examples/merhaba.jus ]; then
+          ./jus examples/merhaba.jus
+        fi
+        if [ -f examples/turkkod_tam_test.jus ]; then
+          ./jus examples/turkkod_tam_test.jus
+        fi
+      shell: bash
+      
+    - name: Run test suite
+      run: make test
+      
+    - name: Check memory leaks (Linux only)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get install -y valgrind
+        echo 'yaz "Memory test"' > memory_test.jus
+        valgrind --leak-check=full --error-exitcode=1 ./jus memory_test.jus
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/init@v2
+      with:
+        languages: cpp
+        
+    - name: Build for analysis
+      run: make
+      
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+
+  build-release:
+    name: Build Release Binaries
+    needs: [test, security-scan]
+    runs-on: ${{ matrix.os }}
+    if: github.event_name == 'release'
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux-x64
+            artifact: jus
+          - os: windows-latest  
+            name: windows-x64
+            artifact: jus.exe
+          - os: macos-latest
+            name: macos-x64
+            artifact: jus
+            
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup build environment
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          sudo apt-get update && sudo apt-get install -y gcc make
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+          brew install gcc make
+        elif [ "$RUNNER_OS" == "Windows" ]; then
+          choco install mingw make
+        fi
+      shell: bash
+      
+    - name: Build JUS Release
+      run: make clean && make
+      
+    - name: Test release build
+      run: |
+        echo 'yaz "Release test"' > release_test.jus
+        ./${{ matrix.artifact }} release_test.jus
+      shell: bash
+      
+    - name: Create release package
+      run: |
+        mkdir -p release
+        cp ${{ matrix.artifact }} release/
+        cp README.md release/
+        cp LICENSE release/
+        cp CHANGELOG.md release/
+        cp -r examples release/
+        tar -czf jus-${{ matrix.name }}.tar.gz -C release .
+      shell: bash
+      
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./jus-${{ matrix.name }}.tar.gz
+        asset_name: jus-${{ matrix.name }}.tar.gz
+        asset_content_type: application/gzip
+
+  docker-build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: |
+          ghcr.io/kerimaksanaoglu/jus:latest
+          ghcr.io/kerimaksanaoglu/jus:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  performance-test:
+    name: Performance Testing
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc make time
+        
+    - name: Build JUS
+      run: make
+      
+    - name: Performance benchmark
+      run: |
+        echo 'Creating performance test...'
+        cat > perf_test.jus << 'EOF'
+        // Performance test
+        yaz "Performance test başlıyor..."
+        
+        // Matematik işlemleri
+        a = 1
+        b = 2
+        c = 3
+        
+        // Tekrarlayan hesaplamalar
+        i = 0
+        toplam = 0
+        
+        // Basit döngü simülasyonu
+        toplam = toplam + (a * b) + (c / 2)
+        toplam = toplam + (a * b) + (c / 2)
+        toplam = toplam + (a * b) + (c / 2)
+        
+        yaz "Toplam: " + toplam
+        yaz "Performance test tamamlandı"
+        EOF
+        
+        echo 'Running performance test...'
+        time ./jus perf_test.jus
+        
+    - name: Memory usage test
+      run: |
+        echo 'Creating memory test...'
+        cat > memory_test.jus << 'EOF'
+        // Memory test
+        yaz "Memory test başlıyor..."
+        
+        // String operations
+        str1 = "JUS"
+        str2 = "Programming"
+        str3 = "Language"
+        
+        result = str1 + " " + str2 + " " + str3
+        yaz result
+        
+        // Türkiye özellikleri
+        yaz turkiye_sehir_mi("Istanbul")
+        yaz tc_kimlik_gecerli("12345678901")
+        yaz tl_formatla(1000)
+        
+        yaz "Memory test tamamlandı"
+        EOF
+        
+        echo 'Running memory test...'
+        /usr/bin/time -v ./jus memory_test.jus
