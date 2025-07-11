@@ -21,7 +21,6 @@
 #define YANLIS_KEYWORD   "yanlış"
 #define BOSLUK_KEYWORD   "boşluk"
 
-/* Yeni Türkçe Anahtar Kelimeler - TürkKod 2053 Vizyonu */
 // Kontrol Yapıları
 #define BASLAT_KEYWORD    "başlat"
 #define BITIR_KEYWORD     "bitir"
