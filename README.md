@@ -18,6 +18,26 @@
 
 ---
 
+## 🎯 Atatürk'ün Vizyonu
+
+<div align="center">
+
+> **"Gelecek, bilim, teknoloji ve modernlikte gizlidir."**
+>
+> *Mustafa Kemal Atatürk*
+
+**JUS**, Atatürk'ün bu vizyoner sözünden ilham alarak, Türkiye'nin teknoloji alanında bağımsızlığını destekleyen milli bir programlama dilidir. Bilimsel düşünce ve teknolojik ilerleme ile modern Türkiye'nin geleceğini şekillendirme misyonuyla doğmuştur.
+
+> **"Gençlik, gelecek sizindir."**
+>
+> *Mustafa Kemal Atatürk*
+
+JUS, Türk gençlerinin teknoloji üretiminde dünya lideri olması ve ana dillerinde kod yazarak küresel sahneye çıkması için geliştirilmiştir.
+
+</div>
+
+---
+
 ## 🌟 JUS Nedir?
 
 **JUS**, Türkiye'nin milli programlama dili vizyonuyla ortaya çıkan, ana dilde kod yazma deneyimi sunan modern bir programlama dilidir. Türkçe anahtar kelimeler ve Türkiye'ye özel özelliklerle donatılmış olan JUS, hem eğitim hem de profesyonel geliştirme alanında kullanılmak üzere tasarlanmıştır.
