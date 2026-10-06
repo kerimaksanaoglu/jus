@@ -1,0 +1,4 @@
+# kod: 65
+# hata: 'yakala' kendisinden önce bir 'dene' bloğu olmadan kullanılamaz.
+yakala hata:
+    yaz(1)

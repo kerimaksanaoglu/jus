@@ -14,6 +14,7 @@ typedef enum {
     /* Anahtar kelimeler */
     TOKEN_AND,      /* ve */
     TOKEN_BREAK,    /* kır */
+    TOKEN_CATCH,    /* yakala */
     TOKEN_CONTINUE, /* devam */
     TOKEN_ELSE,     /* değilse */
     TOKEN_FALSE,    /* yanlış */
@@ -25,7 +26,9 @@ typedef enum {
     TOKEN_NOT,      /* değil */
     TOKEN_OR,       /* veya */
     TOKEN_RETURN,   /* dön */
+    TOKEN_THROW,    /* fırlat */
     TOKEN_TRUE,     /* doğru */
+    TOKEN_TRY,      /* dene */
     TOKEN_VAR,      /* değişken */
     TOKEN_WHILE,    /* iken */
     /* Satır ve blok yapısı */

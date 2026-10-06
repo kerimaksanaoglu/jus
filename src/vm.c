@@ -20,20 +20,33 @@ static void resetStack(void) {
     vm.stackTop = vm.stack;
     vm.frameCount = 0;
     vm.openUpvalues = NULL;
+    vm.handlerCount = 0;
+    vm.hasThrownValue = false;
+    vm.thrown = NIL_VAL;
 }
 
+/* Hatayı kaydeder. Yakalanıp yakalanmayacağına handleError karar verir. */
 static void runtimeError(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    vsnprintf(vm.errorMessage, sizeof(vm.errorMessage), format, args);
+    va_end(args);
+    vm.hasThrownValue = false;
+}
+
+/* Yakalanmayan hatayı çağrı zinciriyle birlikte yazar. */
+static void reportError(void) {
     fflush(stdout);
 
     CallFrame *top = &vm.frames[vm.frameCount - 1];
     size_t instruction = (size_t)(top->ip - top->closure->function->chunk.code - 1);
     fprintf(stderr, "%s:%d: çalışma zamanı hatası: ", vm.sourceName,
             top->closure->function->chunk.lines[instruction]);
-
-    va_list args;
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    va_end(args);
+    if (vm.hasThrownValue) {
+        printValue(stderr, vm.thrown, false);
+    } else {
+        fputs(vm.errorMessage, stderr);
+    }
     fputs("\n", stderr);
 
     /* Hata bir fonksiyonun içindeyse çağrı zincirini göster. */
@@ -56,8 +69,6 @@ static void runtimeError(const char *format, ...) {
             shown++;
         }
     }
-
-    resetStack();
 }
 
 bool nativeFail(const char *format, ...) {
@@ -205,6 +216,34 @@ static void closeUpvalues(Value *last) {
         upvalue->location = &upvalue->closed;
         vm.openUpvalues = upvalue->next;
     }
+}
+
+/*
+ * Bekleyen hatayı işler. Etkin bir 'dene' bloğu varsa yığını o bloğun başındaki
+ * duruma döndürür, hata değerini yığına koyar ve 'yakala' bloğuna atlar; true
+ * döner. Yoksa hatayı yazar ve false döner.
+ */
+static bool handleError(void) {
+    if (vm.handlerCount == 0) {
+        reportError();
+        resetStack();
+        return false;
+    }
+
+    Handler handler = vm.handlers[--vm.handlerCount];
+    closeUpvalues(handler.stackTop);
+    vm.frameCount = handler.frameCount;
+    vm.stackTop = handler.stackTop;
+    vm.frames[vm.frameCount - 1].ip = handler.ip;
+
+    if (vm.hasThrownValue) {
+        push(vm.thrown);
+    } else {
+        push(OBJ_VAL(copyString(vm.errorMessage, (int)strlen(vm.errorMessage))));
+    }
+    vm.hasThrownValue = false;
+    vm.thrown = NIL_VAL;
+    return true;
 }
 
 static void concatenate(void) {
@@ -494,7 +533,7 @@ static InterpretResult run(void) {
         if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) { \
             runtimeError("'%s' işleci iki sayı ister; %s ve %s verildi.", symbol, \
                          valueTypeName(peek(1)), valueTypeName(peek(0))); \
-            return INTERPRET_RUNTIME_ERROR; \
+            goto on_error; \
         } \
         double b = AS_NUMBER(pop()); \
         double a = AS_NUMBER(pop()); \
@@ -513,7 +552,7 @@ static InterpretResult run(void) {
         } else { \
             runtimeError("'%s' işleci iki sayı ya da iki metin ister; %s ve %s verildi.", symbol, \
                          valueTypeName(peek(1)), valueTypeName(peek(0))); \
-            return INTERPRET_RUNTIME_ERROR; \
+            goto on_error; \
         } \
     } while (false)
 
@@ -545,7 +584,7 @@ static InterpretResult run(void) {
                 if (!tableGet(&vm.globals, name, &value)) {
                     runtimeError("'%s' adında bir değişken ya da fonksiyon tanımlı değil.",
                                  name->chars);
-                    return INTERPRET_RUNTIME_ERROR;
+                    goto on_error;
                 }
                 push(value);
                 break;
@@ -562,7 +601,7 @@ static InterpretResult run(void) {
                     tableDelete(&vm.globals, name);
                     runtimeError("'%s' adında bir değişken tanımlı değil. Yeni değişken için "
                                  "'değişken %s = ...' yazın.", name->chars, name->chars);
-                    return INTERPRET_RUNTIME_ERROR;
+                    goto on_error;
                 }
                 break;
             }
@@ -605,7 +644,7 @@ static InterpretResult run(void) {
                     runtimeError("'+' işleci iki sayı, iki metin ya da iki liste ister; %s ve %s verildi. "
                                  "Dönüştürmek için metin() ya da sayı() kullanılabilir.",
                                  valueTypeName(peek(1)), valueTypeName(peek(0)));
-                    return INTERPRET_RUNTIME_ERROR;
+                    goto on_error;
                 }
                 break;
             }
@@ -614,7 +653,7 @@ static InterpretResult run(void) {
             case OP_DIVIDE: {
                 if (IS_NUMBER(peek(0)) && AS_NUMBER(peek(0)) == 0 && IS_NUMBER(peek(1))) {
                     runtimeError("Sıfıra bölünemez.");
-                    return INTERPRET_RUNTIME_ERROR;
+                    goto on_error;
                 }
                 BINARY_OP(NUMBER_VAL, /, "/");
                 break;
@@ -623,11 +662,11 @@ static InterpretResult run(void) {
                 if (!IS_NUMBER(peek(0)) || !IS_NUMBER(peek(1))) {
                     runtimeError("'%%' işleci iki sayı ister; %s ve %s verildi.",
                                  valueTypeName(peek(1)), valueTypeName(peek(0)));
-                    return INTERPRET_RUNTIME_ERROR;
+                    goto on_error;
                 }
                 if (AS_NUMBER(peek(0)) == 0) {
                     runtimeError("Sıfıra göre kalan hesaplanamaz.");
-                    return INTERPRET_RUNTIME_ERROR;
+                    goto on_error;
                 }
                 double b = AS_NUMBER(pop());
                 double a = AS_NUMBER(pop());
@@ -641,14 +680,14 @@ static InterpretResult run(void) {
                 if (!IS_BOOL(peek(0))) {
                     runtimeError("'değil' mantıksal bir değer ister; %s verildi.",
                                  valueTypeName(peek(0)));
-                    return INTERPRET_RUNTIME_ERROR;
+                    goto on_error;
                 }
                 push(BOOL_VAL(!AS_BOOL(pop())));
                 break;
             case OP_NEGATE:
                 if (!IS_NUMBER(peek(0))) {
                     runtimeError("'-' işleci bir sayı ister; %s verildi.", valueTypeName(peek(0)));
-                    return INTERPRET_RUNTIME_ERROR;
+                    goto on_error;
                 }
                 push(NUMBER_VAL(-AS_NUMBER(pop())));
                 break;
@@ -656,7 +695,7 @@ static InterpretResult run(void) {
                 if (!IS_BOOL(peek(0))) {
                     runtimeError("'ve' / 'veya' mantıksal değerler ister; %s verildi.",
                                  valueTypeName(peek(0)));
-                    return INTERPRET_RUNTIME_ERROR;
+                    goto on_error;
                 }
                 break;
             case OP_ECHO: {
@@ -677,7 +716,7 @@ static InterpretResult run(void) {
                 if (!IS_BOOL(peek(0))) {
                     runtimeError("Koşul mantıksal bir değer (doğru/yanlış) olmalı; %s verildi.",
                                  valueTypeName(peek(0)));
-                    return INTERPRET_RUNTIME_ERROR;
+                    goto on_error;
                 }
                 if (!AS_BOOL(pop())) frame->ip += offset;
                 break;
@@ -687,7 +726,7 @@ static InterpretResult run(void) {
                 if (!IS_BOOL(peek(0))) {
                     runtimeError("'ve' mantıksal değerler ister; %s verildi.",
                                  valueTypeName(peek(0)));
-                    return INTERPRET_RUNTIME_ERROR;
+                    goto on_error;
                 }
                 if (!AS_BOOL(peek(0))) {
                     /* Sonuç yanlış; sağ tarafı ve denetimini atla. */
@@ -702,7 +741,7 @@ static InterpretResult run(void) {
                 if (!IS_BOOL(peek(0))) {
                     runtimeError("'veya' mantıksal değerler ister; %s verildi.",
                                  valueTypeName(peek(0)));
-                    return INTERPRET_RUNTIME_ERROR;
+                    goto on_error;
                 }
                 if (AS_BOOL(peek(0))) {
                     frame->ip += offset;
@@ -719,7 +758,7 @@ static InterpretResult run(void) {
             case OP_CALL: {
                 int argCount = READ_BYTE();
                 if (!callValue(peek(argCount), argCount)) {
-                    return INTERPRET_RUNTIME_ERROR;
+                    goto on_error;
                 }
                 frame = &vm.frames[vm.frameCount - 1];
                 break;
@@ -760,7 +799,7 @@ static InterpretResult run(void) {
                 push(OBJ_VAL(map));
                 Value *pairs = vm.stackTop - 1 - count * 2;
                 for (int i = 0; i < count; i++) {
-                    if (!checkKey(pairs[i * 2])) return INTERPRET_RUNTIME_ERROR;
+                    if (!checkKey(pairs[i * 2])) goto on_error;
                     mapSet(map, pairs[i * 2], pairs[i * 2 + 1]);
                 }
                 vm.stackTop -= count * 2 + 1;
@@ -768,13 +807,13 @@ static InterpretResult run(void) {
                 break;
             }
             case OP_GET_INDEX:
-                if (!getIndex()) return INTERPRET_RUNTIME_ERROR;
+                if (!getIndex()) goto on_error;
                 break;
             case OP_SET_INDEX:
-                if (!setIndex()) return INTERPRET_RUNTIME_ERROR;
+                if (!setIndex()) goto on_error;
                 break;
             case OP_SLICE:
-                if (!slice()) return INTERPRET_RUNTIME_ERROR;
+                if (!slice()) goto on_error;
                 break;
             case OP_DUP2: {
                 Value a = peek(1);
@@ -784,18 +823,42 @@ static InterpretResult run(void) {
                 break;
             }
             case OP_IN:
-                if (!contains()) return INTERPRET_RUNTIME_ERROR;
+                if (!contains()) goto on_error;
                 break;
             case OP_FOR_NEXT: {
                 uint16_t offset = READ_SHORT();
                 bool done;
-                if (!forNext(&done)) return INTERPRET_RUNTIME_ERROR;
+                if (!forNext(&done)) goto on_error;
                 if (done) frame->ip += offset;
                 break;
             }
+            case OP_TRY_BEGIN: {
+                uint16_t offset = READ_SHORT();
+                if (vm.handlerCount == HANDLERS_MAX) {
+                    runtimeError("Çok fazla iç içe 'dene' bloğu var.");
+                    goto on_error;
+                }
+                Handler *handler = &vm.handlers[vm.handlerCount++];
+                handler->frameCount = vm.frameCount;
+                handler->stackTop = vm.stackTop;
+                handler->ip = frame->ip + offset;
+                break;
+            }
+            case OP_TRY_END:
+                vm.handlerCount--;
+                break;
+            case OP_THROW:
+                vm.thrown = pop();
+                vm.hasThrownValue = true;
+                goto on_error;
             case OP_RETURN: {
                 Value result = pop();
                 closeUpvalues(frame->slots);
+                /* Bu çağrının içinde kurulmuş yakalayıcılar artık geçersiz. */
+                while (vm.handlerCount > 0 &&
+                       vm.handlers[vm.handlerCount - 1].frameCount == vm.frameCount) {
+                    vm.handlerCount--;
+                }
                 vm.frameCount--;
                 if (vm.frameCount == 0) {
                     pop();
@@ -808,6 +871,11 @@ static InterpretResult run(void) {
                 break;
             }
         }
+        continue;
+
+    on_error:
+        if (!handleError()) return INTERPRET_RUNTIME_ERROR;
+        frame = &vm.frames[vm.frameCount - 1];
     }
 
 #undef READ_BYTE

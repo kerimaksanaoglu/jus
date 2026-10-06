@@ -1,0 +1,115 @@
+# dene / yakala / fırlat
+dene:
+    yaz("önce")             # bekle: önce
+    yaz(1 / 0)
+    yaz("çalışmamalı")
+yakala hata:
+    yaz("yakalandı:", hata) # bekle: yakalandı: Sıfıra bölünemez.
+yaz("devam")                # bekle: devam
+
+# Hata yoksa yakala bloğu çalışmaz
+dene:
+    yaz("sorunsuz")         # bekle: sorunsuz
+yakala hata:
+    yaz("çalışmamalı")
+
+# fırlat her türden değer atabilir
+dene:
+    fırlat {"kod": 404, "ileti": "bulunamadı"}
+yakala h:
+    yaz(h["kod"], h["ileti"])   # bekle: 404 bulunamadı
+
+# Değişkensiz yakala
+dene:
+    fırlat "önemsiz"
+yakala:
+    yaz("ad verilmeden yakalandı")   # bekle: ad verilmeden yakalandı
+
+# Hata fonksiyon çağrılarının içinden yukarı taşınır; yereller temizlenir
+fonksiyon derin(n):
+    değişken yerel = [n]
+    eğer n == 0:
+        fırlat "dipte hata"
+    dön derin(n - 1)
+
+fonksiyon güvenli():
+    değişken a = 1
+    değişken b = 2
+    dene:
+        değişken c = 3
+        derin(50)
+    yakala hata:
+        dön metin(a + b) + ": " + hata
+    dön "ulaşılmamalı"
+
+yaz(güvenli())              # bekle: 3: dipte hata
+
+# İç içe dene blokları ve yeniden fırlatma
+dene:
+    dene:
+        fırlat "iç"
+    yakala hata:
+        yaz("iç yakaladı:", hata)   # bekle: iç yakaladı: iç
+        fırlat "dış için " + hata
+yakala hata:
+    yaz("dış yakaladı:", hata)      # bekle: dış yakaladı: dış için iç
+
+# dene içinden dön, kır ve devam
+fonksiyon erken():
+    dene:
+        dön "dene içinden döndü"
+    yakala:
+        dön "yanlış"
+
+yaz(erken())                # bekle: dene içinden döndü
+dene:
+    fırlat "erken() sonrası yakalayıcılar doğru"
+yakala hata:
+    yaz(hata)               # bekle: erken() sonrası yakalayıcılar doğru
+
+değişken toplam = 0
+her i içinde aralık(6):
+    dene:
+        eğer i == 1:
+            devam
+        eğer i == 4:
+            kır
+        eğer i == 2:
+            fırlat "iki"
+        toplam += i
+    yakala hata:
+        toplam += 100
+yaz(toplam)                 # bekle: 103
+dene:
+    fırlat "döngü sonrası yakalayıcılar doğru"
+yakala hata:
+    yaz(hata)               # bekle: döngü sonrası yakalayıcılar doğru
+
+# Yerleşik fonksiyon hataları ve tür hataları da yakalanır
+dene:
+    sayı("abc")
+yakala hata:
+    yaz(hata)               # bekle: "abc" bir sayıya dönüştürülemez.
+dene:
+    yaz([1, 2][7])
+yakala hata:
+    yaz(hata)               # bekle: Dizin sınırların dışında: uzunluk 2, istenen dizin 7.
+
+# Kapanımın yakaladığı değişken hatadan sonra da geçerli
+değişken oku_ = boş
+dene:
+    değişken gizli = "saklı"
+    fonksiyon ver():
+        dön gizli
+    oku_ = ver
+    fırlat "x"
+yakala:
+    yaz(oku_())             # bekle: saklı
+
+# Sonsuz özyineleme yakalanabilir
+fonksiyon sonsuz():
+    dön sonsuz() + 1
+dene:
+    sonsuz()
+yakala hata:
+    yaz(başlar_mı(hata, "Yığın taştı"))   # bekle: doğru

@@ -49,6 +49,9 @@ typedef enum {
     OP_DUP2,           /* yığının tepesindeki iki değeri çoğaltır */
     OP_IN,             /* [öğe, kap] -> mantıksal */
     OP_FOR_NEXT,       /* (u16 uzaklık) [kap, imleç] -> sıradaki öğeyi ekler ya da atlar */
+    OP_TRY_BEGIN,      /* (u16 uzaklık) hata yakalayıcı kurar; uzaklık 'yakala' bloğunu gösterir */
+    OP_TRY_END,        /* en son kurulan yakalayıcıyı kaldırır */
+    OP_THROW,          /* yığının tepesindeki değeri hata olarak fırlatır */
     OP_RETURN
 } OpCode;
 

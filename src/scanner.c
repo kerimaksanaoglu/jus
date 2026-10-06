@@ -28,6 +28,9 @@ typedef struct {
 static const Keyword keywords[] = {
     {"ve", TOKEN_AND},
     {"kır", TOKEN_BREAK},
+    {"yakala", TOKEN_CATCH},
+    {"fırlat", TOKEN_THROW},
+    {"dene", TOKEN_TRY},
     {"devam", TOKEN_CONTINUE},
     {"değilse", TOKEN_ELSE},
     {"yanlış", TOKEN_FALSE},

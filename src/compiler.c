@@ -65,6 +65,7 @@ typedef struct Loop {
     struct Loop *enclosing;
     int start;
     int scopeDepth;
+    int tryDepth;
     int breakJumps[MAX_LOOP_BREAKS];
     int breakCount;
 } Loop;
@@ -78,6 +79,7 @@ typedef struct Compiler {
     int localCount;
     Upvalue upvalues[UINT8_COUNT];
     int scopeDepth;
+    int tryDepth; /* içinde bulunulan 'dene' bloklarının sayısı */
     Loop *loop;
 } Compiler;
 
@@ -237,6 +239,7 @@ static void initCompiler(Compiler *compiler, FunctionType type) {
     compiler->type = type;
     compiler->localCount = 0;
     compiler->scopeDepth = 0;
+    compiler->tryDepth = 0;
     compiler->loop = NULL;
     compiler->function = newFunction();
     current = compiler;
@@ -692,6 +695,9 @@ static const ParseRule rules[] = {
     [TOKEN_NUMBER]        = {number,   NULL,   PREC_NONE},
     [TOKEN_AND]           = {NULL,     and_,   PREC_AND},
     [TOKEN_BREAK]         = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_CATCH]         = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_THROW]         = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_TRY]           = {NULL,     NULL,   PREC_NONE},
     [TOKEN_CONTINUE]      = {NULL,     NULL,   PREC_NONE},
     [TOKEN_ELSE]          = {NULL,     NULL,   PREC_NONE},
     [TOKEN_FALSE]         = {literal,  NULL,   PREC_NONE},
@@ -858,6 +864,7 @@ static void whileStatement(void) {
     loop.enclosing = current->loop;
     loop.start = currentChunk()->count;
     loop.scopeDepth = current->scopeDepth;
+    loop.tryDepth = current->tryDepth;
     loop.breakCount = 0;
     current->loop = &loop;
 
@@ -904,6 +911,7 @@ static void forStatement(void) {
     loop.enclosing = current->loop;
     loop.start = currentChunk()->count;
     loop.scopeDepth = current->scopeDepth;
+    loop.tryDepth = current->tryDepth;
     loop.breakCount = 0;
     current->loop = &loop;
 
@@ -925,8 +933,43 @@ static void forStatement(void) {
     endScope();
 }
 
+/* dene: blok yakala [ad]: blok */
+static void tryStatement(void) {
+    int handlerJump = emitJump(OP_TRY_BEGIN);
+    current->tryDepth++;
+    scopedBlock();
+    current->tryDepth--;
+    emitByte(OP_TRY_END);
+    int endJump = emitJump(OP_JUMP);
+
+    /* Hata oluşursa sanal makine yığını 'dene' öncesine döndürür ve hata değerini ekler. */
+    patchJump(handlerJump);
+    consume(TOKEN_CATCH, "'dene' bloğundan sonra 'yakala' bekleniyor.");
+    beginScope();
+    if (match(TOKEN_IDENTIFIER)) {
+        addLocal(parser.previous);
+        markInitialized();
+    } else {
+        addHiddenLocal();
+    }
+    block();
+    endScope();
+
+    patchJump(endJump);
+}
+
+static void throwStatement(void) {
+    expression();
+    endStatement();
+    emitByte(OP_THROW);
+}
+
 /* Döngüden çıkarken ya da başa dönerken döngü içindeki yerelleri yığından at. */
 static void discardLoopLocals(void) {
+    /* Döngünün içindeki 'dene' bloklarından çıkılıyorsa yakalayıcılarını kaldır. */
+    for (int i = current->tryDepth; i > current->loop->tryDepth; i--) {
+        emitByte(OP_TRY_END);
+    }
     for (int i = current->localCount - 1;
          i >= 0 && current->locals[i].depth > current->loop->scopeDepth; i--) {
         emitByte(current->locals[i].isCaptured ? OP_CLOSE_UPVALUE : OP_POP);
@@ -1004,6 +1047,12 @@ static void statement(void) {
         whileStatement();
     } else if (match(TOKEN_FOR)) {
         forStatement();
+    } else if (match(TOKEN_TRY)) {
+        tryStatement();
+    } else if (match(TOKEN_THROW)) {
+        throwStatement();
+    } else if (match(TOKEN_CATCH)) {
+        error("'yakala' kendisinden önce bir 'dene' bloğu olmadan kullanılamaz.");
     } else if (match(TOKEN_RETURN)) {
         returnStatement();
     } else if (match(TOKEN_BREAK)) {

@@ -7,6 +7,7 @@
 
 #define FRAMES_MAX 1024
 #define STACK_MAX (FRAMES_MAX * 64)
+#define HANDLERS_MAX 256
 
 typedef struct {
     ObjClosure *closure;
@@ -14,9 +15,23 @@ typedef struct {
     Value *slots;
 } CallFrame;
 
+/* Bir 'dene' bloğuna girilirken kaydedilen durum. */
+typedef struct {
+    int frameCount;
+    Value *stackTop;
+    uint8_t *ip; /* 'yakala' bloğunun başlangıcı */
+} Handler;
+
 typedef struct {
     CallFrame frames[FRAMES_MAX];
     int frameCount;
+
+    Handler handlers[HANDLERS_MAX];
+    int handlerCount;
+    /* Bekleyen hata: 'fırlat' ile atılan değer ya da çalışma zamanı hata iletisi. */
+    bool hasThrownValue;
+    Value thrown;
+    char errorMessage[512];
 
     Value *stack;
     Value *stackTop;
