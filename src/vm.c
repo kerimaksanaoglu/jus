@@ -9,6 +9,7 @@
 #include "compiler.h"
 #include "memory.h"
 #include "object.h"
+#include "text.h"
 #include "vm.h"
 
 #define TRACE_LIMIT 10
@@ -223,6 +224,264 @@ static void concatenate(void) {
     push(OBJ_VAL(result));
 }
 
+static bool integerValue(Value value, int *out) {
+    if (!IS_NUMBER(value)) return false;
+    double number = AS_NUMBER(value);
+    if (number != floor(number) || number < -2147483648.0 || number > 2147483647.0) return false;
+    *out = (int)number;
+    return true;
+}
+
+/* Dizini doğrular; negatif dizinler sondan sayılır. Hata durumunda ileti yazar. */
+static bool checkIndex(Value indexValue, int count, const char *kind, int *out) {
+    int index;
+    if (!integerValue(indexValue, &index)) {
+        char *shown = valueToChars(indexValue, true, NULL);
+        runtimeError("%s dizini bir tam sayı olmalı; %s verildi.", kind, shown);
+        free(shown);
+        return false;
+    }
+
+    int resolved = index < 0 ? index + count : index;
+    if (resolved < 0 || resolved >= count) {
+        runtimeError("Dizin sınırların dışında: uzunluk %d, istenen dizin %d.", count, index);
+        return false;
+    }
+    *out = resolved;
+    return true;
+}
+
+static bool checkKey(Value key) {
+    if (isHashable(key)) return true;
+    runtimeError("Sözlük anahtarı metin, sayı ya da mantıksal olmalı; %s verildi.",
+                 valueTypeName(key));
+    return false;
+}
+
+/* [kap, dizin] -> değer */
+static bool getIndex(void) {
+    Value container = peek(1);
+    Value index = peek(0);
+    Value result;
+
+    if (IS_LIST(container)) {
+        ObjList *list = AS_LIST(container);
+        int i;
+        if (!checkIndex(index, list->count, "Liste", &i)) return false;
+        result = list->items[i];
+    } else if (IS_STRING(container)) {
+        ObjString *string = AS_STRING(container);
+        int i;
+        if (!checkIndex(index, utf8Length(string->chars, string->length), "Metin", &i)) return false;
+        int start = utf8Offset(string->chars, string->length, i);
+        uint32_t codePoint;
+        int size = utf8Decode(string->chars + start, string->length - start, &codePoint);
+        result = OBJ_VAL(copyString(string->chars + start, size));
+    } else if (IS_MAP(container)) {
+        if (!checkKey(index)) return false;
+        if (!mapGet(AS_MAP(container), index, &result)) {
+            char *shown = valueToChars(index, true, NULL);
+            runtimeError("Sözlükte %s anahtarı yok.", shown);
+            free(shown);
+            return false;
+        }
+    } else {
+        runtimeError("Yalnızca liste, metin ve sözlük dizinlenebilir; %s verildi.",
+                     valueTypeName(container));
+        return false;
+    }
+
+    pop();
+    pop();
+    push(result);
+    return true;
+}
+
+/* [kap, dizin, değer] -> değer */
+static bool setIndex(void) {
+    Value container = peek(2);
+    Value index = peek(1);
+    Value value = peek(0);
+
+    if (IS_LIST(container)) {
+        ObjList *list = AS_LIST(container);
+        int i;
+        if (!checkIndex(index, list->count, "Liste", &i)) return false;
+        list->items[i] = value;
+    } else if (IS_MAP(container)) {
+        if (!checkKey(index)) return false;
+        mapSet(AS_MAP(container), index, value);
+    } else if (IS_STRING(container)) {
+        runtimeError("Metinler değiştirilemez; yeni bir metin oluşturun.");
+        return false;
+    } else {
+        runtimeError("Yalnızca liste ve sözlük öğelerine değer atanabilir; %s verildi.",
+                     valueTypeName(container));
+        return false;
+    }
+
+    pop();
+    pop();
+    pop();
+    push(value);
+    return true;
+}
+
+static bool sliceBound(Value bound, int count, int fallback, int *out) {
+    if (IS_NIL(bound)) {
+        *out = fallback;
+        return true;
+    }
+    int index;
+    if (!integerValue(bound, &index)) {
+        runtimeError("Dilim sınırları tam sayı olmalı; %s verildi.", valueTypeName(bound));
+        return false;
+    }
+    if (index < 0) index += count;
+    if (index < 0) index = 0;
+    if (index > count) index = count;
+    *out = index;
+    return true;
+}
+
+/* [kap, baş, son] -> dilim */
+static bool slice(void) {
+    Value container = peek(2);
+    Value result;
+
+    if (IS_LIST(container)) {
+        ObjList *list = AS_LIST(container);
+        int start, end;
+        if (!sliceBound(peek(1), list->count, 0, &start)) return false;
+        if (!sliceBound(peek(0), list->count, list->count, &end)) return false;
+
+        ObjList *sliced = newList();
+        result = OBJ_VAL(sliced);
+        push(result);
+        for (int i = start; i < end; i++) {
+            listAppend(sliced, list->items[i]);
+        }
+        pop();
+    } else if (IS_STRING(container)) {
+        ObjString *string = AS_STRING(container);
+        int count = utf8Length(string->chars, string->length);
+        int start, end;
+        if (!sliceBound(peek(1), count, 0, &start)) return false;
+        if (!sliceBound(peek(0), count, count, &end)) return false;
+        if (end < start) end = start;
+
+        int startByte = utf8Offset(string->chars, string->length, start);
+        int endByte = utf8Offset(string->chars, string->length, end);
+        result = OBJ_VAL(copyString(string->chars + startByte, endByte - startByte));
+    } else {
+        runtimeError("Yalnızca liste ve metinden dilim alınabilir; %s verildi.",
+                     valueTypeName(container));
+        return false;
+    }
+
+    pop();
+    pop();
+    pop();
+    push(result);
+    return true;
+}
+
+/* [öğe, kap] -> mantıksal */
+static bool contains(void) {
+    Value item = peek(1);
+    Value container = peek(0);
+    bool found = false;
+
+    if (IS_LIST(container)) {
+        ObjList *list = AS_LIST(container);
+        for (int i = 0; i < list->count && !found; i++) {
+            found = valuesEqual(list->items[i], item);
+        }
+    } else if (IS_STRING(container)) {
+        if (!IS_STRING(item)) {
+            runtimeError("Bir metnin içinde yalnızca metin aranabilir; %s verildi.",
+                         valueTypeName(item));
+            return false;
+        }
+        ObjString *haystack = AS_STRING(container);
+        ObjString *needle = AS_STRING(item);
+        for (int i = 0; i + needle->length <= haystack->length && !found; i++) {
+            found = memcmp(haystack->chars + i, needle->chars, (size_t)needle->length) == 0;
+        }
+    } else if (IS_MAP(container)) {
+        Value ignored;
+        found = isHashable(item) && mapGet(AS_MAP(container), item, &ignored);
+    } else {
+        runtimeError("'içinde' işlecinin sağ tarafı liste, metin ya da sözlük olmalı; %s verildi.",
+                     valueTypeName(container));
+        return false;
+    }
+
+    pop();
+    pop();
+    push(BOOL_VAL(found));
+    return true;
+}
+
+/*
+ * 'her' döngüsünün bir adımı. Yığının tepesinde [kap, imleç] durur. Sıradaki
+ * öğe varsa yığına ekler ve *done yanlış olur; kap bittiyse *done doğru olur.
+ */
+static bool forNext(bool *done) {
+    Value container = peek(1);
+    int cursor = (int)AS_NUMBER(peek(0));
+    *done = false;
+
+    if (IS_LIST(container)) {
+        ObjList *list = AS_LIST(container);
+        if (cursor >= list->count) {
+            *done = true;
+            return true;
+        }
+        vm.stackTop[-1] = NUMBER_VAL(cursor + 1);
+        push(list->items[cursor]);
+    } else if (IS_STRING(container)) {
+        ObjString *string = AS_STRING(container);
+        if (cursor >= string->length) {
+            *done = true;
+            return true;
+        }
+        uint32_t codePoint;
+        int size = utf8Decode(string->chars + cursor, string->length - cursor, &codePoint);
+        vm.stackTop[-1] = NUMBER_VAL(cursor + size);
+        push(OBJ_VAL(copyString(string->chars + cursor, size)));
+    } else if (IS_MAP(container)) {
+        ObjMap *map = AS_MAP(container);
+        while (cursor < map->used && !map->entries[cursor].live) cursor++;
+        if (cursor >= map->used) {
+            *done = true;
+            return true;
+        }
+        vm.stackTop[-1] = NUMBER_VAL(cursor + 1);
+        push(map->entries[cursor].key);
+    } else {
+        runtimeError("'her' döngüsü liste, metin ya da sözlük üzerinde gezinir; %s verildi.",
+                     valueTypeName(container));
+        return false;
+    }
+    return true;
+}
+
+static void concatenateLists(void) {
+    ObjList *b = AS_LIST(peek(0));
+    ObjList *a = AS_LIST(peek(1));
+
+    ObjList *result = newList();
+    push(OBJ_VAL(result));
+    for (int i = 0; i < a->count; i++) listAppend(result, a->items[i]);
+    for (int i = 0; i < b->count; i++) listAppend(result, b->items[i]);
+    pop();
+
+    pop();
+    pop();
+    push(OBJ_VAL(result));
+}
+
 static InterpretResult run(void) {
     CallFrame *frame = &vm.frames[vm.frameCount - 1];
 
@@ -240,6 +499,22 @@ static InterpretResult run(void) {
         double b = AS_NUMBER(pop()); \
         double a = AS_NUMBER(pop()); \
         push(valueType(a op b)); \
+    } while (false)
+#define COMPARE_OP(op, symbol) \
+    do { \
+        if (IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))) { \
+            double b = AS_NUMBER(pop()); \
+            double a = AS_NUMBER(pop()); \
+            push(BOOL_VAL(a op b)); \
+        } else if (IS_STRING(peek(0)) && IS_STRING(peek(1))) { \
+            ObjString *b = AS_STRING(pop()); \
+            ObjString *a = AS_STRING(pop()); \
+            push(BOOL_VAL(trCompare(a->chars, a->length, b->chars, b->length) op 0)); \
+        } else { \
+            runtimeError("'%s' işleci iki sayı ya da iki metin ister; %s ve %s verildi.", symbol, \
+                         valueTypeName(peek(1)), valueTypeName(peek(0))); \
+            return INTERPRET_RUNTIME_ERROR; \
+        } \
     } while (false)
 
     for (;;) {
@@ -313,10 +588,10 @@ static InterpretResult run(void) {
                 push(BOOL_VAL(!valuesEqual(a, b)));
                 break;
             }
-            case OP_GREATER: BINARY_OP(BOOL_VAL, >, ">"); break;
-            case OP_GREATER_EQUAL: BINARY_OP(BOOL_VAL, >=, ">="); break;
-            case OP_LESS: BINARY_OP(BOOL_VAL, <, "<"); break;
-            case OP_LESS_EQUAL: BINARY_OP(BOOL_VAL, <=, "<="); break;
+            case OP_GREATER: COMPARE_OP(>, ">"); break;
+            case OP_GREATER_EQUAL: COMPARE_OP(>=, ">="); break;
+            case OP_LESS: COMPARE_OP(<, "<"); break;
+            case OP_LESS_EQUAL: COMPARE_OP(<=, "<="); break;
             case OP_ADD: {
                 if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {
                     concatenate();
@@ -324,8 +599,10 @@ static InterpretResult run(void) {
                     double b = AS_NUMBER(pop());
                     double a = AS_NUMBER(pop());
                     push(NUMBER_VAL(a + b));
+                } else if (IS_LIST(peek(0)) && IS_LIST(peek(1))) {
+                    concatenateLists();
                 } else {
-                    runtimeError("'+' işleci iki sayı ya da iki metin ister; %s ve %s verildi. "
+                    runtimeError("'+' işleci iki sayı, iki metin ya da iki liste ister; %s ve %s verildi. "
                                  "Dönüştürmek için metin() ya da sayı() kullanılabilir.",
                                  valueTypeName(peek(1)), valueTypeName(peek(0)));
                     return INTERPRET_RUNTIME_ERROR;
@@ -466,6 +743,56 @@ static InterpretResult run(void) {
                 closeUpvalues(vm.stackTop - 1);
                 pop();
                 break;
+            case OP_BUILD_LIST: {
+                int count = READ_SHORT();
+                ObjList *list = newList();
+                push(OBJ_VAL(list));
+                for (int i = 0; i < count; i++) {
+                    listAppend(list, vm.stackTop[-1 - count + i]);
+                }
+                vm.stackTop -= count + 1;
+                push(OBJ_VAL(list));
+                break;
+            }
+            case OP_BUILD_MAP: {
+                int count = READ_SHORT();
+                ObjMap *map = newMap();
+                push(OBJ_VAL(map));
+                Value *pairs = vm.stackTop - 1 - count * 2;
+                for (int i = 0; i < count; i++) {
+                    if (!checkKey(pairs[i * 2])) return INTERPRET_RUNTIME_ERROR;
+                    mapSet(map, pairs[i * 2], pairs[i * 2 + 1]);
+                }
+                vm.stackTop -= count * 2 + 1;
+                push(OBJ_VAL(map));
+                break;
+            }
+            case OP_GET_INDEX:
+                if (!getIndex()) return INTERPRET_RUNTIME_ERROR;
+                break;
+            case OP_SET_INDEX:
+                if (!setIndex()) return INTERPRET_RUNTIME_ERROR;
+                break;
+            case OP_SLICE:
+                if (!slice()) return INTERPRET_RUNTIME_ERROR;
+                break;
+            case OP_DUP2: {
+                Value a = peek(1);
+                Value b = peek(0);
+                push(a);
+                push(b);
+                break;
+            }
+            case OP_IN:
+                if (!contains()) return INTERPRET_RUNTIME_ERROR;
+                break;
+            case OP_FOR_NEXT: {
+                uint16_t offset = READ_SHORT();
+                bool done;
+                if (!forNext(&done)) return INTERPRET_RUNTIME_ERROR;
+                if (done) frame->ip += offset;
+                break;
+            }
             case OP_RETURN: {
                 Value result = pop();
                 closeUpvalues(frame->slots);
@@ -488,6 +815,7 @@ static InterpretResult run(void) {
 #undef READ_CONSTANT
 #undef READ_STRING
 #undef BINARY_OP
+#undef COMPARE_OP
 }
 
 InterpretResult interpret(const char *name, const char *source, bool repl) {

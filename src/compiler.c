@@ -417,6 +417,16 @@ static uint8_t argumentList(void) {
     return (uint8_t)argCount;
 }
 
+/* Bileşik atama işleci (+=, -=, *=, /=) varsa tüketir ve karşılık gelen komutu döndürür. */
+static bool matchCompoundAssign(uint8_t *op) {
+    if (match(TOKEN_PLUS_EQUAL)) *op = OP_ADD;
+    else if (match(TOKEN_MINUS_EQUAL)) *op = OP_SUBTRACT;
+    else if (match(TOKEN_STAR_EQUAL)) *op = OP_MULTIPLY;
+    else if (match(TOKEN_SLASH_EQUAL)) *op = OP_DIVIDE;
+    else return false;
+    return true;
+}
+
 static void and_(bool canAssign) {
     (void)canAssign;
     int endJump = emitJump(OP_AND);
@@ -455,6 +465,7 @@ static void binary(bool canAssign) {
         case TOKEN_STAR: emitByte(OP_MULTIPLY); break;
         case TOKEN_SLASH: emitByte(OP_DIVIDE); break;
         case TOKEN_PERCENT: emitByte(OP_MODULO); break;
+        case TOKEN_IN: emitByte(OP_IN); break;
         default: return; /* ulaşılamaz */
     }
 }
@@ -463,6 +474,76 @@ static void call(bool canAssign) {
     (void)canAssign;
     uint8_t argCount = argumentList();
     emitBytes(OP_CALL, argCount);
+}
+
+/* kap[dizin], kap[baş:son] ve dizine atama. */
+static void subscript(bool canAssign) {
+    bool isSlice = false;
+    if (check(TOKEN_COLON)) {
+        emitByte(OP_NIL);
+    } else {
+        expression();
+    }
+    if (match(TOKEN_COLON)) {
+        isSlice = true;
+        if (check(TOKEN_RIGHT_BRACKET)) {
+            emitByte(OP_NIL);
+        } else {
+            expression();
+        }
+    }
+    consume(TOKEN_RIGHT_BRACKET, "Dizinden sonra ']' bekleniyor.");
+
+    if (isSlice) {
+        emitByte(OP_SLICE);
+        return;
+    }
+
+    uint8_t compoundOp;
+    if (canAssign && match(TOKEN_EQUAL)) {
+        expression();
+        emitByte(OP_SET_INDEX);
+        lastExpressionWasAssignment = true;
+    } else if (canAssign && matchCompoundAssign(&compoundOp)) {
+        emitByte(OP_DUP2);
+        emitByte(OP_GET_INDEX);
+        expression();
+        emitByte(compoundOp);
+        emitByte(OP_SET_INDEX);
+        lastExpressionWasAssignment = true;
+    } else {
+        emitByte(OP_GET_INDEX);
+    }
+}
+
+static void listLiteral(bool canAssign) {
+    (void)canAssign;
+    int count = 0;
+    while (!check(TOKEN_RIGHT_BRACKET) && !check(TOKEN_EOF)) {
+        expression();
+        if (count == UINT16_MAX) error("Bir liste yazımında çok fazla öğe var.");
+        count++;
+        if (!match(TOKEN_COMMA)) break;
+    }
+    consume(TOKEN_RIGHT_BRACKET, "Liste öğelerinden sonra ']' bekleniyor.");
+    emitByte(OP_BUILD_LIST);
+    emitShort(count);
+}
+
+static void mapLiteral(bool canAssign) {
+    (void)canAssign;
+    int count = 0;
+    while (!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
+        expression();
+        consume(TOKEN_COLON, "Sözlük anahtarından sonra ':' bekleniyor.");
+        expression();
+        if (count == UINT16_MAX) error("Bir sözlük yazımında çok fazla öğe var.");
+        count++;
+        if (!match(TOKEN_COMMA)) break;
+    }
+    consume(TOKEN_RIGHT_BRACE, "Sözlük öğelerinden sonra '}' bekleniyor.");
+    emitByte(OP_BUILD_MAP);
+    emitShort(count);
 }
 
 static void literal(bool canAssign) {
@@ -542,8 +623,17 @@ static void namedVariable(Token name, bool canAssign) {
     }
 
     uint8_t op = getOp;
+    uint8_t compoundOp;
     if (canAssign && match(TOKEN_EQUAL)) {
         expression();
+        op = setOp;
+        lastExpressionWasAssignment = true;
+    } else if (canAssign && matchCompoundAssign(&compoundOp)) {
+        emitByte(getOp);
+        if (isGlobal) emitShort(arg);
+        else emitByte((uint8_t)arg);
+        expression();
+        emitByte(compoundOp);
         op = setOp;
         lastExpressionWasAssignment = true;
     }
@@ -575,6 +665,14 @@ static void unary(bool canAssign) {
 static const ParseRule rules[] = {
     [TOKEN_LEFT_PAREN]    = {grouping, call,   PREC_CALL},
     [TOKEN_RIGHT_PAREN]   = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_LEFT_BRACKET]  = {listLiteral, subscript, PREC_CALL},
+    [TOKEN_RIGHT_BRACKET] = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_LEFT_BRACE]    = {mapLiteral, NULL, PREC_NONE},
+    [TOKEN_RIGHT_BRACE]   = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_PLUS_EQUAL]    = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_MINUS_EQUAL]   = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_STAR_EQUAL]    = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_SLASH_EQUAL]   = {NULL,     NULL,   PREC_NONE},
     [TOKEN_COMMA]         = {NULL,     NULL,   PREC_NONE},
     [TOKEN_COLON]         = {NULL,     NULL,   PREC_NONE},
     [TOKEN_MINUS]         = {unary,    binary, PREC_TERM},
@@ -597,8 +695,10 @@ static const ParseRule rules[] = {
     [TOKEN_CONTINUE]      = {NULL,     NULL,   PREC_NONE},
     [TOKEN_ELSE]          = {NULL,     NULL,   PREC_NONE},
     [TOKEN_FALSE]         = {literal,  NULL,   PREC_NONE},
+    [TOKEN_FOR]           = {NULL,     NULL,   PREC_NONE},
     [TOKEN_FUNCTION]      = {NULL,     NULL,   PREC_NONE},
     [TOKEN_IF]            = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_IN]            = {NULL,     binary, PREC_COMPARISON},
     [TOKEN_NIL]           = {literal,  NULL,   PREC_NONE},
     [TOKEN_NOT]           = {not_,     NULL,   PREC_NONE},
     [TOKEN_OR]            = {NULL,     or_,    PREC_OR},
@@ -630,8 +730,9 @@ static void parsePrecedence(Precedence precedence) {
         infixRule(canAssign);
     }
 
-    if (canAssign && match(TOKEN_EQUAL)) {
-        error("Geçersiz atama hedefi; yalnızca değişkenlere değer atanabilir.");
+    uint8_t ignored;
+    if (canAssign && (match(TOKEN_EQUAL) || matchCompoundAssign(&ignored))) {
+        error("Geçersiz atama hedefi; yalnızca değişkenlere ve dizinlere değer atanabilir.");
     }
 }
 
@@ -774,6 +875,56 @@ static void whileStatement(void) {
     current->loop = loop.enclosing;
 }
 
+/* Kullanıcının adıyla erişemeyeceği, derleyicinin kullandığı yerel değişken. */
+static void addHiddenLocal(void) {
+    Token name;
+    name.type = TOKEN_IDENTIFIER;
+    name.start = "";
+    name.length = 0;
+    name.line = parser.previous.line;
+    name.message = NULL;
+    addLocal(name);
+    markInitialized();
+}
+
+/* her ad içinde ifade: blok */
+static void forStatement(void) {
+    beginScope();
+    consume(TOKEN_IDENTIFIER, "'her' sözcüğünden sonra döngü değişkeninin adı bekleniyor.");
+    Token name = parser.previous;
+    consume(TOKEN_IN, "Döngü değişkeninden sonra 'içinde' bekleniyor.");
+
+    /* Gezilen kap ve imleç, döngü boyunca iki gizli yerel değişkende tutulur. */
+    expression();
+    addHiddenLocal();
+    emitConstant(NUMBER_VAL(0));
+    addHiddenLocal();
+
+    Loop loop;
+    loop.enclosing = current->loop;
+    loop.start = currentChunk()->count;
+    loop.scopeDepth = current->scopeDepth;
+    loop.breakCount = 0;
+    current->loop = &loop;
+
+    int exitJump = emitJump(OP_FOR_NEXT);
+
+    beginScope();
+    addLocal(name);
+    markInitialized();
+    block();
+    endScope();
+    emitLoop(loop.start);
+
+    patchJump(exitJump);
+    for (int i = 0; i < loop.breakCount; i++) {
+        patchJump(loop.breakJumps[i]);
+    }
+
+    current->loop = loop.enclosing;
+    endScope();
+}
+
 /* Döngüden çıkarken ya da başa dönerken döngü içindeki yerelleri yığından at. */
 static void discardLoopLocals(void) {
     for (int i = current->localCount - 1;
@@ -851,6 +1002,8 @@ static void statement(void) {
         ifStatement();
     } else if (match(TOKEN_WHILE)) {
         whileStatement();
+    } else if (match(TOKEN_FOR)) {
+        forStatement();
     } else if (match(TOKEN_RETURN)) {
         returnStatement();
     } else if (match(TOKEN_BREAK)) {

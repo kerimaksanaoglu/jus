@@ -11,7 +11,7 @@ typedef struct {
     const char *current;
     int line;
     bool atLineStart;
-    int parenDepth; /* parantez içinde satır sonları ve girinti yok sayılır */
+    int parenDepth; /* (), [] ve {} içinde satır sonları ve girinti yok sayılır */
     int indentStack[MAX_INDENT_LEVELS];
     int indentCount;
     int pendingDedents;
@@ -31,8 +31,10 @@ static const Keyword keywords[] = {
     {"devam", TOKEN_CONTINUE},
     {"değilse", TOKEN_ELSE},
     {"yanlış", TOKEN_FALSE},
+    {"her", TOKEN_FOR},
     {"fonksiyon", TOKEN_FUNCTION},
     {"eğer", TOKEN_IF},
+    {"içinde", TOKEN_IN},
     {"boş", TOKEN_NIL},
     {"değil", TOKEN_NOT},
     {"veya", TOKEN_OR},
@@ -299,12 +301,24 @@ Token scanToken(void) {
         case ')':
             if (scanner.parenDepth > 0) scanner.parenDepth--;
             return makeToken(TOKEN_RIGHT_PAREN);
+        case '[':
+            scanner.parenDepth++;
+            return makeToken(TOKEN_LEFT_BRACKET);
+        case ']':
+            if (scanner.parenDepth > 0) scanner.parenDepth--;
+            return makeToken(TOKEN_RIGHT_BRACKET);
+        case '{':
+            scanner.parenDepth++;
+            return makeToken(TOKEN_LEFT_BRACE);
+        case '}':
+            if (scanner.parenDepth > 0) scanner.parenDepth--;
+            return makeToken(TOKEN_RIGHT_BRACE);
         case ',': return makeToken(TOKEN_COMMA);
         case ':': return makeToken(TOKEN_COLON);
-        case '-': return makeToken(TOKEN_MINUS);
-        case '+': return makeToken(TOKEN_PLUS);
-        case '/': return makeToken(TOKEN_SLASH);
-        case '*': return makeToken(TOKEN_STAR);
+        case '-': return makeToken(match('=') ? TOKEN_MINUS_EQUAL : TOKEN_MINUS);
+        case '+': return makeToken(match('=') ? TOKEN_PLUS_EQUAL : TOKEN_PLUS);
+        case '/': return makeToken(match('=') ? TOKEN_SLASH_EQUAL : TOKEN_SLASH);
+        case '*': return makeToken(match('=') ? TOKEN_STAR_EQUAL : TOKEN_STAR);
         case '%': return makeToken(TOKEN_PERCENT);
         case '!':
             if (match('=')) return makeToken(TOKEN_BANG_EQUAL);

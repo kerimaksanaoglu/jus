@@ -4,7 +4,7 @@ JUS, Türkçe sözdizimli, genel amaçlı bir betik dilidir. Kaynak kod bayt kod
 derlenir ve bir sanal makinede çalışır. Yorumlayıcı C99 ile yazılmıştır ve dış
 bağımlılığı yoktur.
 
-Geçerli sürüm: **0.1.0** (geliştirme aşamasında; dil 1.0'a kadar değişebilir).
+Geçerli sürüm: **0.2.0** (geliştirme aşamasında; dil 1.0'a kadar değişebilir).
 
 ```jus
 fonksiyon faktöriyel(n):
@@ -43,21 +43,24 @@ Kaynak dosyalar UTF-8 olmalıdır.
 Çıkış kodları: `0` başarılı, `65` sözdizimi hatası, `70` çalışma zamanı hatası,
 `66` dosya okunamadı, `64` hatalı kullanım.
 
-## 0.1.0 sürümünde neler var
+## Dilde neler var
 
-- Değerler: sayı, metin, mantıksal (`doğru`/`yanlış`), `boş`
+- Değerler: sayı, metin, mantıksal (`doğru`/`yanlış`), `boş`, liste, sözlük
 - Değişkenler ve blok kapsamı (`değişken`)
-- Aritmetik, karşılaştırma ve mantıksal işleçler (`ve`, `veya`, `değil`)
+- Aritmetik, karşılaştırma ve mantıksal işleçler (`ve`, `veya`, `değil`,
+  `içinde`), bileşik atama (`+=` ...)
 - Girintiyle belirlenen bloklar
 - `eğer` / `değilse eğer` / `değilse`
-- `iken` döngüsü, `kır`, `devam`
+- `iken` ve `her ... içinde` döngüleri, `kır`, `devam`
 - Fonksiyonlar, özyineleme, kapanımlar (`fonksiyon`, `dön`)
-- Yerleşik fonksiyonlar: `yaz`, `oku`, `metin`, `sayı`, `uzunluk`, `tür`, `saat`,
-  `karekök`, `mutlak`, `taban`, `tavan`, `yuvarla`
+- Dizinleme ve dilimleme: `liste[0]`, `metin[1:4]`
+- Türkçeye duyarlı metin işlemleri: `büyük_harf("ılık")` sonucu `"ILIK"`,
+  alfabetik sıralamada `ç`, `ğ`, `ı`, `ö`, `ş`, `ü` doğru yerlerinde
+- 30'dan fazla yerleşik fonksiyon
 - Satır ve sütun gösteren Türkçe hata iletileri
 - Otomatik bellek yönetimi (çöp toplayıcı)
 
-Henüz olmayanlar (liste, sözlük, modüller, sınıflar ve diğerleri) için
+Henüz olmayanlar (hata yakalama, modüller, sınıflar ve diğerleri) için
 [yol haritasına](docs/yol-haritasi.md) bakın.
 
 ## Belgeler

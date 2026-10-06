@@ -1,6 +1,6 @@
 # JUS Dil Tanımı
 
-Sürüm 0.1.0
+Sürüm 0.2.0
 
 Bu belge JUS'un sözdizimini ve davranışını tanımlar. Yorumlayıcı bu belgeye
 uymak zorundadır; ikisi arasındaki her fark bir hatadır. Burada yazmayan bir
@@ -31,11 +31,11 @@ harf ayrıdır: `yaş` ile `Yaş` farklı adlardır.
 
 ### 2.3 Anahtar kelimeler
 
-Aşağıdaki 14 kelime ayrılmıştır ve ad olarak kullanılamaz:
+Aşağıdaki 16 kelime ayrılmıştır ve ad olarak kullanılamaz:
 
 ```
-boş       değil     değilse   değişken   devam   doğru   dön
-eğer      fonksiyon iken      kır        ve      veya    yanlış
+boş    değil      değilse   değişken   devam   doğru   dön    eğer
+her    fonksiyon  içinde    iken       kır     ve      veya   yanlış
 ```
 
 ### 2.4 Sayılar
@@ -60,8 +60,8 @@ Başka bir kaçış dizisi sözdizimi hatasıdır.
 ### 2.6 Satırlar ve girinti
 
 - Her deyim bir satırda yazılır ve satır sonunda biter.
-- Parantez içindeki satır sonları yok sayılır; uzun ifadeler bu yolla birden
-  çok satıra bölünebilir.
+- `( )`, `[ ]` ve `{ }` içindeki satır sonları yok sayılır; uzun ifadeler,
+  listeler ve sözlükler bu yolla birden çok satıra bölünebilir.
 - Bloklar girintiyle belirlenir. Bloğu başlatan satır `:` ile biter; izleyen
   satırlar bir düzey içeriden yazılır. Girinti önceki düzeye döndüğünde blok
   biter.
@@ -80,6 +80,8 @@ Başka bir kaçış dizisi sözdizimi hatasıdır.
 | `metin`     | `"merhaba"`           | değiştirilemez UTF-8 karakter dizisi   |
 | `mantıksal` | `doğru`, `yanlış`     |                                        |
 | `boş`       | `boş`                 | değer yokluğu                          |
+| `liste`     | `[1, 2, 3]`           | sıralı, değiştirilebilir öğe dizisi    |
+| `sözlük`    | `{"ad": "Ayşe"}`      | anahtar-değer eşlemesi                 |
 | `fonksiyon` |                       | kullanıcı tanımlı ya da yerleşik       |
 
 JUS dinamik tiplidir: değişkenlerin değil, değerlerin türü vardır. Türler
@@ -87,6 +89,47 @@ arasında örtük dönüşüm yapılmaz; dönüşüm için `metin()` ve `sayı()
 
 Tam sayı değerli sayılar ondalık kısım olmadan yazılır (`4`); diğerleri en çok
 14 anlamlı basamakla yazılır (`0.33333333333333`).
+
+### 3.1 Listeler
+
+```jus
+değişken notlar = [85, 92, 78]
+yaz(notlar[0])        # 85
+yaz(notlar[-1])       # 78 (sondan birinci)
+notlar[1] = 95
+yaz(notlar[0:2])      # [85, 95]
+```
+
+- Öğeler her türden olabilir; bir liste farklı türleri bir arada tutabilir.
+- Dizinler 0'dan başlar. Negatif dizin sondan sayar. Sınır dışı dizin
+  çalışma zamanı hatasıdır.
+- `liste[baş:son]` dilimi `baş` dizininden `son` dizinine kadar (son hariç)
+  yeni bir liste verir. Uçlardan biri yazılmazsa listenin başı ya da sonu
+  alınır. Dilim sınırları listenin dışına taşarsa hata olmaz, kırpılır.
+- `+` iki listeyi birleştirip yeni bir liste verir.
+- Listeler başvuruyla taşınır: bir listeyi başka bir değişkene atamak ya da
+  fonksiyona vermek kopyalamaz; iki ad aynı listeyi gösterir.
+- Son öğeden sonra virgül konabilir.
+
+### 3.2 Sözlükler
+
+```jus
+değişken kişi = {"ad": "Ayşe", "yaş": 30}
+yaz(kişi["ad"])       # Ayşe
+kişi["şehir"] = "Ankara"
+```
+
+- Anahtarlar metin, sayı ya da mantıksal olabilir; değerler her türden
+  olabilir. `1` ile `"1"` farklı anahtarlardır.
+- Olmayan bir anahtarı okumak çalışma zamanı hatasıdır. Anahtarın varlığı
+  `içinde` ile denetlenir; `al(sözlük, anahtar, varsayılan)` hata vermeden okur.
+- Var olmayan bir anahtara atama yeni girdi ekler.
+- Sözlükler girdileri eklenme sırasıyla tutar ve başvuruyla taşınır.
+
+### 3.3 Metinlerde dizin ve dilim
+
+Metinler de dizinlenebilir ve dilimlenebilir. Birim bayt değil karakterdir:
+`"çay"[0]` sonucu `"ç"` olur. Metinler değiştirilemez; `metin[0] = "x"` hatadır.
 
 ## 4. İfadeler
 
@@ -96,22 +139,23 @@ Tam sayı değerli sayılar ondalık kısım olmadan yazılır (`4`); diğerleri
 
 | Öncelik | İşleçler              | Açıklama                  | Birleşme |
 |---------|-----------------------|---------------------------|----------|
-| 1       | `f(...)`              | fonksiyon çağrısı         | soldan   |
+| 1       | `f(...)` `x[i]`       | çağrı, dizinleme          | soldan   |
 | 2       | `-x`                  | sayısal olumsuzlama       | sağdan   |
 | 3       | `*` `/` `%`           | çarpma, bölme, kalan      | soldan   |
 | 4       | `+` `-`               | toplama, çıkarma          | soldan   |
-| 5       | `<` `<=` `>` `>=`     | karşılaştırma             | soldan   |
+| 5       | `<` `<=` `>` `>=` `içinde` | karşılaştırma, üyelik | soldan   |
 | 6       | `==` `!=`             | eşitlik                   | soldan   |
 | 7       | `değil x`             | mantıksal olumsuzlama     | sağdan   |
 | 8       | `ve`                  | mantıksal ve              | soldan   |
 | 9       | `veya`                | mantıksal veya            | soldan   |
-| 10      | `=`                   | atama                     | sağdan   |
+| 10      | `=` `+=` `-=` `*=` `/=` | atama                   | sağdan   |
 
 Parantez önceliği değiştirir: `(2 + 3) * 4`.
 
 ### 4.2 Aritmetik
 
-- `+`, `-`, `*`, `/`, `%` iki sayı ister. `+` ayrıca iki metni birleştirir.
+- `+`, `-`, `*`, `/`, `%` iki sayı ister. `+` ayrıca iki metni ya da iki
+  listeyi birleştirir.
 - Bir sayı ile bir metni `+` ile birleştirmek hatadır; önce `metin()` ile
   dönüştürülür: `"yaş: " + metin(25)`.
 - `/` her zaman ondalıklı bölme yapar: `15 / 4` sonucu `3.75` olur.
@@ -120,10 +164,13 @@ Parantez önceliği değiştirir: `(2 + 3) * 4`.
 
 ### 4.3 Karşılaştırma ve eşitlik
 
-- `<`, `<=`, `>`, `>=` yalnızca sayılarla kullanılır.
+- `<`, `<=`, `>`, `>=` iki sayıyı ya da iki metni karşılaştırır. Metinler Türk
+  alfabesi sırasına göre karşılaştırılır: `"çay" < "dağ"`, `"ırmak" < "iz"`.
 - `==` ve `!=` her türle kullanılabilir. Türleri farklı iki değer hiçbir zaman
   eşit değildir: `"12" == 12` sonucu `yanlış` olur.
-- Metinler içerikleri aynıysa eşittir.
+- Metinler, listeler ve sözlükler içerikleri aynıysa eşittir.
+- `öğe içinde kap` üyeliği denetler: listede öğeyi, metinde alt metni,
+  sözlükte anahtarı arar.
 
 ### 4.4 Mantıksal işleçler
 
@@ -136,6 +183,11 @@ Parantez önceliği değiştirir: `(2 + 3) * 4`.
 
 `ad = ifade` var olan bir değişkene yeni değer atar. Tanımlanmamış bir ada
 atama hatadır. Atama bir ifadedir ve atanan değeri verir.
+
+`kap[dizin] = ifade` bir liste öğesini ya da sözlük girdisini değiştirir.
+
+`+=`, `-=`, `*=`, `/=` bileşik atamalardır: `x += 1`, `x = x + 1` ile aynıdır.
+Dizinlerle de kullanılabilir: `sayım["a"] += 1`.
 
 ### 4.6 Fonksiyon çağrısı
 
@@ -182,6 +234,15 @@ iken koşul:
 
 Koşul `doğru` olduğu sürece blok yinelenir.
 
+```jus
+her öğe içinde kap:
+    ...
+```
+
+Kabın öğelerini sırayla dolaşır: listede öğeleri, metinde karakterleri,
+sözlükte anahtarları. Döngü değişkeni yalnızca döngünün içinde geçerlidir.
+Belirli sayıda yineleme için `aralık` kullanılır: `her i içinde aralık(5):`.
+
 - `kır` en içteki döngüyü bitirir.
 - `devam` en içteki döngünün sonraki turuna geçer.
 
@@ -214,24 +275,72 @@ ve atamalar bu biçimde kullanılır.
 
 ## 6. Yerleşik fonksiyonlar
 
+Yerleşik fonksiyon adları anahtar kelime değildir; genel kapsamda tanımlı
+sıradan değişkenlerdir.
+
+### 6.1 Girdi ve çıktı
+
 | Fonksiyon        | Açıklama                                                                 |
 |------------------|--------------------------------------------------------------------------|
 | `yaz(...)`       | Argümanları aralarında birer boşlukla yazar ve satırı bitirir.           |
 | `oku()`          | Girdiden bir satır okur, metin olarak döndürür. Girdi bittiyse `boş`.    |
 | `oku(istem)`     | Önce `istem` metnini yazar, sonra okur.                                  |
+
+### 6.2 Türler
+
+| Fonksiyon        | Açıklama                                                                 |
+|------------------|--------------------------------------------------------------------------|
 | `metin(değer)`   | Değeri metne çevirir.                                                    |
 | `sayı(değer)`    | Metni sayıya çevirir. Metin geçerli bir sayı değilse hata verir.         |
-| `uzunluk(metin)` | Metnin karakter sayısını döndürür.                                       |
 | `tür(değer)`     | Değerin tür adını metin olarak döndürür.                                 |
-| `saat()`         | Programın kullandığı işlemci süresini saniye cinsinden döndürür.         |
-| `karekök(x)`     | Karekök. Negatif sayı hata verir.                                        |
-| `mutlak(x)`      | Mutlak değer.                                                            |
-| `taban(x)`       | `x`'ten büyük olmayan en büyük tam sayı.                                 |
-| `tavan(x)`       | `x`'ten küçük olmayan en küçük tam sayı.                                 |
-| `yuvarla(x)`     | En yakın tam sayı; tam ortadaki değerler sıfırdan uzağa yuvarlanır.      |
+| `uzunluk(kap)`   | Metnin karakter, listenin öğe, sözlüğün girdi sayısı.                    |
 
-Yerleşik fonksiyon adları anahtar kelime değildir; genel kapsamda tanımlı
-sıradan değişkenlerdir.
+### 6.3 Sayılar
+
+| Fonksiyon                | Açıklama                                                         |
+|--------------------------|------------------------------------------------------------------|
+| `karekök(x)`             | Karekök. Negatif sayı hata verir.                                |
+| `mutlak(x)`              | Mutlak değer.                                                    |
+| `taban(x)`               | `x`'ten büyük olmayan en büyük tam sayı.                         |
+| `tavan(x)`               | `x`'ten küçük olmayan en küçük tam sayı.                         |
+| `yuvarla(x)`             | En yakın tam sayı; tam ortadaki değerler sıfırdan uzağa yuvarlanır. |
+| `aralık(son)`            | `0`'dan `son`'a kadar (son hariç) sayıların listesi.             |
+| `aralık(baş, son)`       | `baş`'tan `son`'a kadar (son hariç) sayıların listesi.           |
+| `aralık(baş, son, adım)` | Aynı, `adım` kadar artarak. Adım negatif olabilir.               |
+| `saat()`                 | Programın kullandığı işlemci süresi, saniye cinsinden.           |
+
+### 6.4 Listeler ve sözlükler
+
+| Fonksiyon                       | Açıklama                                                  |
+|---------------------------------|-----------------------------------------------------------|
+| `ekle(liste, öğe)`              | Öğeyi listenin sonuna ekler.                              |
+| `araya_ekle(liste, dizin, öğe)` | Öğeyi verilen dizine yerleştirir, sonrakileri kaydırır.   |
+| `çıkar(liste)`                  | Son öğeyi listeden çıkarır ve döndürür.                   |
+| `sil(liste, dizin)`             | Dizindeki öğeyi siler ve döndürür.                        |
+| `sil(sözlük, anahtar)`          | Girdiyi siler ve değerini döndürür.                       |
+| `sırala(liste)`                 | Küçükten büyüğe sıralı yeni liste. Öğelerin tümü sayı ya da tümü metin olmalıdır; metinler Türk alfabesine göre sıralanır. |
+| `ters(liste)`                   | Öğeleri ters sırada yeni liste. Metin de verilebilir.     |
+| `bul(liste, öğe)`               | Öğenin ilk dizini; yoksa `-1`.                            |
+| `anahtarlar(sözlük)`            | Anahtarların listesi.                                     |
+| `değerler(sözlük)`              | Değerlerin listesi.                                       |
+| `al(sözlük, anahtar, varsayılan)` | Anahtarın değeri; anahtar yoksa `varsayılan`.           |
+
+### 6.5 Metinler
+
+| Fonksiyon                     | Açıklama                                                    |
+|-------------------------------|-------------------------------------------------------------|
+| `büyük_harf(m)`               | Büyük harfe çevirir. Türkçe kuralları uygulanır: `i` → `İ`, `ı` → `I`. |
+| `küçük_harf(m)`               | Küçük harfe çevirir: `İ` → `i`, `I` → `ı`.                  |
+| `kırp(m)`                     | Baştaki ve sondaki boşlukları atar.                         |
+| `bul(m, aranan)`              | Alt metnin ilk geçtiği karakter dizini; yoksa `-1`.         |
+| `değiştir(m, eski, yeni)`     | `eski`'nin geçtiği her yeri `yeni` ile değiştirir.          |
+| `böl(m, ayraç)`               | Metni ayraçtan bölerek liste üretir. Boş ayraç karakterlere böler. |
+| `birleştir(liste, ayraç)`     | Öğeleri metne çevirip aralarına `ayraç` koyarak birleştirir. |
+| `başlar_mı(m, ön)`            | Metin `ön` ile başlıyorsa `doğru`.                          |
+| `biter_mi(m, son)`            | Metin `son` ile bitiyorsa `doğru`.                          |
+
+Harf dönüşümü ve alfabetik sıralama Türk alfabesindeki harfleri ve İngilizce
+harfleri kapsar; diğer alfabelerin harfleri değiştirilmeden bırakılır.
 
 ## 7. Hatalar
 
@@ -281,25 +390,32 @@ bildirim       = değişken_tanımı | fonksiyon_tanımı | deyim ;
 değişken_tanımı  = "değişken" AD [ "=" ifade ] SATIR_SONU ;
 fonksiyon_tanımı = "fonksiyon" AD "(" [ AD { "," AD } ] ")" blok ;
 
-deyim          = eğer_deyimi | iken_deyimi | dön_deyimi
+deyim          = eğer_deyimi | iken_deyimi | her_deyimi | dön_deyimi
                | "kır" SATIR_SONU | "devam" SATIR_SONU
                | ifade SATIR_SONU ;
 eğer_deyimi    = "eğer" ifade blok [ "değilse" ( eğer_deyimi | blok ) ] ;
 iken_deyimi    = "iken" ifade blok ;
+her_deyimi     = "her" AD "içinde" ifade blok ;
 dön_deyimi     = "dön" [ ifade ] SATIR_SONU ;
 blok           = ":" SATIR_SONU GİRİNTİ bildirim { bildirim } GİRİNTİ_SONU ;
 
 ifade          = atama ;
-atama          = AD "=" atama | veya_ifadesi ;
+atama          = hedef atama_işleci atama | veya_ifadesi ;
+hedef          = AD | çağrı "[" ifade "]" ;
+atama_işleci   = "=" | "+=" | "-=" | "*=" | "/=" ;
 veya_ifadesi   = ve_ifadesi { "veya" ve_ifadesi } ;
 ve_ifadesi     = değil_ifadesi { "ve" değil_ifadesi } ;
 değil_ifadesi  = "değil" değil_ifadesi | eşitlik ;
 eşitlik        = karşılaştırma { ( "==" | "!=" ) karşılaştırma } ;
-karşılaştırma  = toplam { ( "<" | "<=" | ">" | ">=" ) toplam } ;
+karşılaştırma  = toplam { ( "<" | "<=" | ">" | ">=" | "içinde" ) toplam } ;
 toplam         = çarpım { ( "+" | "-" ) çarpım } ;
 çarpım         = tekli { ( "*" | "/" | "%" ) tekli } ;
 tekli          = "-" tekli | çağrı ;
-çağrı          = birincil { "(" [ ifade { "," ifade } ] ")" } ;
+çağrı          = birincil { "(" [ ifade { "," ifade } ] ")" | dizin } ;
+dizin          = "[" ifade "]" | "[" [ ifade ] ":" [ ifade ] "]" ;
 birincil       = SAYI | METİN | AD | "doğru" | "yanlış" | "boş"
-               | "(" ifade ")" ;
+               | "(" ifade ")" | liste | sözlük ;
+liste          = "[" [ ifade { "," ifade } [ "," ] ] "]" ;
+sözlük         = "{" [ çift { "," çift } [ "," ] ] "}" ;
+çift           = ifade ":" ifade ;
 ```

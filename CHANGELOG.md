@@ -6,6 +6,29 @@ uyar.
 
 ## [Yayımlanmadı]
 
+## [0.2.0]
+
+### Eklendi
+
+- Liste: `[1, 2, 3]`, dizinleme, negatif dizin, dilimleme, `+` ile birleştirme
+- Sözlük: `{"ad": "Ayşe"}`; metin, sayı ve mantıksal anahtarlar; eklenme
+  sırasını korur
+- `her öğe içinde kap:` döngüsü (liste, metin, sözlük)
+- `içinde` üyelik işleci
+- Bileşik atama: `+=`, `-=`, `*=`, `/=`
+- Metinlerde dizinleme ve dilimleme (karakter cinsinden)
+- Metinlerin `<`, `>` ile Türk alfabesine göre karşılaştırılması
+- Liste ve sözlüklerin içerikleriyle eşitlik karşılaştırması
+- Yerleşik fonksiyonlar: `aralık`, `ekle`, `araya_ekle`, `çıkar`, `sil`,
+  `sırala`, `ters`, `anahtarlar`, `değerler`, `al`, `bul`, `böl`, `birleştir`,
+  `kırp`, `değiştir`, `büyük_harf`, `küçük_harf`, `başlar_mı`, `biter_mi`
+- Bellek denetimi betiği (`tests/bellek-denetimi.sh`)
+
+### Değişti
+
+- `uzunluk` artık liste ve sözlükleri de kabul eder
+- `( )` yanında `[ ]` ve `{ }` içinde de satır sonları yok sayılır
+
 ## [0.1.0]
 
 Yorumlayıcı baştan yazıldı. Önceki sürümle kaynak düzeyinde uyumlu değildir.

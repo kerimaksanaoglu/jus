@@ -78,6 +78,21 @@ static void blackenObject(Obj *object) {
             markArray(&function->chunk.constants);
             break;
         }
+        case OBJ_LIST: {
+            ObjList *list = (ObjList *)object;
+            for (int i = 0; i < list->count; i++) {
+                markValue(list->items[i]);
+            }
+            break;
+        }
+        case OBJ_MAP: {
+            ObjMap *map = (ObjMap *)object;
+            for (int i = 0; i < map->used; i++) {
+                markValue(map->entries[i].key);
+                markValue(map->entries[i].value);
+            }
+            break;
+        }
         case OBJ_UPVALUE:
             markValue(((ObjUpvalue *)object)->closed);
             break;
@@ -99,6 +114,19 @@ static void freeObject(Obj *object) {
             ObjFunction *function = (ObjFunction *)object;
             freeChunk(&function->chunk);
             FREE(ObjFunction, object);
+            break;
+        }
+        case OBJ_LIST: {
+            ObjList *list = (ObjList *)object;
+            FREE_ARRAY(Value, list->items, list->capacity);
+            FREE(ObjList, object);
+            break;
+        }
+        case OBJ_MAP: {
+            ObjMap *map = (ObjMap *)object;
+            FREE_ARRAY(MapEntry, map->entries, map->capacity);
+            FREE_ARRAY(int, map->indices, map->capacity);
+            FREE(ObjMap, object);
             break;
         }
         case OBJ_NATIVE:

@@ -1,0 +1,64 @@
+# her ... içinde döngüsü
+her x içinde [10, 20, 30]:
+    yaz(x)
+# bekle: 10
+# bekle: 20
+# bekle: 30
+
+değişken harfler = ""
+her h içinde "şık":
+    harfler += h + "."
+yaz(harfler)                # bekle: ş.ı.k.
+
+her anahtar içinde {"a": 1, "b": 2}:
+    yaz(anahtar)
+# bekle: a
+# bekle: b
+
+her x içinde []:
+    yaz("çalışmamalı")
+
+# kır ve devam
+değişken toplam = 0
+her i içinde aralık(10):
+    eğer i % 2 == 0:
+        devam
+    eğer i > 7:
+        kır
+    değişken kare = i * i
+    toplam += kare
+yaz(toplam)                 # bekle: 84
+
+# İç içe döngüler
+her i içinde aralık(1, 4):
+    değişken satır = ""
+    her j içinde aralık(i):
+        satır += "*"
+    yaz(satır)
+# bekle: *
+# bekle: **
+# bekle: ***
+
+# Fonksiyon içinde, döngüden dön
+fonksiyon ilk_negatif(liste):
+    her x içinde liste:
+        eğer x < 0:
+            dön x
+    dön boş
+yaz(ilk_negatif([3, -4, 5]), ilk_negatif([1]))   # bekle: -4 boş
+
+# Döngü değişkeni her turda ayrı yakalanır
+değişken fonksiyonlar = []
+her i içinde aralık(3):
+    fonksiyon ver():
+        dön i
+    ekle(fonksiyonlar, ver)
+yaz(fonksiyonlar[0](), fonksiyonlar[2]())   # bekle: 0 2
+
+# Bileşik atama
+değişken n = 10
+n += 5
+n -= 3
+n *= 2
+n /= 4
+yaz(n)                      # bekle: 6

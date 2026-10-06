@@ -1,0 +1,3 @@
+# kod: 70
+# hata: Sözlük anahtarı metin, sayı ya da mantıksal olmalı; liste verildi.
+yaz({[1]: 2})

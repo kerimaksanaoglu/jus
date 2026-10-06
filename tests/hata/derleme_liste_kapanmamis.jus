@@ -1,0 +1,4 @@
+# kod: 65
+# hata: Liste öğelerinden sonra ']' bekleniyor.
+değişken l = [1, 2
+yaz(l)

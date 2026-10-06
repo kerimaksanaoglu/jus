@@ -1,0 +1,30 @@
+# Metin dizinleme, dilimleme ve fonksiyonlar (karakter cinsinden)
+değişken m = "çalışkan öğrenci"
+yaz(m[0], m[3], m[-1])            # bekle: ç ı i
+yaz(m[0:8], m[9:], m[-7:])        # bekle: çalışkan öğrenci öğrenci
+yaz(uzunluk(m))                   # bekle: 16
+yaz(bul(m, "öğrenci"), bul(m, "yok"))   # bekle: 9 -1
+yaz("ışk" içinde m, "xyz" içinde m)     # bekle: doğru yanlış
+
+# Türkçe büyük/küçük harf
+yaz(büyük_harf("istanbul ılık"))  # bekle: İSTANBUL ILIK
+yaz(küçük_harf("IĞDIR İZMİR"))    # bekle: ığdır izmir
+yaz(büyük_harf("çğöşü abc 123"))  # bekle: ÇĞÖŞÜ ABC 123
+
+# Bölme ve birleştirme
+yaz(böl("a,b,,c", ","))           # bekle: ["a", "b", "", "c"]
+yaz(böl("şık", ""))               # bekle: ["ş", "ı", "k"]
+yaz(böl("tek", ","))              # bekle: ["tek"]
+yaz(birleştir(["a", 1, doğru], "-"))   # bekle: a-1-doğru
+yaz(birleştir([], ","))           # bekle:
+yaz(kırp("  \t içerik  \n"))      # bekle: içerik
+yaz(değiştir("elma armut elma", "elma", "kiraz"))   # bekle: kiraz armut kiraz
+yaz(değiştir("aaa", "a", ""))     # bekle:
+yaz(başlar_mı(m, "çalış"), biter_mi(m, "öğrenci"), başlar_mı(m, "öğrenci"))   # bekle: doğru doğru yanlış
+yaz(ters("şeker"))                # bekle: rekeş
+
+# Türk alfabesine göre karşılaştırma ve sıralama
+yaz("çay" < "dağ", "ırmak" < "iz", "şal" > "sal")   # bekle: doğru doğru doğru
+yaz("a" < "b", "b" <= "b", "elma" > "armut")        # bekle: doğru doğru doğru
+yaz(sırala(["zeytin", "çilek", "armut", "ıspanak", "incir", "şeftali", "üzüm", "Ayva", "ceviz"]))
+# bekle: ["armut", "Ayva", "ceviz", "çilek", "ıspanak", "incir", "şeftali", "üzüm", "zeytin"]

@@ -44,14 +44,11 @@ girintili bloklar; `eğer`, `iken`, `kır`, `devam`; fonksiyonlar ve kapanımlar
 temel yerleşik fonksiyonlar; bayt kodu sanal makinesi ve çöp toplayıcı;
 etkileşimli kip; test paketi.
 
-### 0.2 Veri yapıları
+### 0.2 Veri yapıları (tamamlandı)
 
-- Liste: `[1, 2, 3]`, dizinleme, dilimleme
-- Sözlük: `{"ad": "Ayşe"}`
-- `her x içinde liste:` döngüsü ve `aralık()`
-- Metin işlemleri: dizinleme, dilimleme, arama, bölme, birleştirme
-- Türkçeye duyarlı büyük/küçük harf dönüşümü (`i`/`İ`, `ı`/`I`) ve sıralama
-- Bileşik atama: `+=`, `-=`, `*=`, `/=`
+Liste ve sözlük; dizinleme ve dilimleme; `her ... içinde` döngüsü ve
+`aralık()`; `içinde` işleci; metin işlemleri; Türkçeye duyarlı büyük/küçük
+harf dönüşümü ve sıralama; bileşik atama.
 
 ### 0.3 Hata yönetimi ve modüller
 
@@ -91,10 +88,9 @@ etkileşimli kip; test paketi.
 - 1.0 ölçütlerindeki üç programın yazılması
 - Dil tanımının dondurulması
 
-## Bilinen sınırlar (0.1)
+## Bilinen sınırlar
 
 - Windows konsolunda `oku()` ile Türkçe karakter girişi, konsolun kod sayfası
   ayarına bağlıdır.
 - Windows'ta ASCII dışı karakter içeren dosya yolları açılamayabilir.
-- Karşılaştırma işleçleri (`<`, `>`) metinlerle kullanılamaz.
 - Etkileşimli kipte satır düzenleme ve geçmiş yoktur.

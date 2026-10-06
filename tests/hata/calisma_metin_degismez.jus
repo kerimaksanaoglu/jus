@@ -1,0 +1,4 @@
+# kod: 70
+# hata: Metinler değiştirilemez
+değişken m = "abc"
+m[0] = "x"

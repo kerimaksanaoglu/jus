@@ -28,8 +28,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Her bellek ayırmada çöp toplayıcıyı çalıştırıp bellek hatalarını yakalar.
-      - name: Derle
-        run: make EXTRA="-g -fsanitize=address,undefined -fno-sanitize-recover=all -DJUS_DEBUG_STRESS_GC"
+      # ASan + UBSan; cop toplayici her bellek ayirmada calisir.
       - name: Test
-        run: make test
+        run: bash tests/bellek-denetimi.sh

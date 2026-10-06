@@ -48,6 +48,7 @@ void initValueArray(ValueArray *array);
 void writeValueArray(ValueArray *array, Value value);
 void freeValueArray(ValueArray *array);
 
+/* Listeler ve sözlükler içerikleriyle, diğer nesneler kimlikleriyle karşılaştırılır. */
 bool valuesEqual(Value a, Value b);
 
 /* Değerin kullanıcıya gösterilen tür adı ("sayı", "metin" ...). */
@@ -56,7 +57,13 @@ const char *valueTypeName(Value value);
 /* Sayıyı JUS'un yazım biçimiyle arabelleğe yazar; yazılan uzunluğu döndürür. */
 int formatNumber(double number, char *buffer, size_t size);
 
-/* quoteStrings doğruysa metinler tırnak içinde yazılır (etkileşimli kip). */
+/*
+ * Değerin yazılı biçimini malloc ile ayrılmış bir arabellekte döndürür; çağıran
+ * free ile serbest bırakır. quoteStrings doğruysa metin tırnak içinde yazılır.
+ * Liste ve sözlüklerin içindeki metinler her zaman tırnaklıdır.
+ */
+char *valueToChars(Value value, bool quoteStrings, int *length);
+
 void printValue(FILE *out, Value value, bool quoteStrings);
 
 #endif

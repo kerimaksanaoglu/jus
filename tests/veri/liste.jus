@@ -1,0 +1,64 @@
+# Listeler
+değişken l = [1, "iki", doğru, boş, 2.5]
+yaz(l)                      # bekle: [1, "iki", doğru, boş, 2.5]
+yaz(uzunluk(l), tür(l))     # bekle: 5 liste
+yaz(l[0], l[1], l[-1])      # bekle: 1 iki 2.5
+l[0] = 100
+l[1] += "!"
+yaz(l[0], l[1])             # bekle: 100 iki!
+yaz([])                     # bekle: []
+yaz([1, 2,
+     3,
+])                          # bekle: [1, 2, 3]
+
+# Dilimler
+değişken s = [0, 1, 2, 3, 4, 5]
+yaz(s[1:3])                 # bekle: [1, 2]
+yaz(s[:2], s[4:], s[:])     # bekle: [0, 1] [4, 5] [0, 1, 2, 3, 4, 5]
+yaz(s[-2:], s[3:1], s[2:100])   # bekle: [4, 5] [] [2, 3, 4, 5]
+
+# Ekleme, çıkarma, silme
+değişken a = []
+ekle(a, 1)
+ekle(a, 2)
+ekle(a, 3)
+yaz(a)                      # bekle: [1, 2, 3]
+yaz(çıkar(a), a)            # bekle: 3 [1, 2]
+araya_ekle(a, 0, "baş")
+araya_ekle(a, 3, "son")
+yaz(a)                      # bekle: ["baş", 1, 2, "son"]
+yaz(sil(a, 1), a)           # bekle: 1 ["baş", 2, "son"]
+
+# Birleştirme, eşitlik, üyelik
+yaz([1, 2] + [3])           # bekle: [1, 2, 3]
+yaz([1, [2, 3]] == [1, [2, 3]])   # bekle: doğru
+yaz([1, 2] == [1, 3])       # bekle: yanlış
+yaz(2 içinde [1, 2, 3])     # bekle: doğru
+yaz("x" içinde [1, 2, 3])   # bekle: yanlış
+yaz(değil 5 içinde [1, 2])  # bekle: doğru
+yaz(bul([5, 6, 7], 7), bul([5, 6], 9))   # bekle: 2 -1
+
+# İç içe listeler
+değişken tablo = [[1, 2], [3, 4]]
+tablo[1][0] = 30
+yaz(tablo, tablo[1][0])     # bekle: [[1, 2], [30, 4]] 30
+
+# Listeler başvuruyla taşınır
+değişken b = a
+ekle(b, "yeni")
+yaz(uzunluk(a))             # bekle: 4
+
+# Sıralama ve ters çevirme yeni liste üretir
+değişken sayılar = [3, 1, 2]
+yaz(sırala(sayılar), sayılar)   # bekle: [1, 2, 3] [3, 1, 2]
+yaz(ters(sayılar))          # bekle: [2, 1, 3]
+yaz(aralık(5))              # bekle: [0, 1, 2, 3, 4]
+yaz(aralık(2, 5))           # bekle: [2, 3, 4]
+yaz(aralık(10, 0, -3))      # bekle: [10, 7, 4, 1]
+yaz(aralık(0))              # bekle: []
+
+# Çok öğeli liste (çöp toplayıcı ve büyüme)
+değişken büyük = []
+her i içinde aralık(1000):
+    ekle(büyük, metin(i) + "!")
+yaz(uzunluk(büyük), büyük[999])   # bekle: 1000 999!

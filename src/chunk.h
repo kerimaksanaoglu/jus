@@ -41,6 +41,14 @@ typedef enum {
     OP_CALL,           /* (u8 argüman sayısı) */
     OP_CLOSURE,        /* (u16 fonksiyon sabiti, ardından her üst değer için u8 yerel mi, u8 dizin) */
     OP_CLOSE_UPVALUE,
+    OP_BUILD_LIST,     /* (u16 öğe sayısı) */
+    OP_BUILD_MAP,      /* (u16 çift sayısı) */
+    OP_GET_INDEX,      /* [kap, dizin] -> değer */
+    OP_SET_INDEX,      /* [kap, dizin, değer] -> değer */
+    OP_SLICE,          /* [kap, baş, son] -> dilim; verilmeyen uç boş */
+    OP_DUP2,           /* yığının tepesindeki iki değeri çoğaltır */
+    OP_IN,             /* [öğe, kap] -> mantıksal */
+    OP_FOR_NEXT,       /* (u16 uzaklık) [kap, imleç] -> sıradaki öğeyi ekler ya da atlar */
     OP_RETURN
 } OpCode;
 

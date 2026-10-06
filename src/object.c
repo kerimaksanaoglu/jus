@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "memory.h"
@@ -103,79 +104,185 @@ ObjUpvalue *newUpvalue(Value *slot) {
     return upvalue;
 }
 
-static const char *functionName(ObjFunction *function) {
-    return function->name == NULL ? NULL : function->name->chars;
-}
-
 ObjString *valueToString(Value value) {
-    char buffer[32];
-    switch (value.type) {
-        case VAL_BOOL:
-            return AS_BOOL(value) ? copyString("doğru", (int)strlen("doğru"))
-                                  : copyString("yanlış", (int)strlen("yanlış"));
-        case VAL_NIL:
-            return copyString("boş", (int)strlen("boş"));
-        case VAL_NUMBER: {
-            int length = formatNumber(AS_NUMBER(value), buffer, sizeof(buffer));
-            return copyString(buffer, length);
-        }
-        case VAL_OBJ:
-            break;
-    }
-
     if (IS_STRING(value)) return AS_STRING(value);
 
-    const char *name = NULL;
-    if (IS_CLOSURE(value)) name = functionName(AS_CLOSURE(value)->function);
-    else if (IS_FUNCTION(value)) name = functionName(AS_FUNCTION(value));
-    else if (IS_NATIVE(value)) name = AS_NATIVE(value)->name;
-
-    char text[256];
-    int length = snprintf(text, sizeof(text), "<fonksiyon %s>", name == NULL ? "?" : name);
-    if (length >= (int)sizeof(text)) length = (int)sizeof(text) - 1;
-    return copyString(text, length);
+    int length;
+    char *chars = valueToChars(value, false, &length);
+    ObjString *string = copyString(chars, length);
+    free(chars);
+    return string;
 }
 
-static void printQuoted(FILE *out, ObjString *string) {
-    fputc('"', out);
-    for (int i = 0; i < string->length; i++) {
-        char c = string->chars[i];
-        switch (c) {
-            case '"': fputs("\\\"", out); break;
-            case '\\': fputs("\\\\", out); break;
-            case '\n': fputs("\\n", out); break;
-            case '\t': fputs("\\t", out); break;
-            case '\r': fputs("\\r", out); break;
-            default: fputc(c, out); break;
-        }
-    }
-    fputc('"', out);
+/* ---- Liste ---- */
+
+ObjList *newList(void) {
+    ObjList *list = ALLOCATE_OBJ(ObjList, OBJ_LIST);
+    list->count = 0;
+    list->capacity = 0;
+    list->items = NULL;
+    return list;
 }
 
-void printObject(FILE *out, Value value, bool quoteStrings) {
-    switch (OBJ_TYPE(value)) {
-        case OBJ_STRING:
-            if (quoteStrings) {
-                printQuoted(out, AS_STRING(value));
-            } else {
-                fwrite(AS_STRING(value)->chars, 1, (size_t)AS_STRING(value)->length, out);
-            }
-            break;
-        case OBJ_CLOSURE: {
-            const char *name = functionName(AS_CLOSURE(value)->function);
-            fprintf(out, "<fonksiyon %s>", name == NULL ? "?" : name);
-            break;
-        }
-        case OBJ_FUNCTION: {
-            const char *name = functionName(AS_FUNCTION(value));
-            fprintf(out, "<fonksiyon %s>", name == NULL ? "?" : name);
-            break;
-        }
-        case OBJ_NATIVE:
-            fprintf(out, "<fonksiyon %s>", AS_NATIVE(value)->name);
-            break;
-        case OBJ_UPVALUE:
-            fputs("<üst değer>", out);
-            break;
+static void listReserve(ObjList *list) {
+    if (list->capacity < list->count + 1) {
+        int oldCapacity = list->capacity;
+        int capacity = GROW_CAPACITY(oldCapacity);
+        /* Önce ayır, sonra kapasiteyi güncelle: ayırma sırasında çöp toplayıcı listeyi gezebilir. */
+        list->items = GROW_ARRAY(Value, list->items, oldCapacity, capacity);
+        list->capacity = capacity;
     }
+}
+
+void listAppend(ObjList *list, Value value) {
+    listReserve(list);
+    list->items[list->count++] = value;
+}
+
+void listInsert(ObjList *list, int index, Value value) {
+    listReserve(list);
+    memmove(&list->items[index + 1], &list->items[index],
+            sizeof(Value) * (size_t)(list->count - index));
+    list->items[index] = value;
+    list->count++;
+}
+
+Value listRemove(ObjList *list, int index) {
+    Value removed = list->items[index];
+    memmove(&list->items[index], &list->items[index + 1],
+            sizeof(Value) * (size_t)(list->count - index - 1));
+    list->count--;
+    return removed;
+}
+
+/* ---- Sözlük ---- */
+
+#define MAP_EMPTY (-1)
+#define MAP_DELETED (-2)
+
+ObjMap *newMap(void) {
+    ObjMap *map = ALLOCATE_OBJ(ObjMap, OBJ_MAP);
+    map->count = 0;
+    map->used = 0;
+    map->capacity = 0;
+    map->entries = NULL;
+    map->indices = NULL;
+    return map;
+}
+
+bool isHashable(Value value) {
+    if (IS_STRING(value) || IS_BOOL(value)) return true;
+    return IS_NUMBER(value) && AS_NUMBER(value) == AS_NUMBER(value);
+}
+
+static uint32_t hashValue(Value value) {
+    if (IS_STRING(value)) return AS_STRING(value)->hash;
+    if (IS_BOOL(value)) return AS_BOOL(value) ? 3 : 5;
+
+    double number = AS_NUMBER(value);
+    if (number == 0) number = 0; /* 0 ile -0 aynı anahtardır */
+    uint64_t bits;
+    memcpy(&bits, &number, sizeof(bits));
+    return (uint32_t)(bits ^ (bits >> 32)) * 2654435761u;
+}
+
+/*
+ * Anahtarı arar. Bulursa girdi numarasını döndürür; bulamazsa -1 döndürür ve
+ * *slot, anahtarın eklenebileceği indices yuvasını gösterir.
+ */
+static int mapFind(ObjMap *map, Value key, uint32_t hash, int *slot) {
+    *slot = -1;
+    if (map->capacity == 0) return -1;
+
+    uint32_t mask = (uint32_t)map->capacity - 1;
+    uint32_t index = hash & mask;
+    int tombstone = -1;
+    for (;;) {
+        int entry = map->indices[index];
+        if (entry == MAP_EMPTY) {
+            *slot = tombstone != -1 ? tombstone : (int)index;
+            return -1;
+        }
+        if (entry == MAP_DELETED) {
+            if (tombstone == -1) tombstone = (int)index;
+        } else if (map->entries[entry].hash == hash && valuesEqual(map->entries[entry].key, key)) {
+            *slot = (int)index;
+            return entry;
+        }
+        index = (index + 1) & mask;
+    }
+}
+
+/* Tabloyu büyütür ve silinmiş girdileri atarak sıkıştırır. */
+static void mapRebuild(ObjMap *map) {
+    int capacity = 8;
+    while (capacity * 2 < (map->count + 1) * 3) capacity *= 2;
+
+    MapEntry *entries = ALLOCATE(MapEntry, capacity);
+    int *indices = ALLOCATE(int, capacity);
+    for (int i = 0; i < capacity; i++) indices[i] = MAP_EMPTY;
+
+    uint32_t mask = (uint32_t)capacity - 1;
+    int used = 0;
+    for (int i = 0; i < map->used; i++) {
+        if (!map->entries[i].live) continue;
+        entries[used] = map->entries[i];
+        uint32_t index = entries[used].hash & mask;
+        while (indices[index] != MAP_EMPTY) index = (index + 1) & mask;
+        indices[index] = used;
+        used++;
+    }
+
+    FREE_ARRAY(MapEntry, map->entries, map->capacity);
+    FREE_ARRAY(int, map->indices, map->capacity);
+    map->entries = entries;
+    map->indices = indices;
+    map->capacity = capacity;
+    map->used = used;
+}
+
+bool mapGet(ObjMap *map, Value key, Value *value) {
+    int slot;
+    int entry = mapFind(map, key, hashValue(key), &slot);
+    if (entry == -1) return false;
+    *value = map->entries[entry].value;
+    return true;
+}
+
+void mapSet(ObjMap *map, Value key, Value value) {
+    uint32_t hash = hashValue(key);
+    int slot;
+    int entry = mapFind(map, key, hash, &slot);
+    if (entry != -1) {
+        map->entries[entry].value = value;
+        return;
+    }
+
+    /* Doluluk (silinmişler dahil) üçte ikiyi geçmesin; böylece her zaman boş yuva kalır. */
+    if ((map->used + 1) * 3 > map->capacity * 2) {
+        mapRebuild(map);
+        mapFind(map, key, hash, &slot);
+    }
+
+    MapEntry *added = &map->entries[map->used];
+    added->key = key;
+    added->value = value;
+    added->hash = hash;
+    added->live = true;
+    map->indices[slot] = map->used;
+    map->used++;
+    map->count++;
+}
+
+bool mapDelete(ObjMap *map, Value key) {
+    int slot;
+    int entry = mapFind(map, key, hashValue(key), &slot);
+    if (entry == -1) return false;
+
+    map->entries[entry].live = false;
+    map->entries[entry].key = NIL_VAL;
+    map->entries[entry].value = NIL_VAL;
+    map->indices[slot] = MAP_DELETED;
+    map->count--;
+    return true;
 }
