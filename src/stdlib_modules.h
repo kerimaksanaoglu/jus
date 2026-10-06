@@ -4,6 +4,9 @@
 /* Standart kütüphane modüllerini (matematik, rastgele, zaman, dosya, sistem) tanımlar. */
 void defineStandardModules(void);
 
+/* json ve tr modülleri (stdlib_data.c). defineStandardModules tarafından çağrılır. */
+void defineDataModules(void);
+
 /* Programa komut satırından verilen argümanları sistem.argümanlar listesine yazar. */
 void setScriptArguments(int count, char **arguments);
 

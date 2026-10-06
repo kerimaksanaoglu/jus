@@ -490,6 +490,33 @@ Dosyalar UTF-8 olarak okunur ve yazılır.
 | `ortam(ad)`   | Ortam değişkeninin değeri; tanımlı değilse `boş`.                 |
 | `çık(kod)`    | Programı verilen çıkış koduyla sonlandırır.                       |
 
+### json
+
+| Üye                   | Açıklama                                                  |
+|-----------------------|-----------------------------------------------------------|
+| `çöz(metin)`          | JSON metnini JUS değerine çevirir: nesne sözlük, dizi liste, `true`/`false` mantıksal, `null` `boş` olur. Geçersiz JSON hata verir. |
+| `yaz(değer)`          | Değeri tek satırlık JSON metnine çevirir.                 |
+| `yaz(değer, girinti)` | Aynı, okunaklı biçimde; `girinti` her düzey için boşluk sayısıdır. |
+
+JSON'a çevrilebilen değerler: `boş`, mantıksal, sayı, metin, liste ve anahtarları
+metin olan sözlük.
+
+### tr
+
+Türkiye'ye özgü doğrulama ve biçimlendirme işlevleri.
+
+| Üye                         | Açıklama                                            |
+|-----------------------------|-----------------------------------------------------|
+| `kimlik_no_geçerli_mi(no)`  | T.C. kimlik numarasının denetim basamakları doğruysa `doğru`. Metin ya da sayı alır. |
+| `iban_geçerli_mi(iban)`     | Türkiye IBAN'ının biçimi ve denetim basamakları doğruysa `doğru`. Boşluklar yok sayılır. |
+| `telefon_geçerli_mi(no)`    | Türkiye telefon numarası biçimine uyuyorsa `doğru`. Boşluk, parantez, tire ve `+90` kabul edilir. |
+| `para(tutar)`               | Tutarı `1.234,50 ₺` biçiminde metne çevirir.        |
+| `plaka_ili(kod)`            | Plaka koduna (1-81) karşılık gelen ilin adı.        |
+| `iller`                     | 81 ilin plaka koduna göre sıralı listesi.           |
+
+Bu işlevler yalnızca biçimi ve denetim basamaklarını doğrular; numaranın
+gerçekten var olup olmadığını denetlemez.
+
 ## 7. Hatalar
 
 ### 7.1 Sözdizimi hataları

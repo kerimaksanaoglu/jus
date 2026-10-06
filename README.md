@@ -59,17 +59,18 @@ Kaynak dosyalar UTF-8 olmalıdır.
 - Sınıflar, yöntemler ve kalıtım (`sınıf`, `bu`, `üst`)
 - Hata yakalama: `dene` / `yakala` / `fırlat`
 - Modüller (`kullan`) ve standart kütüphane: `matematik`, `rastgele`, `zaman`,
-  `dosya`, `sistem`
+  `dosya`, `sistem`, `json`, `tr`
 - 30'dan fazla yerleşik fonksiyon
 - Satır ve sütun gösteren Türkçe hata iletileri
 - Otomatik bellek yönetimi (çöp toplayıcı)
 
-Henüz olmayanlar (JSON, ağ, araçlar ve diğerleri) için
+Henüz olmayanlar (ağ, biçimlendirici, paket yöneticisi ve diğerleri) için
 [yol haritasına](docs/yol-haritasi.md) bakın.
 
 ## Belgeler
 
 - [Dil tanımı](docs/dil-tanimi.md): sözdizimi ve davranışın tam tanımı
+- [VS Code eklentisi](editors/vscode/): sözdizimi renklendirme
 - [Yol haritası](docs/yol-haritasi.md): planlanan sürümler ve 1.0 ölçütleri
 - [Değişiklik günlüğü](CHANGELOG.md)
 - [Örnekler](examples/)
@@ -81,6 +82,7 @@ src/        yorumlayıcının kaynak kodu
 tests/      test paketi (beklentiler .jus dosyalarının içinde yazılıdır)
 examples/   örnek programlar
 docs/       belgeler
+editors/    düzenleyici eklentileri
 ```
 
 ## Lisans

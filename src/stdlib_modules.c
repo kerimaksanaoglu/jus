@@ -447,6 +447,8 @@ void defineStandardModules(void) {
     defineString(sistem, "platform", "linux");
 #endif
     setScriptArguments(0, NULL);
+
+    defineDataModules();
 }
 
 void setScriptArguments(int count, char **arguments) {

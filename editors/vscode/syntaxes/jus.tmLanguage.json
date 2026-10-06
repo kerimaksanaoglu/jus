@@ -1,0 +1,116 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "JUS",
+  "scopeName": "source.jus",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#number" },
+    { "include": "#function-definition" },
+    { "include": "#class-definition" },
+    { "include": "#keywords" },
+    { "include": "#builtin-call" },
+    { "include": "#function-call" },
+    { "include": "#operators" }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.line.number-sign.jus",
+      "match": "#.*$"
+    },
+    "string": {
+      "name": "string.quoted.double.jus",
+      "begin": "\"",
+      "end": "\"|$",
+      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.jus" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.jus" } },
+      "patterns": [
+        {
+          "name": "constant.character.escape.jus",
+          "match": "\\\\[ntr\"\\\\]"
+        },
+        {
+          "name": "invalid.illegal.escape.jus",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "number": {
+      "name": "constant.numeric.jus",
+      "match": "(?<![\\p{L}\\p{N}_])\\d+(?:\\.\\d+)?(?![\\p{L}\\p{N}_])"
+    },
+    "function-definition": {
+      "match": "(?<![\\p{L}\\p{N}_])(fonksiyon)\\s+([\\p{L}_][\\p{L}\\p{N}_]*)(?=\\s*\\()",
+      "captures": {
+        "1": { "name": "storage.type.function.jus" },
+        "2": { "name": "entity.name.function.jus" }
+      }
+    },
+    "class-definition": {
+      "match": "(?<![\\p{L}\\p{N}_])(sınıf)\\s+([\\p{L}_][\\p{L}\\p{N}_]*)(?:\\s*(\\()\\s*([\\p{L}_][\\p{L}\\p{N}_]*)\\s*(\\)))?",
+      "captures": {
+        "1": { "name": "storage.type.class.jus" },
+        "2": { "name": "entity.name.type.class.jus" },
+        "3": { "name": "punctuation.definition.inherited-class.begin.jus" },
+        "4": { "name": "entity.other.inherited-class.jus" },
+        "5": { "name": "punctuation.definition.inherited-class.end.jus" }
+      }
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.import.jus",
+          "match": "(?<![\\p{L}\\p{N}_])(?:kullan|olarak)(?![\\p{L}\\p{N}_])"
+        },
+        {
+          "name": "keyword.control.jus",
+          "match": "(?<![\\p{L}\\p{N}_])(?:eğer|değilse|iken|her|dön|devam|kır|dene|yakala|fırlat)(?![\\p{L}\\p{N}_])"
+        },
+        {
+          "name": "storage.type.jus",
+          "match": "(?<![\\p{L}\\p{N}_])(?:değişken|fonksiyon|sınıf)(?![\\p{L}\\p{N}_])"
+        },
+        {
+          "name": "keyword.operator.logical.jus",
+          "match": "(?<![\\p{L}\\p{N}_])(?:ve|veya|değil|içinde)(?![\\p{L}\\p{N}_])"
+        },
+        {
+          "name": "constant.language.jus",
+          "match": "(?<![\\p{L}\\p{N}_])(?:doğru|yanlış|boş)(?![\\p{L}\\p{N}_])"
+        },
+        {
+          "name": "variable.language.jus",
+          "match": "(?<![\\p{L}\\p{N}_])(?:bu|üst)(?![\\p{L}\\p{N}_])"
+        }
+      ]
+    },
+    "builtin-call": {
+      "name": "support.function.builtin.jus",
+      "match": "(?<![\\p{L}\\p{N}_.])(?:yaz|oku|metin|sayı|tür|uzunluk|örneği_mi|karekök|mutlak|taban|tavan|yuvarla|aralık|saat|ekle|araya_ekle|çıkar|sil|sırala|ters|bul|anahtarlar|değerler|al|büyük_harf|küçük_harf|kırp|değiştir|böl|birleştir|başlar_mı|biter_mi)(?=\\s*\\()"
+    },
+    "function-call": {
+      "name": "entity.name.function.call.jus",
+      "match": "(?<![\\p{L}\\p{N}_])[\\p{L}_][\\p{L}\\p{N}_]*(?=\\s*\\()"
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.assignment.compound.jus",
+          "match": "\\+=|-=|\\*=|/="
+        },
+        {
+          "name": "keyword.operator.comparison.jus",
+          "match": "==|!=|<=|>=|<|>"
+        },
+        {
+          "name": "keyword.operator.assignment.jus",
+          "match": "="
+        },
+        {
+          "name": "keyword.operator.arithmetic.jus",
+          "match": "[-+*/%]"
+        }
+      ]
+    }
+  }
+}

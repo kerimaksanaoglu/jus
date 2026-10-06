@@ -59,18 +59,21 @@ modülleri: matematik, rastgele, zaman, dosya, sistem.
 
 Sınıflar, yöntemler, `kur`, `bu`, tekli kalıtım ve `üst`.
 
-### 0.5 Standart kütüphane
+### 0.5 Standart kütüphane (sürüyor)
 
-- JSON, dosya sistemi, komut satırı argümanları, süreç çalıştırma
+Tamamlananlar: `json` modülü, `tr` modülü, komut satırı argümanları.
+
+Kalanlar:
+
+- Dosya sistemi: klasör listeleme ve oluşturma
+- Süreç çalıştırma
 - Ağ: TCP ve HTTP istemcisi/sunucusu
-- `tr` modülü: T.C. kimlik numarası, IBAN, telefon numarası doğrulama; para
-  biçimlendirme
 
 ### 0.6 Araçlar
 
 - Biçimlendirici (`jus bicimle`)
 - Test çalıştırıcı (`jus test`)
-- VS Code eklentisi: renklendirme, hata gösterimi, tamamlama
+- VS Code eklentisi: renklendirme (tamamlandı), hata gösterimi, tamamlama
 - Tarayıcıda deneme alanı (WebAssembly)
 
 ### 0.7 Hız ve sağlamlık

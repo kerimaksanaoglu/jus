@@ -6,6 +6,13 @@ uyar.
 
 ## [Yayımlanmadı]
 
+### Eklendi
+
+- `json` modülü: `çöz`, `yaz`
+- `tr` modülü: `kimlik_no_geçerli_mi`, `iban_geçerli_mi`, `telefon_geçerli_mi`,
+  `para`, `plaka_ili`, `iller`
+- VS Code eklentisi: sözdizimi renklendirme (`editors/vscode`)
+
 ## [0.4.0]
 
 ### Eklendi
