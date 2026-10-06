@@ -3,3 +3,4 @@
 eğer doğru:
     yaz("a")
   yaz("b")
+yaz("c")

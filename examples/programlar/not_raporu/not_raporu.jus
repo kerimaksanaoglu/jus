@@ -1,0 +1,351 @@
+# Not raporu: bir JSON dosyasındaki öğrenci ve not kayıtlarını doğrular,
+# ortalama ve harf notu hesaplar, ders istatistiği çıkarır, sonucu ekrana tablo
+# olarak yazar ve JSON dosyasına kaydeder.
+#
+# Kullanım: jus not_raporu.jus [girdi.json] [çıktı.json]
+#   girdi   varsayılan: ornek_veri.json
+#   çıktı   varsayılan: not_raporu_cikti.json
+#
+# Çıkış kodları: 0 başarılı, 1 girdi/çıktı hatası, 2 hatalı kullanım,
+#                3 rapor üretildi ancak bazı kayıtlar geçersiz olduğu için atlandı.
+#
+# Girdi biçimi:
+#   {"öğrenciler": [{"numara": 1001, "ad": "Ayşe Yılmaz", "notlar": {"Matematik": 85}}]}
+
+kullan sistem
+kullan dosya
+kullan json
+kullan matematik
+
+# ---------------------------------------------------------------- biçimlendirme
+
+# Metni sağa boşluk ekleyerek genişliğe tamamlar (sola hizalı sütun).
+fonksiyon sağa_boşluk(değer, genişlik):
+    değişken s = metin(değer)
+    iken uzunluk(s) < genişlik:
+        s = s + " "
+    dön s
+
+# Metni sola boşluk ekleyerek genişliğe tamamlar (sağa hizalı sütun).
+fonksiyon sola_boşluk(değer, genişlik):
+    değişken s = metin(değer)
+    iken uzunluk(s) < genişlik:
+        s = " " + s
+    dön s
+
+# Sayıyı iki ondalık basamakla metne çevirir: 83.125 -> "83.13".
+fonksiyon iki_ondalık(x):
+    değişken r = yuvarla(x * 100)
+    değişken tam = taban(r / 100)
+    değişken kesir = r - tam * 100
+    eğer kesir < 10:
+        dön metin(tam) + ".0" + metin(kesir)
+    dön metin(tam) + "." + metin(kesir)
+
+# Sayıyı iki ondalığa yuvarlanmış sayı olarak verir (JSON çıktısı için).
+fonksiyon yuvarla2(x):
+    dön yuvarla(x * 100) / 100
+
+fonksiyon çizgi(uzunluk_):
+    değişken s = ""
+    iken uzunluk(s) < uzunluk_:
+        s = s + "-"
+    dön s
+
+# ---------------------------------------------------------------- sıralama
+
+# Karşılaştırma fonksiyonuyla kararlı birleştirmeli sıralama.
+# önce_mi(a, b) doğruysa a, b'den önce gelir. Yeni liste döndürür.
+fonksiyon sırala_listeyi(liste, önce_mi):
+    eğer uzunluk(liste) <= 1:
+        dön liste[:]
+    değişken orta = taban(uzunluk(liste) / 2)
+    değişken sol = sırala_listeyi(liste[:orta], önce_mi)
+    değişken sağ = sırala_listeyi(liste[orta:], önce_mi)
+    değişken sonuç = []
+    değişken i = 0
+    değişken j = 0
+    iken i < uzunluk(sol) ve j < uzunluk(sağ):
+        # Sağdaki kesin olarak öndeyse onu al; eşitlikte soldaki kalır (kararlılık).
+        eğer önce_mi(sağ[j], sol[i]):
+            ekle(sonuç, sağ[j])
+            j += 1
+        değilse:
+            ekle(sonuç, sol[i])
+            i += 1
+    iken i < uzunluk(sol):
+        ekle(sonuç, sol[i])
+        i += 1
+    iken j < uzunluk(sağ):
+        ekle(sonuç, sağ[j])
+        j += 1
+    dön sonuç
+
+# Ada göre: Türk alfabesi sırasına göre artan.
+fonksiyon ad_önce(a, b):
+    dön a["ad"] < b["ad"]
+
+# Ortalamaya göre azalan; eşitlikte ada göre.
+fonksiyon ortalama_önce(a, b):
+    eğer a["ortalama"] != b["ortalama"]:
+        dön a["ortalama"] > b["ortalama"]
+    dön a["ad"] < b["ad"]
+
+# ---------------------------------------------------------------- doğrulama
+
+fonksiyon harf_notu(ortalama):
+    eğer ortalama >= 90:
+        dön "AA"
+    değilse eğer ortalama >= 85:
+        dön "BA"
+    değilse eğer ortalama >= 80:
+        dön "BB"
+    değilse eğer ortalama >= 75:
+        dön "CB"
+    değilse eğer ortalama >= 70:
+        dön "CC"
+    değilse eğer ortalama >= 60:
+        dön "DC"
+    değilse eğer ortalama >= 50:
+        dön "DD"
+    dön "FF"
+
+# Bir kaydı denetler; bulunan sorunların listesini verir (boşsa kayıt geçerlidir).
+fonksiyon kaydı_denetle(kayıt):
+    değişken sorunlar = []
+    eğer tür(kayıt) != "sözlük":
+        dön ["kayıt bir nesne olmalı, bulunan: " + json.yaz(kayıt)]
+    eğer değil ("numara" içinde kayıt):
+        ekle(sorunlar, "'numara' alanı eksik")
+    değilse eğer tür(kayıt["numara"]) != "sayı" veya kayıt["numara"] != taban(kayıt["numara"]) veya kayıt["numara"] < 1:
+        ekle(sorunlar, "'numara' pozitif tam sayı olmalı, bulunan: " + json.yaz(kayıt["numara"]))
+    eğer değil ("ad" içinde kayıt):
+        ekle(sorunlar, "'ad' alanı eksik")
+    değilse eğer tür(kayıt["ad"]) != "metin" veya kırp(kayıt["ad"]) == "":
+        ekle(sorunlar, "'ad' boş olmayan bir metin olmalı, bulunan: " + json.yaz(kayıt["ad"]))
+    eğer değil ("notlar" içinde kayıt):
+        ekle(sorunlar, "'notlar' alanı eksik")
+    değilse eğer tür(kayıt["notlar"]) != "sözlük":
+        ekle(sorunlar, "'notlar' ders-not eşlemesi (nesne) olmalı, bulunan: " + json.yaz(kayıt["notlar"]))
+    değilse eğer uzunluk(kayıt["notlar"]) == 0:
+        ekle(sorunlar, "'notlar' boş; en az bir ders notu gerekli")
+    değilse:
+        her ders içinde anahtarlar(kayıt["notlar"]):
+            değişken n = kayıt["notlar"][ders]
+            eğer tür(n) != "sayı" veya n < 0 veya n > 100:
+                ekle(sorunlar, "'" + ders + "' notu geçersiz: " + json.yaz(n) + " (0-100 arası sayı olmalı)")
+    dön sorunlar
+
+# Tüm girdiyi doğrular. {"öğrenciler": geçerli kayıtlar, "hatalar": ileti listesi} verir.
+fonksiyon doğrula(veri):
+    değişken hatalar = []
+    değişken geçerli = []
+    eğer tür(veri) != "sözlük" veya değil ("öğrenciler" içinde veri):
+        fırlat {"ileti": "Girdi, 'öğrenciler' listesi içeren bir JSON nesnesi olmalı.", "kod": 1}
+    eğer tür(veri["öğrenciler"]) != "liste":
+        fırlat {"ileti": "'öğrenciler' bir liste olmalı.", "kod": 1}
+    değişken görülen = {}
+    değişken sıra = 0
+    her kayıt içinde veri["öğrenciler"]:
+        sıra += 1
+        değişken sorunlar = kaydı_denetle(kayıt)
+        eğer uzunluk(sorunlar) == 0:
+            eğer kayıt["numara"] içinde görülen:
+                ekle(sorunlar, "numara " + metin(kayıt["numara"]) + " daha önce " + metin(görülen[kayıt["numara"]]) + ". kayıtta kullanılmış")
+            değilse:
+                görülen[kayıt["numara"]] = sıra
+        eğer uzunluk(sorunlar) == 0:
+            ekle(geçerli, kayıt)
+        değilse:
+            her sorun içinde sorunlar:
+                ekle(hatalar, "Kayıt " + metin(sıra) + ": " + sorun)
+    dön {"öğrenciler": geçerli, "hatalar": hatalar}
+
+# ---------------------------------------------------------------- hesaplama
+
+# Öğrenci başına ortalama ve harf notu ekler; ders sırasını da toplar.
+# {"öğrenciler": [...], "dersler": [ders adları]} verir.
+fonksiyon öğrencileri_hesapla(kayıtlar):
+    değişken sonuç = []
+    değişken dersler = []
+    her k içinde kayıtlar:
+        değişken toplam = 0
+        her ders içinde anahtarlar(k["notlar"]):
+            toplam += k["notlar"][ders]
+            eğer değil (ders içinde dersler):
+                ekle(dersler, ders)
+        değişken ort = toplam / uzunluk(k["notlar"])
+        ekle(sonuç, {
+            "numara": k["numara"],
+            "ad": k["ad"],
+            "notlar": k["notlar"],
+            "ortalama": ort,
+            "harf_notu": harf_notu(ort),
+        })
+    dön {"öğrenciler": sonuç, "dersler": dersler}
+
+# Ders başına öğrenci sayısı, ortalama, en yüksek ve en düşük notu hesaplar.
+fonksiyon ders_istatistikleri(öğrenciler, dersler):
+    değişken liste = []
+    her ders içinde dersler:
+        değişken notlar = []
+        her ö içinde öğrenciler:
+            eğer ders içinde ö["notlar"]:
+                ekle(notlar, ö["notlar"][ders])
+        ekle(liste, {
+            "ders": ders,
+            "öğrenci_sayısı": uzunluk(notlar),
+            "ortalama": matematik.toplam(notlar) / uzunluk(notlar),
+            "en_yüksek": matematik.en_büyük(notlar),
+            "en_düşük": matematik.en_küçük(notlar),
+        })
+    dön liste
+
+# ---------------------------------------------------------------- çıktı
+
+fonksiyon ada_göre_tablo(öğrenciler, dersler):
+    değişken adGenişlik = 3
+    her ö içinde öğrenciler:
+        adGenişlik = matematik.en_büyük(adGenişlik, uzunluk(ö["ad"]))
+    değişken başlık = sola_boşluk("No", 5) + "  " + sağa_boşluk("Ad", adGenişlik)
+    her ders içinde dersler:
+        başlık = başlık + "  " + sola_boşluk(ders, matematik.en_büyük(uzunluk(ders), 5))
+    başlık = başlık + "  Ortalama  Harf"
+    yaz(başlık)
+    yaz(çizgi(uzunluk(başlık)))
+    her ö içinde öğrenciler:
+        değişken satır = sola_boşluk(ö["numara"], 5) + "  " + sağa_boşluk(ö["ad"], adGenişlik)
+        her ders içinde dersler:
+            değişken hücre = "-"
+            eğer ders içinde ö["notlar"]:
+                hücre = metin(ö["notlar"][ders])
+            satır = satır + "  " + sola_boşluk(hücre, matematik.en_büyük(uzunluk(ders), 5))
+        satır = satır + "  " + sola_boşluk(iki_ondalık(ö["ortalama"]), 7) + "  " + ö["harf_notu"]
+        yaz(satır)
+
+fonksiyon ortalamaya_göre_tablo(öğrenciler):
+    değişken adGenişlik = 3
+    her ö içinde öğrenciler:
+        adGenişlik = matematik.en_büyük(adGenişlik, uzunluk(ö["ad"]))
+    değişken başlık = "Sıra  " + sola_boşluk("No", 5) + "  " + sağa_boşluk("Ad", adGenişlik) + "  Ortalama  Harf"
+    yaz(başlık)
+    yaz(çizgi(uzunluk(başlık)))
+    değişken sıra = 0
+    her ö içinde öğrenciler:
+        sıra += 1
+        yaz(sola_boşluk(sıra, 4) + "  " + sola_boşluk(ö["numara"], 5) + "  " + sağa_boşluk(ö["ad"], adGenişlik) + "  " + sola_boşluk(iki_ondalık(ö["ortalama"]), 7) + "  " + ö["harf_notu"])
+
+fonksiyon istatistik_tablosu(istatistikler):
+    değişken dersGenişlik = 4
+    her s içinde istatistikler:
+        dersGenişlik = matematik.en_büyük(dersGenişlik, uzunluk(s["ders"]))
+    değişken başlık = sağa_boşluk("Ders", dersGenişlik) + "  Öğrenci  Ortalama  En yüksek  En düşük"
+    yaz(başlık)
+    yaz(çizgi(uzunluk(başlık)))
+    her s içinde istatistikler:
+        yaz(sağa_boşluk(s["ders"], dersGenişlik) + "  " + sola_boşluk(s["öğrenci_sayısı"], 7) + "  " + sola_boşluk(iki_ondalık(s["ortalama"]), 8) + "  " + sola_boşluk(metin(s["en_yüksek"]), 9) + "  " + sola_boşluk(metin(s["en_düşük"]), 8))
+
+# Raporu JSON çıktısı için sadeleştirir (ortalamalar iki ondalığa yuvarlanır).
+fonksiyon rapor_kur(veri, ada_göre, ortalamaya_göre, istatistikler, hatalar):
+    değişken ö_liste = []
+    her ö içinde ada_göre:
+        ekle(ö_liste, {
+            "numara": ö["numara"],
+            "ad": ö["ad"],
+            "notlar": ö["notlar"],
+            "ortalama": yuvarla2(ö["ortalama"]),
+            "harf_notu": ö["harf_notu"],
+        })
+    değişken ders_liste = []
+    her s içinde istatistikler:
+        ekle(ders_liste, {
+            "ders": s["ders"],
+            "öğrenci_sayısı": s["öğrenci_sayısı"],
+            "ortalama": yuvarla2(s["ortalama"]),
+            "en_yüksek": s["en_yüksek"],
+            "en_düşük": s["en_düşük"],
+        })
+    değişken sıra_liste = []
+    her ö içinde ortalamaya_göre:
+        ekle(sıra_liste, ö["numara"])
+    değişken rapor = {
+        "dönem": al(veri, "dönem", boş),
+        "öğrenci_sayısı": uzunluk(ada_göre),
+        "öğrenciler_ada_göre": ö_liste,
+        "sıralama_ortalamaya_göre": sıra_liste,
+        "dersler": ders_liste,
+        "hatalar": hatalar,
+    }
+    dön rapor
+
+# ---------------------------------------------------------------- ana akış
+
+fonksiyon girdiyi_oku(yol):
+    eğer değil dosya.var_mı(yol):
+        fırlat {"ileti": "Girdi dosyası bulunamadı: " + yol, "kod": 1}
+    değişken içerik = boş
+    dene:
+        içerik = dosya.oku(yol)
+    yakala hata:
+        fırlat {"ileti": "Girdi dosyası okunamadı: " + metin(hata), "kod": 1}
+    dene:
+        dön json.çöz(içerik)
+    yakala hata:
+        fırlat {"ileti": "Girdi dosyası geçerli JSON değil: " + yol + " (" + metin(hata) + ")", "kod": 1}
+
+fonksiyon çalıştır(argümanlar):
+    eğer uzunluk(argümanlar) > 2:
+        fırlat {"ileti": "Çok fazla argüman. Kullanım: jus not_raporu.jus [girdi.json] [çıktı.json]", "kod": 2}
+    değişken girdi_yolu = "ornek_veri.json"
+    değişken çıktı_yolu = "not_raporu_cikti.json"
+    eğer uzunluk(argümanlar) >= 1:
+        girdi_yolu = argümanlar[0]
+    eğer uzunluk(argümanlar) == 2:
+        çıktı_yolu = argümanlar[1]
+
+    değişken veri = girdiyi_oku(girdi_yolu)
+    değişken denetim = doğrula(veri)
+    değişken hatalar = denetim["hatalar"]
+
+    eğer uzunluk(hatalar) > 0:
+        yaz("Geçersiz kayıtlar atlandı (" + metin(uzunluk(hatalar)) + " sorun):")
+        her h içinde hatalar:
+            yaz("  - " + h)
+        yaz("")
+    eğer uzunluk(denetim["öğrenciler"]) == 0:
+        fırlat {"ileti": "Raporlanacak geçerli öğrenci kaydı yok.", "kod": 1}
+
+    değişken hesap = öğrencileri_hesapla(denetim["öğrenciler"])
+    değişken ada_göre = sırala_listeyi(hesap["öğrenciler"], ad_önce)
+    değişken ortalamaya_göre = sırala_listeyi(hesap["öğrenciler"], ortalama_önce)
+    değişken istatistikler = ders_istatistikleri(hesap["öğrenciler"], hesap["dersler"])
+
+    yaz("Not raporu: " + metin(uzunluk(ada_göre)) + " öğrenci, " + metin(uzunluk(hesap["dersler"])) + " ders")
+    yaz("")
+    yaz("Ada göre (Türk alfabesi):")
+    ada_göre_tablo(ada_göre, hesap["dersler"])
+    yaz("")
+    yaz("Ortalamaya göre (yüksekten düşüğe):")
+    ortalamaya_göre_tablo(ortalamaya_göre)
+    yaz("")
+    yaz("Ders istatistikleri:")
+    istatistik_tablosu(istatistikler)
+    yaz("")
+
+    değişken rapor = rapor_kur(veri, ada_göre, ortalamaya_göre, istatistikler, hatalar)
+    dene:
+        dosya.yaz(çıktı_yolu, json.yaz(rapor, 2) + "\n")
+    yakala hata:
+        fırlat {"ileti": "Çıktı dosyası yazılamadı: " + çıktı_yolu + " (" + metin(hata) + ")", "kod": 1}
+    yaz("Rapor yazıldı: " + çıktı_yolu)
+    eğer uzunluk(hatalar) > 0:
+        sistem.çık(3)
+
+dene:
+    çalıştır(sistem.argümanlar)
+yakala hata:
+    eğer tür(hata) == "sözlük":
+        yaz("Hata: " + hata["ileti"])
+        sistem.çık(hata["kod"])
+    yaz("Beklenmeyen hata: " + metin(hata))
+    sistem.çık(1)

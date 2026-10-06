@@ -1,0 +1,3 @@
+# kod: 65
+# hata: Geçersiz sayı; sayının hemen ardından harf gelemez.
+yaz(1e5)

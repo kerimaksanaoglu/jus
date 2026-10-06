@@ -70,12 +70,16 @@ diğerleri) için
 
 ## Belgeler
 
+- [Başlangıç rehberi](docs/rehber/README.md): programlamaya sıfırdan başlayanlar
+  için adım adım anlatım
 - [Dil tanımı](docs/dil-tanimi.md): sözdizimi ve davranışın tam tanımı
 - [VS Code eklentisi](editors/vscode/): sözdizimi renklendirme
 - [Hız ölçümleri](bench/): CPython ile karşılaştırma
 - [Yol haritası](docs/yol-haritasi.md): planlanan sürümler ve 1.0 ölçütleri
 - [Değişiklik günlüğü](CHANGELOG.md)
-- [Örnekler](examples/)
+- [Örnekler](examples/); daha büyük iki program:
+  [yapılacaklar listesi](examples/programlar/yapilacaklar/) ve
+  [not raporu](examples/programlar/not_raporu/)
 
 ## Depo düzeni
 

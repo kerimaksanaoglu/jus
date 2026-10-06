@@ -277,10 +277,46 @@ static bool tavanNative(int argCount, Value *args, Value *result) {
     return true;
 }
 
+/* Basamak sayısı argümanını doğrular (0-15). */
+static bool toDigits(const char *name, Value value, int *digits) {
+    if (!toInteger(value, digits) || *digits < 0 || *digits > 15) {
+        return nativeFail("'%s' için basamak sayısı 0 ile 15 arasında bir tam sayı olmalı.", name);
+    }
+    return true;
+}
+
+/* yuvarla(x) / yuvarla(x, basamak): en yakın tam sayıya ya da verilen ondalık basamağa yuvarlar. */
 static bool yuvarlaNative(int argCount, Value *args, Value *result) {
-    (void)argCount;
+    if (argCount < 1 || argCount > 2) {
+        return nativeFail("'yuvarla' fonksiyonu 1 ya da 2 argüman alır, %d verildi.", argCount);
+    }
     if (!requireNumber("yuvarla", args[0])) return false;
-    *result = NUMBER_VAL(round(AS_NUMBER(args[0])));
+    if (argCount == 1) {
+        *result = NUMBER_VAL(round(AS_NUMBER(args[0])));
+        return true;
+    }
+
+    int digits = 0;
+    if (!toDigits("yuvarla", args[1], &digits)) return false;
+    /* Onluk yazım üzerinden yuvarla; ikili kesirlerin yol açtığı sapmaları önler. */
+    char text[64];
+    snprintf(text, sizeof(text), "%.*f", digits, AS_NUMBER(args[0]));
+    *result = NUMBER_VAL(strtod(text, NULL));
+    return true;
+}
+
+/* biçimle(x, basamak): sayıyı tam olarak verilen sayıda ondalık basamakla metne çevirir. */
+static bool bicimleNative(int argCount, Value *args, Value *result) {
+    (void)argCount;
+    if (!requireNumber("biçimle", args[0])) return false;
+    int digits = 0;
+    if (!toDigits("biçimle", args[1], &digits)) return false;
+    if (fabs(AS_NUMBER(args[0])) >= 1e30 || AS_NUMBER(args[0]) != AS_NUMBER(args[0])) {
+        return nativeFail("'biçimle' bu büyüklükteki bir sayıyı biçimlendiremez.");
+    }
+    char text[80];
+    int length = snprintf(text, sizeof(text), "%.*f", digits, AS_NUMBER(args[0]));
+    *result = OBJ_VAL(copyString(text, length));
     return true;
 }
 
@@ -372,44 +408,137 @@ static bool silNative(int argCount, Value *args, Value *result) {
                       valueTypeName(args[0]));
 }
 
-static int compareNumbers(const void *a, const void *b) {
-    double x = AS_NUMBER(*(const Value *)a);
-    double y = AS_NUMBER(*(const Value *)b);
-    return (x > y) - (x < y);
-}
-
-static int compareStrings(const void *a, const void *b) {
-    ObjString *x = AS_STRING(*(const Value *)a);
-    ObjString *y = AS_STRING(*(const Value *)b);
+static int compareKeys(Value a, Value b, bool numbers) {
+    if (numbers) {
+        double x = AS_NUMBER(a);
+        double y = AS_NUMBER(b);
+        return (x > y) - (x < y);
+    }
+    ObjString *x = AS_STRING(a);
+    ObjString *y = AS_STRING(b);
     return trCompare(x->chars, x->length, y->chars, y->length);
 }
 
-/* sırala(liste): küçükten büyüğe sıralanmış yeni liste. Metinler Türk alfabesine göre sıralanır. */
+/* Kararlı birleştirmeli sıralama: order, keys içindeki dizinleri tutar. */
+static void mergeSort(int *order, int *scratch, int count, const Value *keys, bool numbers) {
+    if (count < 2) return;
+    int half = count / 2;
+    mergeSort(order, scratch, half, keys, numbers);
+    mergeSort(order + half, scratch, count - half, keys, numbers);
+
+    int left = 0, right = half, out = 0;
+    while (left < half && right < count) {
+        if (compareKeys(keys[order[right]], keys[order[left]], numbers) < 0) {
+            scratch[out++] = order[right++];
+        } else {
+            scratch[out++] = order[left++];
+        }
+    }
+    while (left < half) scratch[out++] = order[left++];
+    while (right < count) scratch[out++] = order[right++];
+    memcpy(order, scratch, sizeof(int) * (size_t)count);
+}
+
+/*
+ * sırala(liste) / sırala(liste, anahtar): küçükten büyüğe sıralanmış yeni liste.
+ * anahtar verilirse her öğe için çağrılır ve öğeler sonuçlarına göre sıralanır.
+ * Metinler Türk alfabesine göre sıralanır; eşit öğeler özgün sıralarını korur.
+ */
 static bool siralaNative(int argCount, Value *args, Value *result) {
-    (void)argCount;
+    if (argCount < 1 || argCount > 2) {
+        return nativeFail("'sırala' fonksiyonu 1 ya da 2 argüman alır, %d verildi.", argCount);
+    }
     if (!requireList("sırala", args[0])) return false;
-    ObjList *source = AS_LIST(args[0]);
+    Value *base = vm.stackTop;
+
+    /* Anahtar fonksiyonu listeyi değiştirebilir; bir kopya üzerinde çalış. */
+    ObjList *items = newList();
+    push(OBJ_VAL(items));
+    for (int i = 0; i < AS_LIST(args[0])->count; i++) {
+        listAppend(items, AS_LIST(args[0])->items[i]);
+    }
+
+    ObjList *keys = items;
+    if (argCount == 2) {
+        keys = newList();
+        push(OBJ_VAL(keys));
+        for (int i = 0; i < items->count; i++) {
+            Value key;
+            if (!callFunction(args[1], 1, &items->items[i], &key)) return false;
+            push(key);
+            listAppend(keys, key);
+            pop();
+        }
+    }
 
     bool allNumbers = true;
     bool allStrings = true;
-    for (int i = 0; i < source->count; i++) {
-        if (!IS_NUMBER(source->items[i])) allNumbers = false;
-        if (!IS_STRING(source->items[i])) allStrings = false;
+    for (int i = 0; i < keys->count; i++) {
+        if (!IS_NUMBER(keys->items[i])) allNumbers = false;
+        if (!IS_STRING(keys->items[i])) allStrings = false;
     }
     if (!allNumbers && !allStrings) {
-        return nativeFail("'sırala' için listenin tüm öğeleri sayı ya da tüm öğeleri metin olmalı.");
+        vm.stackTop = base;
+        return nativeFail(argCount == 2
+            ? "'sırala' için anahtar fonksiyonunun sonuçlarının tümü sayı ya da tümü metin olmalı."
+            : "'sırala' için listenin tüm öğeleri sayı ya da tüm öğeleri metin olmalı. "
+              "Başka türde öğeler için ikinci argüman olarak bir anahtar fonksiyonu verin.");
     }
+
+    int count = items->count;
+    int *order = (int *)allocateOrDie(sizeof(int) * (size_t)count * 2);
+    for (int i = 0; i < count; i++) order[i] = i;
+    mergeSort(order, order + count, count, keys->items, allNumbers);
 
     ObjList *sorted = newList();
     push(OBJ_VAL(sorted));
-    for (int i = 0; i < source->count; i++) listAppend(sorted, source->items[i]);
-    pop();
+    for (int i = 0; i < count; i++) listAppend(sorted, items->items[order[i]]);
+    free(order);
 
-    if (sorted->count > 1) {
-        qsort(sorted->items, (size_t)sorted->count, sizeof(Value),
-              allNumbers ? compareNumbers : compareStrings);
-    }
+    vm.stackTop = base;
     *result = OBJ_VAL(sorted);
+    return true;
+}
+
+/* eşle(liste, fonksiyon): her öğeye fonksiyonu uygular, sonuçların listesini döndürür. */
+static bool esleNative(int argCount, Value *args, Value *result) {
+    (void)argCount;
+    if (!requireList("eşle", args[0])) return false;
+    ObjList *source = AS_LIST(args[0]);
+    ObjList *mapped = newList();
+    push(OBJ_VAL(mapped));
+    for (int i = 0; i < source->count; i++) {
+        Value value;
+        if (!callFunction(args[1], 1, &source->items[i], &value)) return false;
+        push(value);
+        listAppend(mapped, value);
+        pop();
+    }
+    pop();
+    *result = OBJ_VAL(mapped);
+    return true;
+}
+
+/* süz(liste, fonksiyon): fonksiyonun doğru döndürdüğü öğelerin listesi. */
+static bool suzNative(int argCount, Value *args, Value *result) {
+    (void)argCount;
+    if (!requireList("süz", args[0])) return false;
+    ObjList *source = AS_LIST(args[0]);
+    ObjList *kept = newList();
+    push(OBJ_VAL(kept));
+    for (int i = 0; i < source->count; i++) {
+        Value item = source->items[i];
+        Value verdict;
+        if (!callFunction(args[1], 1, &item, &verdict)) return false;
+        if (!IS_BOOL(verdict)) {
+            pop();
+            return nativeFail("'süz' için verilen fonksiyon doğru ya da yanlış döndürmeli; %s döndürdü.",
+                              valueTypeName(verdict));
+        }
+        if (AS_BOOL(verdict)) listAppend(kept, item);
+    }
+    pop();
+    *result = OBJ_VAL(kept);
     return true;
 }
 
@@ -668,6 +797,85 @@ static bool mapCase(const char *name, Value value, uint32_t (*convert)(uint32_t)
     return true;
 }
 
+/* Metni verilen genişliğe kadar dolgu karakteriyle tamamlar. */
+static bool pad(const char *name, int argCount, Value *args, bool left, Value *result) {
+    if (argCount < 2 || argCount > 3) {
+        return nativeFail("'%s' fonksiyonu 2 ya da 3 argüman alır, %d verildi.", name, argCount);
+    }
+    if (!requireString(name, args[0])) return false;
+    int width;
+    if (!toInteger(args[1], &width) || width < 0 || width > 1000000) {
+        return nativeFail("'%s' için genişlik negatif olmayan bir tam sayı olmalı.", name);
+    }
+    const char *fill = " ";
+    int fillLength = 1;
+    if (argCount == 3) {
+        if (!requireString(name, args[2])) return false;
+        fill = AS_CSTRING(args[2]);
+        fillLength = AS_STRING(args[2])->length;
+        if (utf8Length(fill, fillLength) != 1) {
+            return nativeFail("'%s' için dolgu tek bir karakter olmalı.", name);
+        }
+    }
+
+    ObjString *text = AS_STRING(args[0]);
+    int missing = width - utf8Length(text->chars, text->length);
+    if (missing <= 0) {
+        *result = args[0];
+        return true;
+    }
+
+    int length = text->length + missing * fillLength;
+    char *buffer = (char *)allocateOrDie((size_t)length);
+    char *cursor = buffer;
+    if (!left) {
+        memcpy(cursor, text->chars, (size_t)text->length);
+        cursor += text->length;
+    }
+    for (int i = 0; i < missing; i++) {
+        memcpy(cursor, fill, (size_t)fillLength);
+        cursor += fillLength;
+    }
+    if (left) memcpy(cursor, text->chars, (size_t)text->length);
+
+    *result = OBJ_VAL(copyString(buffer, length));
+    free(buffer);
+    return true;
+}
+
+/* sola_doldur(metin, genişlik[, dolgu]): metni sağa yaslar; eksik yer solda doldurulur. */
+static bool solaDoldurNative(int argCount, Value *args, Value *result) {
+    return pad("sola_doldur", argCount, args, true, result);
+}
+
+/* sağa_doldur(metin, genişlik[, dolgu]): metni sola yaslar; eksik yer sağda doldurulur. */
+static bool sagaDoldurNative(int argCount, Value *args, Value *result) {
+    return pad("sağa_doldur", argCount, args, false, result);
+}
+
+/* tekrarla(metin, adet): metni arka arkaya adet kez yazar. */
+static bool tekrarlaNative(int argCount, Value *args, Value *result) {
+    (void)argCount;
+    if (!requireString("tekrarla", args[0])) return false;
+    int times;
+    if (!toInteger(args[1], &times) || times < 0) {
+        return nativeFail("'tekrarla' için adet negatif olmayan bir tam sayı olmalı.");
+    }
+    ObjString *text = AS_STRING(args[0]);
+    if ((double)text->length * times > 100000000.0) {
+        return nativeFail("'tekrarla' bu kadar uzun bir metin üretemez.");
+    }
+
+    int length = text->length * times;
+    char *buffer = (char *)allocateOrDie((size_t)length);
+    for (int i = 0; i < times; i++) {
+        memcpy(buffer + i * text->length, text->chars, (size_t)text->length);
+    }
+    *result = OBJ_VAL(copyString(buffer, length));
+    free(buffer);
+    return true;
+}
+
 /* büyük_harf(metin): Türkçe kurallarıyla büyük harfe çevirir (i -> İ, ı -> I). */
 static bool buyukHarfNative(int argCount, Value *args, Value *result) {
     (void)argCount;
@@ -716,14 +924,17 @@ void defineBuiltins(void) {
     defineNative("mutlak", 1, mutlakNative);
     defineNative("taban", 1, tabanNative);
     defineNative("tavan", 1, tavanNative);
-    defineNative("yuvarla", 1, yuvarlaNative);
+    defineNative("yuvarla", -1, yuvarlaNative);
+    defineNative("biçimle", 2, bicimleNative);
     defineNative("aralık", -1, aralikNative);
 
     defineNative("ekle", 2, ekleNative);
     defineNative("araya_ekle", 3, arayaEkleNative);
     defineNative("çıkar", 1, cikarNative);
     defineNative("sil", 2, silNative);
-    defineNative("sırala", 1, siralaNative);
+    defineNative("sırala", -1, siralaNative);
+    defineNative("eşle", 2, esleNative);
+    defineNative("süz", 2, suzNative);
     defineNative("ters", 1, tersNative);
     defineNative("anahtarlar", 1, anahtarlarNative);
     defineNative("değerler", 1, degerlerNative);
@@ -736,6 +947,9 @@ void defineBuiltins(void) {
     defineNative("değiştir", 3, degistirNative);
     defineNative("büyük_harf", 1, buyukHarfNative);
     defineNative("küçük_harf", 1, kucukHarfNative);
+    defineNative("sola_doldur", -1, solaDoldurNative);
+    defineNative("sağa_doldur", -1, sagaDoldurNative);
+    defineNative("tekrarla", 2, tekrarlaNative);
     defineNative("başlar_mı", 2, baslarMiNative);
     defineNative("biter_mi", 2, biterMiNative);
 }

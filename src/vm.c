@@ -23,6 +23,7 @@ static void resetStack(void) {
     vm.frameCount = 0;
     vm.openUpvalues = NULL;
     vm.handlerCount = 0;
+    vm.errorPending = false;
     vm.hasThrownValue = false;
     vm.thrown = NIL_VAL;
 }
@@ -233,7 +234,12 @@ static bool callValue(Value callee, int argCount) {
                 Value result = NIL_VAL;
                 vm.nativeError[0] = '\0';
                 if (!native->function(argCount, vm.stackTop - argCount, &result)) {
-                    runtimeError("%s", vm.nativeError);
+                    /* Hata, fonksiyonun çağırdığı JUS kodundan geldiyse iletisi zaten kayıtlıdır. */
+                    if (vm.errorPending) {
+                        vm.errorPending = false;
+                    } else {
+                        runtimeError("%s", vm.nativeError);
+                    }
                     return false;
                 }
                 vm.stackTop -= argCount + 1;
@@ -284,10 +290,19 @@ static void closeUpvalues(Value *last) {
 /*
  * Bekleyen hatayı işler. Etkin bir 'dene' bloğu varsa yığını o bloğun başındaki
  * duruma döndürür, hata değerini yığına koyar ve 'yakala' bloğuna atlar; true
- * döner. Yoksa hatayı yazar ve false döner.
+ * döner. Yoksa hatayı yazar ve false döner. stopAt, bu yürütmenin başladığı
+ * çağrı derinliğidir (ana program için 0).
  */
-static bool handleError(void) {
-    if (vm.handlerCount == 0) {
+static bool handleError(int stopAt) {
+    /* Yalnızca bu yürütmenin içinde kurulmuş yakalayıcılar kullanılabilir. */
+    bool hasHandler = vm.handlerCount > 0 &&
+                      vm.handlers[vm.handlerCount - 1].frameCount > stopAt;
+    if (!hasHandler) {
+        if (stopAt > 0) {
+            /* İç içe yürütme: hatayı, yerleşik fonksiyonu çağıran dış yürütmeye bırak. */
+            vm.errorPending = true;
+            return false;
+        }
         reportError();
         resetStack();
         return false;
@@ -771,7 +786,11 @@ static void concatenateLists(void) {
     push(OBJ_VAL(result));
 }
 
-static InterpretResult run(void) {
+/*
+ * Bayt kodunu yürütür. Çağrı derinliği stopAt'e döndüğünde (ana program için
+ * program bittiğinde) durur; iç içe yürütmede sonuç yığının tepesinde kalır.
+ */
+static InterpretResult run(int stopAt) {
     CallFrame *frame = &vm.frames[vm.frameCount - 1];
 
 #define READ_BYTE() (*frame->ip++)
@@ -1191,6 +1210,7 @@ static InterpretResult run(void) {
 
                 vm.stackTop = frame->slots;
                 push(result);
+                if (vm.frameCount == stopAt) return INTERPRET_OK;
                 frame = &vm.frames[vm.frameCount - 1];
                 break;
             }
@@ -1198,7 +1218,7 @@ static InterpretResult run(void) {
         continue;
 
     on_error:
-        if (!handleError()) return INTERPRET_RUNTIME_ERROR;
+        if (!handleError(stopAt)) return INTERPRET_RUNTIME_ERROR;
         frame = &vm.frames[vm.frameCount - 1];
     }
 
@@ -1228,7 +1248,25 @@ InterpretResult interpret(const char *name, const char *source, bool repl) {
     push(OBJ_VAL(closure));
     call(closure, 0);
 
-    InterpretResult result = run();
+    InterpretResult result = run(0);
     fflush(stdout);
     return result;
+}
+
+bool callFunction(Value callee, int argCount, Value *args, Value *result) {
+    int base = vm.frameCount;
+    push(callee);
+    for (int i = 0; i < argCount; i++) push(args[i]);
+
+    if (!callValue(callee, argCount)) {
+        vm.errorPending = true;
+        return false;
+    }
+    /* Yerleşik fonksiyonlar hemen sonuç verir; JUS fonksiyonları için yürütmeyi sürdür. */
+    if (vm.frameCount > base && run(base) != INTERPRET_OK) {
+        return false;
+    }
+
+    *result = pop();
+    return true;
 }

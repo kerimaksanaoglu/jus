@@ -3,6 +3,8 @@
 #include <string.h>
 
 #ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
 #include <windows.h>
 #endif
 
@@ -30,6 +32,7 @@ static int runFile(const char *path, int argumentCount, char **arguments) {
     }
 
     initVM();
+    setScriptPath(path);
     setScriptArguments(argumentCount, arguments);
     InterpretResult result = interpret(path, source, false);
     freeVM();
@@ -113,6 +116,16 @@ int main(int argc, char *argv[]) {
     /* Konsolun Türkçe karakterleri doğru göstermesi için UTF-8 kullan. */
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
+    /* Çıktıda satır sonu her platformda '\n' olsun. */
+    _setmode(_fileno(stdout), _O_BINARY);
+    _setmode(_fileno(stderr), _O_BINARY);
+    /* Argümanları sistemin kod sayfasıyla değil, UTF-8 olarak al. */
+    int utf8Count = 0;
+    char **utf8 = utf8Arguments(&utf8Count);
+    if (utf8 != NULL) {
+        argc = utf8Count;
+        argv = utf8;
+    }
 #endif
 
     if (argc == 1) {

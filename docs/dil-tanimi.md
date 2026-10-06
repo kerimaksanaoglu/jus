@@ -215,8 +215,9 @@ değişken ad          # başlangıç değeri boş
   görülür.
 - Bir blok ya da fonksiyon içinde tanımlanan değişken yereldir; tanımlandığı
   satırdan bloğun sonuna kadar geçerlidir.
-- İç blok, dış kapsamdaki bir adı yeniden tanımlayarak gölgeleyebilir. Aynı
-  blok içinde aynı adı iki kez tanımlamak hatadır.
+- İç blok, dış kapsamdaki bir adı yeniden tanımlayarak gölgeleyebilir. Bir blok
+  ya da fonksiyon içinde aynı adı iki kez tanımlamak hatadır. Üst düzeyde aynı
+  adı yeniden tanımlamak hata değildir; yeni tanım öncekinin yerini alır.
 
 ### 5.2 Koşul
 
@@ -399,6 +400,8 @@ sıradan değişkenlerdir.
 | `taban(x)`               | `x`'ten büyük olmayan en büyük tam sayı.                         |
 | `tavan(x)`               | `x`'ten küçük olmayan en küçük tam sayı.                         |
 | `yuvarla(x)`             | En yakın tam sayı; tam ortadaki değerler sıfırdan uzağa yuvarlanır. |
+| `yuvarla(x, basamak)`    | Verilen sayıda ondalık basamağa yuvarlar: `yuvarla(3.14159, 2)` sonucu `3.14`. |
+| `biçimle(x, basamak)`    | Sayıyı tam olarak verilen sayıda ondalık basamakla metne çevirir: `biçimle(2, 2)` sonucu `"2.00"`. |
 | `aralık(son)`            | `0`'dan `son`'a kadar (son hariç) sayıların listesi.             |
 | `aralık(baş, son)`       | `baş`'tan `son`'a kadar (son hariç) sayıların listesi.           |
 | `aralık(baş, son, adım)` | Aynı, `adım` kadar artarak. Adım negatif olabilir.               |
@@ -414,6 +417,9 @@ sıradan değişkenlerdir.
 | `sil(liste, dizin)`             | Dizindeki öğeyi siler ve döndürür.                        |
 | `sil(sözlük, anahtar)`          | Girdiyi siler ve değerini döndürür.                       |
 | `sırala(liste)`                 | Küçükten büyüğe sıralı yeni liste. Öğelerin tümü sayı ya da tümü metin olmalıdır; metinler Türk alfabesine göre sıralanır. |
+| `sırala(liste, anahtar)`        | Öğeleri `anahtar(öğe)` sonucuna göre sıralar; böylece sözlükler ve nesneler de sıralanabilir. Anahtarı eşit olan öğeler özgün sıralarını korur. |
+| `eşle(liste, f)`                | Her öğe için `f(öğe)` sonucunu içeren yeni liste.         |
+| `süz(liste, f)`                 | `f(öğe)` sonucu `doğru` olan öğelerden oluşan yeni liste. |
 | `ters(liste)`                   | Öğeleri ters sırada yeni liste. Metin de verilebilir.     |
 | `bul(liste, öğe)`               | Öğenin ilk dizini; yoksa `-1`.                            |
 | `anahtarlar(sözlük)`            | Anahtarların listesi.                                     |
@@ -431,6 +437,9 @@ sıradan değişkenlerdir.
 | `değiştir(m, eski, yeni)`     | `eski`'nin geçtiği her yeri `yeni` ile değiştirir.          |
 | `böl(m, ayraç)`               | Metni ayraçtan bölerek liste üretir. Boş ayraç karakterlere böler. |
 | `birleştir(liste, ayraç)`     | Öğeleri metne çevirip aralarına `ayraç` koyarak birleştirir. |
+| `tekrarla(m, adet)`           | Metni arka arkaya `adet` kez yazar: `tekrarla("-", 3)` sonucu `"---"`. |
+| `sola_doldur(m, genişlik)`    | Metni sağa yaslar; `genişlik` karaktere tamamlamak için soluna boşluk ekler. Üçüncü argüman olarak başka bir dolgu karakteri verilebilir: `sola_doldur("7", 3, "0")` sonucu `"007"`. |
+| `sağa_doldur(m, genişlik)`    | Metni sola yaslar; sağına dolgu ekler.                      |
 | `başlar_mı(m, ön)`            | Metin `ön` ile başlıyorsa `doğru`.                          |
 | `biter_mi(m, son)`            | Metin `son` ile bitiyorsa `doğru`.                          |
 
@@ -467,7 +476,7 @@ Aşağıdaki modüller `kullan` ile yüklenir.
 
 | Üye              | Açıklama                                                        |
 |------------------|-----------------------------------------------------------------|
-| `şimdi()`        | 1 Ocak 1970'ten bu yana geçen saniye.                           |
+| `şimdi()`        | 1 Ocak 1970'ten bu yana geçen saniye; kesirli kısmı da içerir.  |
 | `bekle(saniye)`  | Programı verilen süre kadar durdurur.                           |
 | `tarih()`        | Yerel tarih ve saat; `yıl`, `ay`, `gün`, `saat`, `dakika`, `saniye`, `haftanın_günü` (1: Pazartesi) anahtarlı sözlük. |
 
@@ -481,8 +490,12 @@ Aşağıdaki modüller `kullan` ile yüklenir.
 | `ekle(yol, içerik)`  | İçeriği dosyanın sonuna ekler.                              |
 | `var_mı(yol)`        | Dosya varsa `doğru`.                                        |
 | `sil(yol)`           | Dosyayı siler.                                              |
+| `listele(yol)`       | Klasördeki dosya ve klasör adlarının listesi; sıra belirsizdir. |
+| `klasör_oluştur(yol)` | Klasör oluşturur.                                          |
+| `klasör_sil(yol)`    | Boş bir klasörü siler.                                      |
 
-Dosyalar UTF-8 olarak okunur ve yazılır.
+Dosyalar UTF-8 olarak okunur ve yazılır. Yollar da UTF-8'dir; Türkçe harf
+içerebilir.
 
 ### sistem
 
@@ -492,6 +505,9 @@ Dosyalar UTF-8 olarak okunur ve yazılır.
 | `platform`    | `"windows"`, `"linux"` ya da `"macos"`.                           |
 | `ortam(ad)`   | Ortam değişkeninin değeri; tanımlı değilse `boş`.                 |
 | `çık(kod)`    | Programı verilen çıkış koduyla sonlandırır.                       |
+| `hata_yaz(...)` | `yaz` gibi çalışır, ancak standart hata çıktısına yazar.        |
+| `betik`       | Çalıştırılan dosyanın yolu.                                       |
+| `betik_klasörü` | Çalıştırılan dosyanın bulunduğu klasör.                         |
 
 ### json
 

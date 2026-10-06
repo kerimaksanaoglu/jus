@@ -13,6 +13,9 @@ void defineNetworkModule(void);
 /* Yorumlayıcıya gömülü JUS modülünün kaynağı (embedded.c); böyle bir modül yoksa NULL. */
 const char *embeddedModuleSource(const char *name);
 
+/* Çalıştırılan dosyanın yolunu sistem.betik ve sistem.betik_klasörü üyelerine yazar. */
+void setScriptPath(const char *path);
+
 /* Programa komut satırından verilen argümanları sistem.argümanlar listesine yazar. */
 void setScriptArguments(int count, char **arguments);
 

@@ -1,0 +1,98 @@
+# Depolama modülü: görev listesini bir JSON dosyasında saklar.
+#
+# Dosya biçimi:
+#   {"sonraki_no": 3, "görevler": [{"no": 1, "başlık": "...", "tamam": false, "tarih": "2025-01-31"}]}
+
+kullan dosya
+kullan json
+kullan zaman
+
+# Tek haneli sayıyı başına sıfır koyarak iki haneli metne çevirir.
+fonksiyon iki_hane(n):
+    eğer n < 10:
+        dön "0" + metin(n)
+    dön metin(n)
+
+# Bugünün tarihini YYYY-AA-GG biçiminde verir.
+fonksiyon bugün():
+    değişken t = zaman.tarih()
+    dön metin(t["yıl"]) + "-" + iki_hane(t["ay"]) + "-" + iki_hane(t["gün"])
+
+sınıf Depo:
+    # yol: JSON dosyasının yolu. Dosya varsa yüklenir, yoksa liste boş başlar.
+    fonksiyon kur(yol):
+        bu.yol = yol
+        bu.görevler = []
+        bu.sonraki_no = 1
+        bu.yükle()
+
+    fonksiyon yükle():
+        eğer değil dosya.var_mı(bu.yol):
+            dön
+        değişken içerik = dosya.oku(bu.yol)
+        eğer kırp(içerik) == "":
+            dön
+        değişken veri = boş
+        dene:
+            veri = json.çöz(içerik)
+        yakala hata:
+            fırlat "'" + bu.yol + "' geçerli bir JSON dosyası değil (" + hata + ")"
+        eğer tür(veri) != "sözlük" veya değil ("görevler" içinde veri):
+            fırlat "'" + bu.yol + "' beklenen biçimde değil: 'görevler' alanı yok."
+        bu.görevler = veri["görevler"]
+        bu.sonraki_no = al(veri, "sonraki_no", uzunluk(bu.görevler) + 1)
+
+    fonksiyon kaydet():
+        değişken veri = {"sonraki_no": bu.sonraki_no, "görevler": bu.görevler}
+        dene:
+            dosya.yaz(bu.yol, json.yaz(veri, 2) + "\n")
+        yakala hata:
+            fırlat "'" + bu.yol + "' dosyasına yazılamadı (" + hata + ")"
+
+    # Yeni görev ekler ve eklenen görevi döndürür.
+    fonksiyon ekle(başlık):
+        değişken görev = {"no": bu.sonraki_no, "başlık": başlık, "tamam": yanlış, "tarih": bugün()}
+        ekle(bu.görevler, görev)
+        bu.sonraki_no += 1
+        bu.kaydet()
+        dön görev
+
+    # Numaradan görevin listedeki dizinini bulur; yoksa -1.
+    fonksiyon dizin_bul(no):
+        her i içinde aralık(uzunluk(bu.görevler)):
+            eğer bu.görevler[i]["no"] == no:
+                dön i
+        dön -1
+
+    # Numaralı görevi döndürür; yoksa boş.
+    fonksiyon getir(no):
+        değişken i = bu.dizin_bul(no)
+        eğer i < 0:
+            dön boş
+        dön bu.görevler[i]
+
+    # Görevi tamamlandı olarak işaretler. Görev yoksa boş döner.
+    fonksiyon tamamla(no):
+        değişken görev = bu.getir(no)
+        eğer görev != boş:
+            görev["tamam"] = doğru
+            bu.kaydet()
+        dön görev
+
+    # Görevi siler ve silinen görevi döndürür. Görev yoksa boş döner.
+    fonksiyon kaldır(no):
+        değişken i = bu.dizin_bul(no)
+        eğer i < 0:
+            dön boş
+        değişken görev = sil(bu.görevler, i)
+        bu.kaydet()
+        dön görev
+
+    # Başlığında aranan metin geçen görevleri verir (büyük/küçük harf ayrımsız).
+    fonksiyon ara(aranan):
+        değişken sonuç = []
+        değişken a = küçük_harf(aranan)
+        her görev içinde bu.görevler:
+            eğer a içinde küçük_harf(görev["başlık"]):
+                ekle(sonuç, görev)
+        dön sonuç

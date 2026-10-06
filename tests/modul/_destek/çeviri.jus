@@ -1,0 +1,3 @@
+# Adında Türkçe harf bulunan modül dosyası.
+fonksiyon selam():
+    dön "merhaba"

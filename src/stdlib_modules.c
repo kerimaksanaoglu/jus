@@ -36,6 +36,12 @@ static bool requireList(const char *name, Value value) {
     return nativeFail("'%s' fonksiyonu liste ister; %s verildi.", name, valueTypeName(value));
 }
 
+static void defineString(ObjModule *module, const char *name, const char *text) {
+    push(OBJ_VAL(copyString(text, (int)strlen(text))));
+    moduleDefine(module, name, vm.stackTop[-1]);
+    pop();
+}
+
 /* ---- matematik ---- */
 
 static bool usNative(int argCount, Value *args, Value *result) {
@@ -222,7 +228,17 @@ static bool rastgeleTohumNative(int argCount, Value *args, Value *result) {
 static bool simdiNative(int argCount, Value *args, Value *result) {
     (void)argCount;
     (void)args;
-    *result = NUMBER_VAL((double)time(NULL));
+#ifdef _WIN32
+    FILETIME fileTime;
+    GetSystemTimeAsFileTime(&fileTime);
+    uint64_t ticks = ((uint64_t)fileTime.dwHighDateTime << 32) | fileTime.dwLowDateTime;
+    /* FILETIME 1601'den beri 100 nanosaniyelik adımları sayar. */
+    *result = NUMBER_VAL((double)ticks / 1e7 - 11644473600.0);
+#else
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    *result = NUMBER_VAL((double)now.tv_sec + (double)now.tv_nsec / 1e9);
+#endif
     return true;
 }
 
@@ -293,7 +309,7 @@ static bool dosyaOkuNative(int argCount, Value *args, Value *result) {
 
 static bool writeFile(const char *name, const char *mode, Value *args) {
     if (!requireString(name, args[0]) || !requireString(name, args[1])) return false;
-    FILE *file = fopen(AS_CSTRING(args[0]), mode);
+    FILE *file = openFile(AS_CSTRING(args[0]), mode);
     if (file == NULL) return nativeFail("'%.200s' yazmak için açılamadı.", AS_CSTRING(args[0]));
     ObjString *content = AS_STRING(args[1]);
     size_t written = fwrite(content->chars, 1, (size_t)content->length, file);
@@ -353,7 +369,7 @@ static bool dosyaSatirlarNative(int argCount, Value *args, Value *result) {
 static bool dosyaVarMiNative(int argCount, Value *args, Value *result) {
     (void)argCount;
     if (!requireString("dosya.var_mı", args[0])) return false;
-    FILE *file = fopen(AS_CSTRING(args[0]), "rb");
+    FILE *file = openFile(AS_CSTRING(args[0]), "rb");
     if (file != NULL) fclose(file);
     *result = BOOL_VAL(file != NULL);
     return true;
@@ -364,13 +380,67 @@ static bool dosyaSilNative(int argCount, Value *args, Value *result) {
     (void)argCount;
     (void)result;
     if (!requireString("dosya.sil", args[0])) return false;
-    if (remove(AS_CSTRING(args[0])) != 0) {
+    if (!removeFile(AS_CSTRING(args[0]))) {
         return nativeFail("'%.200s' silinemedi.", AS_CSTRING(args[0]));
     }
     return true;
 }
 
+/* dosya.klasör_oluştur(yol) */
+static bool klasorOlusturNative(int argCount, Value *args, Value *result) {
+    (void)argCount;
+    (void)result;
+    if (!requireString("dosya.klasör_oluştur", args[0])) return false;
+    if (!makeDirectory(AS_CSTRING(args[0]))) {
+        return nativeFail("'%.200s' klasörü oluşturulamadı.", AS_CSTRING(args[0]));
+    }
+    return true;
+}
+
+/* dosya.klasör_sil(yol): boş bir klasörü siler. */
+static bool klasorSilNative(int argCount, Value *args, Value *result) {
+    (void)argCount;
+    (void)result;
+    if (!requireString("dosya.klasör_sil", args[0])) return false;
+    if (!removeDirectory(AS_CSTRING(args[0]))) {
+        return nativeFail("'%.200s' klasörü silinemedi; klasör boş olmalıdır.", AS_CSTRING(args[0]));
+    }
+    return true;
+}
+
+static void appendName(const char *name, void *context) {
+    ObjList *list = (ObjList *)context;
+    push(OBJ_VAL(copyString(name, (int)strlen(name))));
+    listAppend(list, vm.stackTop[-1]);
+    pop();
+}
+
+/* dosya.listele(yol): klasördeki dosya ve klasör adları; sıra belirsizdir. */
+static bool listeleNative(int argCount, Value *args, Value *result) {
+    (void)argCount;
+    if (!requireString("dosya.listele", args[0])) return false;
+    ObjList *list = newList();
+    push(OBJ_VAL(list));
+    bool listed = listDirectory(AS_CSTRING(args[0]), appendName, list);
+    pop();
+    if (!listed) return nativeFail("'%.200s' klasörü okunamadı.", AS_CSTRING(args[0]));
+    *result = OBJ_VAL(list);
+    return true;
+}
+
 /* ---- sistem ---- */
+
+/* sistem.hata_yaz(...): yaz gibi, ama standart hata çıktısına yazar. */
+static bool hataYazNative(int argCount, Value *args, Value *result) {
+    (void)result;
+    fflush(stdout);
+    for (int i = 0; i < argCount; i++) {
+        if (i > 0) fputc(' ', stderr);
+        printValue(stderr, args[i], false);
+    }
+    fputc('\n', stderr);
+    return true;
+}
 
 /* sistem.çık(kod): programı verilen çıkış koduyla sonlandırır. */
 static bool cikNative(int argCount, Value *args, Value *result) {
@@ -394,11 +464,7 @@ static bool ortamNative(int argCount, Value *args, Value *result) {
     return true;
 }
 
-static void defineString(ObjModule *module, const char *name, const char *text) {
-    push(OBJ_VAL(copyString(text, (int)strlen(text))));
-    moduleDefine(module, name, vm.stackTop[-1]);
-    pop();
-}
+
 
 void defineStandardModules(void) {
     ObjModule *matematik = defineModule("matematik");
@@ -435,10 +501,16 @@ void defineStandardModules(void) {
     moduleDefineNative(dosya, "satırlar", 1, dosyaSatirlarNative);
     moduleDefineNative(dosya, "var_mı", 1, dosyaVarMiNative);
     moduleDefineNative(dosya, "sil", 1, dosyaSilNative);
+    moduleDefineNative(dosya, "klasör_oluştur", 1, klasorOlusturNative);
+    moduleDefineNative(dosya, "klasör_sil", 1, klasorSilNative);
+    moduleDefineNative(dosya, "listele", 1, listeleNative);
 
     ObjModule *sistem = defineModule("sistem");
     moduleDefineNative(sistem, "çık", -1, cikNative);
     moduleDefineNative(sistem, "ortam", 1, ortamNative);
+    moduleDefineNative(sistem, "hata_yaz", -1, hataYazNative);
+    defineString(sistem, "betik", "");
+    defineString(sistem, "betik_klasörü", "");
 #if defined(_WIN32)
     defineString(sistem, "platform", "windows");
 #elif defined(__APPLE__)
@@ -450,6 +522,24 @@ void defineStandardModules(void) {
 
     defineDataModules();
     defineNetworkModule();
+}
+
+void setScriptPath(const char *path) {
+    ObjModule *sistem = defineModule("sistem");
+    defineString(sistem, "betik", path);
+
+    /* Klasör, son yol ayracına kadar olan kısımdır; ayraç yoksa çalışma klasörü ("."). */
+    int length = 0;
+    for (int i = 0; path[i] != '\0'; i++) {
+        if (path[i] == '/' || path[i] == '\\') length = i;
+    }
+    if (length == 0) {
+        defineString(sistem, "betik_klasörü", path[0] == '/' ? "/" : ".");
+    } else {
+        push(OBJ_VAL(copyString(path, length)));
+        moduleDefine(sistem, "betik_klasörü", vm.stackTop[-1]);
+        pop();
+    }
 }
 
 void setScriptArguments(int count, char **arguments) {

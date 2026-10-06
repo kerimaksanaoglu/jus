@@ -6,6 +6,26 @@ uyar.
 
 ## [Yayımlanmadı]
 
+### Eklendi
+
+- `sırala(liste, anahtar)`: anahtar fonksiyonuyla kararlı sıralama
+- `eşle`, `süz`, `biçimle`, `sola_doldur`, `sağa_doldur`, `tekrarla`
+- `yuvarla(x, basamak)`
+- `dosya.listele`, `dosya.klasör_oluştur`, `dosya.klasör_sil`
+- `sistem.hata_yaz`, `sistem.betik`, `sistem.betik_klasörü`
+- Başlangıç rehberi (`docs/rehber`) ve iki örnek program (`examples/programlar`)
+
+### Değişti
+
+- Windows'ta çıktıda satır sonu artık `\n` (önceden `\r\n`)
+- `zaman.şimdi()` saniyenin kesirlerini de verir
+
+### Düzeltildi
+
+- Windows'ta Türkçe harf içeren komut satırı argümanları ve dosya yolları bozuluyordu
+- Girinti uyuşmazlığı hatasının ardından gereksiz ikinci bir hata bildiriliyordu
+- `1e5` gibi desteklenmeyen sayı yazımları yanıltıcı bir hata iletisi veriyordu
+
 ## [0.5.0]
 
 ### Eklendi

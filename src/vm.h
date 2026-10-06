@@ -29,6 +29,8 @@ typedef struct {
     Handler handlers[HANDLERS_MAX];
     int handlerCount;
     /* Bekleyen hata: 'fırlat' ile atılan değer ya da çalışma zamanı hata iletisi. */
+    /* Yerleşik bir fonksiyonun çağırdığı JUS fonksiyonu hata verdi; ileti zaten kayıtlı. */
+    bool errorPending;
     bool hasThrownValue;
     Value thrown;
     char errorMessage[512];
@@ -73,5 +75,12 @@ void moduleDefine(ObjModule *module, const char *name, Value value);
 void moduleDefineNative(ObjModule *module, const char *name, int arity, NativeFn function);
 /* Yerleşik fonksiyonlar hata iletisini bununla bırakır; her zaman false döndürür. */
 bool nativeFail(const char *format, ...);
+
+/*
+ * Yerleşik bir fonksiyonun içinden bir JUS değerini çağırır. Başarısız olursa
+ * false döner; hata zaten kayıtlıdır, çağıran nativeFail kullanmadan doğrudan
+ * false döndürmelidir.
+ */
+bool callFunction(Value callee, int argCount, Value *args, Value *result);
 
 #endif

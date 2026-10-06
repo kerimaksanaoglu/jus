@@ -191,6 +191,7 @@ static bool scanIndentation(Token *out) {
                 dedents++;
             }
             if (scanner.indentStack[scanner.indentCount - 1] != indent) {
+                scanner.pendingDedents = dedents;
                 *out = errorToken("Girinti, önceki blok düzeylerinden hiçbiriyle eşleşmiyor.");
                 return true;
             }
@@ -247,6 +248,12 @@ static Token number(void) {
     if (peek() == '.' && isDigit(peekNext())) {
         advance();
         while (isDigit(peek())) advance();
+    }
+
+    if (isAlpha(peek())) {
+        while (isAlpha(peek()) || isDigit(peek())) advance();
+        return errorToken("Geçersiz sayı; sayının hemen ardından harf gelemez. "
+                          "Üslü yazım (1e5 gibi) desteklenmez.");
     }
 
     return makeToken(TOKEN_NUMBER);
