@@ -6,6 +6,23 @@ uyar.
 
 ## [Yayımlanmadı]
 
+## [0.3.0]
+
+### Eklendi
+
+- Hata yakalama: `dene` / `yakala`; `fırlat` ile hata oluşturma. Dilin kendi
+  hataları da yakalanabilir
+- Modül sistemi: `kullan ad`, `kullan "yol/ad"`, `olarak` ile takma ad,
+  `modül.üye` erişimi
+- Standart kütüphane modülleri: `matematik`, `rastgele`, `zaman`, `dosya`,
+  `sistem`
+- Komut satırı argümanları: `jus program.jus a b c` (`sistem.argümanlar`)
+- Başka dosyadaki çağrılar için hata izinde dosya adı
+
+### Değişti
+
+- Her dosyanın genel değişkenleri artık kendisine aittir
+
 ## [0.2.0]
 
 ### Eklendi

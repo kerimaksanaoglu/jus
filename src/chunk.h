@@ -52,6 +52,9 @@ typedef enum {
     OP_TRY_BEGIN,      /* (u16 uzaklık) hata yakalayıcı kurar; uzaklık 'yakala' bloğunu gösterir */
     OP_TRY_END,        /* en son kurulan yakalayıcıyı kaldırır */
     OP_THROW,          /* yığının tepesindeki değeri hata olarak fırlatır */
+    OP_IMPORT,         /* (u16 ad sabiti) modülü yükler; gerekiyorsa üst düzey kodunu çağırır */
+    OP_MODULE,         /* (u16 ad sabiti) yüklenmiş modülü yığına koyar */
+    OP_GET_PROPERTY,   /* (u16 ad sabiti) [nesne] -> üye */
     OP_RETURN
 } OpCode;
 

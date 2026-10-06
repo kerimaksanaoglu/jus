@@ -85,6 +85,7 @@ typedef struct Compiler {
 
 static Parser parser;
 static Compiler *current = NULL;
+static ObjModule *currentModule = NULL;
 static const char *sourceName;
 static bool replMode;
 /* Son ifade deyimi bir atama mıydı? Etkileşimli kipte atamalar yankılanmaz. */
@@ -242,6 +243,7 @@ static void initCompiler(Compiler *compiler, FunctionType type) {
     compiler->tryDepth = 0;
     compiler->loop = NULL;
     compiler->function = newFunction();
+    compiler->function->module = currentModule;
     current = compiler;
     if (type != TYPE_SCRIPT) {
         current->function->name = copyString(parser.previous.start, parser.previous.length);
@@ -361,10 +363,9 @@ static void addLocal(Token name) {
     local->isCaptured = false;
 }
 
-static void declareVariable(void) {
+static void declareVariable(const Token *name) {
     if (current->scopeDepth == 0) return;
 
-    Token *name = &parser.previous;
     for (int i = current->localCount - 1; i >= 0; i--) {
         Local *local = &current->locals[i];
         if (local->depth != -1 && local->depth < current->scopeDepth) {
@@ -382,7 +383,7 @@ static void declareVariable(void) {
 static int parseVariable(const char *errorMessage) {
     consume(TOKEN_IDENTIFIER, errorMessage);
 
-    declareVariable();
+    declareVariable(&parser.previous);
     if (current->scopeDepth > 0) return 0;
 
     return identifierConstant(&parser.previous);
@@ -549,6 +550,15 @@ static void mapLiteral(bool canAssign) {
     emitShort(count);
 }
 
+/* nesne.üye */
+static void dot(bool canAssign) {
+    (void)canAssign;
+    consume(TOKEN_IDENTIFIER, "'.' işaretinden sonra bir ad bekleniyor.");
+    int name = identifierConstant(&parser.previous);
+    emitByte(OP_GET_PROPERTY);
+    emitShort(name);
+}
+
 static void literal(bool canAssign) {
     (void)canAssign;
     switch (parser.previous.type) {
@@ -678,6 +688,7 @@ static const ParseRule rules[] = {
     [TOKEN_SLASH_EQUAL]   = {NULL,     NULL,   PREC_NONE},
     [TOKEN_COMMA]         = {NULL,     NULL,   PREC_NONE},
     [TOKEN_COLON]         = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_DOT]           = {NULL,     dot,    PREC_CALL},
     [TOKEN_MINUS]         = {unary,    binary, PREC_TERM},
     [TOKEN_PLUS]          = {NULL,     binary, PREC_TERM},
     [TOKEN_SLASH]         = {NULL,     binary, PREC_FACTOR},
@@ -694,6 +705,8 @@ static const ParseRule rules[] = {
     [TOKEN_STRING]        = {string,   NULL,   PREC_NONE},
     [TOKEN_NUMBER]        = {number,   NULL,   PREC_NONE},
     [TOKEN_AND]           = {NULL,     and_,   PREC_AND},
+    [TOKEN_AS]            = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_IMPORT]        = {NULL,     NULL,   PREC_NONE},
     [TOKEN_BREAK]         = {NULL,     NULL,   PREC_NONE},
     [TOKEN_CATCH]         = {NULL,     NULL,   PREC_NONE},
     [TOKEN_THROW]         = {NULL,     NULL,   PREC_NONE},
@@ -958,6 +971,50 @@ static void tryStatement(void) {
     patchJump(endJump);
 }
 
+/*
+ * kullan ad [olarak takma_ad]
+ * kullan "yol/ad" [olarak takma_ad]
+ */
+static void importStatement(void) {
+    Token path;   /* modülün aranacağı ad ya da yol */
+    Token binding; /* modülün bağlanacağı değişken adı */
+
+    if (match(TOKEN_STRING)) {
+        path = parser.previous;
+        path.start++;
+        path.length -= 2;
+        /* Değişken adı yolun son parçasıdır: "araçlar/yardımcı" -> yardımcı */
+        binding = path;
+        for (int i = 0; i < path.length; i++) {
+            if (path.start[i] == '/') {
+                binding.start = path.start + i + 1;
+                binding.length = path.length - i - 1;
+            }
+        }
+    } else {
+        consume(TOKEN_IDENTIFIER, "'kullan' sözcüğünden sonra modül adı bekleniyor.");
+        path = parser.previous;
+        binding = path;
+    }
+
+    if (match(TOKEN_AS)) {
+        consume(TOKEN_IDENTIFIER, "'olarak' sözcüğünden sonra bir ad bekleniyor.");
+        binding = parser.previous;
+    }
+    endStatement();
+
+    int pathConstant = identifierConstant(&path);
+    emitByte(OP_IMPORT);
+    emitShort(pathConstant);
+    emitByte(OP_POP);
+    emitByte(OP_MODULE);
+    emitShort(pathConstant);
+
+    declareVariable(&binding);
+    int global = current->scopeDepth > 0 ? 0 : identifierConstant(&binding);
+    defineVariable(global);
+}
+
 static void throwStatement(void) {
     expression();
     endStatement();
@@ -1047,6 +1104,8 @@ static void statement(void) {
         whileStatement();
     } else if (match(TOKEN_FOR)) {
         forStatement();
+    } else if (match(TOKEN_IMPORT)) {
+        importStatement();
     } else if (match(TOKEN_TRY)) {
         tryStatement();
     } else if (match(TOKEN_THROW)) {
@@ -1072,9 +1131,10 @@ static void statement(void) {
     }
 }
 
-ObjFunction *compile(const char *name, const char *source, bool repl) {
+ObjFunction *compile(const char *name, const char *source, bool repl, ObjModule *module) {
     initScanner(source);
     Compiler compiler;
+    currentModule = module;
     sourceName = name;
     replMode = repl;
     lastExpressionWasAssignment = false;
@@ -1089,10 +1149,12 @@ ObjFunction *compile(const char *name, const char *source, bool repl) {
     }
 
     ObjFunction *function = endCompiler();
+    currentModule = NULL;
     return parser.hadError ? NULL : function;
 }
 
 void markCompilerRoots(void) {
+    markObject((Obj *)currentModule);
     Compiler *compiler = current;
     while (compiler != NULL) {
         markObject((Obj *)compiler->function);

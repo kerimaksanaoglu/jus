@@ -8,6 +8,9 @@
 #   # hata: <metin>    hata çıktısında geçmesi gereken metin
 #   # kod: <sayı>      beklenen çıkış kodu (yazılmazsa 0)
 #   # girdi: <metin>   programa standart girdiden verilecek satır
+#
+# Adı '_' ile başlayan klasörlerdeki dosyalar test değil, testlerin kullandığı
+# yardımcı modüllerdir.
 
 JUS="${1:-./jus}"
 KOK="$(cd "$(dirname "$0")" && pwd)"
@@ -64,7 +67,7 @@ while IFS= read -r dosya; do
             sed 's/^/  /' "$hata"
         fi
     fi
-done < <(find "$KOK" -name '*.jus' | sort)
+done < <(find "$KOK" -name '*.jus' -not -path '*/_*' | sort)
 
 echo "$gecen test geçti, $kalan test başarısız."
 [ "$kalan" -eq 0 ]

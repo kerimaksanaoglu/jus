@@ -4,7 +4,7 @@
 typedef enum {
     /* Noktalama ve işleçler */
     TOKEN_LEFT_PAREN, TOKEN_RIGHT_PAREN, TOKEN_LEFT_BRACKET, TOKEN_RIGHT_BRACKET,
-    TOKEN_LEFT_BRACE, TOKEN_RIGHT_BRACE, TOKEN_COMMA, TOKEN_COLON,
+    TOKEN_LEFT_BRACE, TOKEN_RIGHT_BRACE, TOKEN_COMMA, TOKEN_COLON, TOKEN_DOT,
     TOKEN_PLUS_EQUAL, TOKEN_MINUS_EQUAL, TOKEN_STAR_EQUAL, TOKEN_SLASH_EQUAL,
     TOKEN_MINUS, TOKEN_PLUS, TOKEN_SLASH, TOKEN_STAR, TOKEN_PERCENT,
     TOKEN_EQUAL, TOKEN_EQUAL_EQUAL, TOKEN_BANG_EQUAL,
@@ -13,6 +13,7 @@ typedef enum {
     TOKEN_IDENTIFIER, TOKEN_STRING, TOKEN_NUMBER,
     /* Anahtar kelimeler */
     TOKEN_AND,      /* ve */
+    TOKEN_AS,       /* olarak */
     TOKEN_BREAK,    /* kır */
     TOKEN_CATCH,    /* yakala */
     TOKEN_CONTINUE, /* devam */
@@ -21,6 +22,7 @@ typedef enum {
     TOKEN_FOR,      /* her */
     TOKEN_FUNCTION, /* fonksiyon */
     TOKEN_IF,       /* eğer */
+    TOKEN_IMPORT,   /* kullan */
     TOKEN_IN,       /* içinde */
     TOKEN_NIL,      /* boş */
     TOKEN_NOT,      /* değil */

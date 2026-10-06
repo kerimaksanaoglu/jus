@@ -1,0 +1,6 @@
+# kod: 70
+# hata: geometri.jus:16: çalışma zamanı hatası: Sıfıra bölünemez.
+# hata: satır 16, 'hatalı' fonksiyonu
+# hata: satır 6, ana program (
+kullan "_destek/geometri"   # bekle: geometri yüklendi
+geometri.hatalı()

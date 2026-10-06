@@ -27,6 +27,8 @@ typedef struct {
 
 static const Keyword keywords[] = {
     {"ve", TOKEN_AND},
+    {"olarak", TOKEN_AS},
+    {"kullan", TOKEN_IMPORT},
     {"kır", TOKEN_BREAK},
     {"yakala", TOKEN_CATCH},
     {"fırlat", TOKEN_THROW},
@@ -317,6 +319,7 @@ Token scanToken(void) {
             if (scanner.parenDepth > 0) scanner.parenDepth--;
             return makeToken(TOKEN_RIGHT_BRACE);
         case ',': return makeToken(TOKEN_COMMA);
+        case '.': return makeToken(TOKEN_DOT);
         case ':': return makeToken(TOKEN_COLON);
         case '-': return makeToken(match('=') ? TOKEN_MINUS_EQUAL : TOKEN_MINUS);
         case '+': return makeToken(match('=') ? TOKEN_PLUS_EQUAL : TOKEN_PLUS);

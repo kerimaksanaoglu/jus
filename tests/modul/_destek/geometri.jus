@@ -1,0 +1,16 @@
+# Test modülü: tests/modul/kullan.jus tarafından yüklenir.
+kullan matematik
+
+yaz("geometri yüklendi")
+
+değişken çağrı_sayısı = 0
+
+fonksiyon daire_alanı(yarıçap):
+    çağrı_sayısı += 1
+    dön matematik.pi * yarıçap * yarıçap
+
+fonksiyon kaç_kez():
+    dön çağrı_sayısı
+
+fonksiyon hatalı():
+    dön 1 / 0

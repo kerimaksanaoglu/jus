@@ -38,8 +38,17 @@ ObjFunction *newFunction(void) {
     function->arity = 0;
     function->upvalueCount = 0;
     function->name = NULL;
+    function->module = NULL;
     initChunk(&function->chunk);
     return function;
+}
+
+ObjModule *newModule(ObjString *name, ObjString *path) {
+    ObjModule *module = ALLOCATE_OBJ(ObjModule, OBJ_MODULE);
+    module->name = name;
+    module->path = path;
+    initTable(&module->globals);
+    return module;
 }
 
 ObjNative *newNative(const char *name, int arity, NativeFn function) {

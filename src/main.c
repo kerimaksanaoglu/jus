@@ -7,79 +7,30 @@
 #endif
 
 #include "common.h"
+#include "io.h"
+#include "stdlib_modules.h"
 #include "vm.h"
 
 static void printUsage(FILE *out) {
     fputs("Kullanım: jus [seçenek] [dosya.jus]\n"
           "\n"
           "  jus                  Etkileşimli kipi başlatır.\n"
-          "  jus dosya.jus        Dosyadaki programı çalıştırır.\n"
+          "  jus dosya.jus [...]  Dosyadaki programı çalıştırır; kalan argümanlar programa verilir.\n"
           "  jus --surum          Sürüm numarasını yazar.\n"
           "  jus --yardim         Bu yardım metnini yazar.\n",
           out);
 }
 
-/* Dosyayı okur; hata durumunda ileti yazıp NULL döndürür. Kaynak UTF-8 olmalıdır. */
-static char *readFile(const char *path) {
-    FILE *file = fopen(path, "rb");
-    if (file == NULL) {
-        fprintf(stderr, "jus: '%s' dosyası açılamadı.\n", path);
-        return NULL;
+static int runFile(const char *path, int argumentCount, char **arguments) {
+    const char *problem = NULL;
+    char *source = readSource(path, &problem);
+    if (source == NULL) {
+        fprintf(stderr, "jus: '%s': %s.\n", path, problem);
+        return JUS_EXIT_NO_INPUT;
     }
-
-    fseek(file, 0L, SEEK_END);
-    long fileSize = ftell(file);
-    rewind(file);
-    if (fileSize < 0) {
-        fprintf(stderr, "jus: '%s' dosyası okunamadı.\n", path);
-        fclose(file);
-        return NULL;
-    }
-
-    char *buffer = (char *)malloc((size_t)fileSize + 1);
-    if (buffer == NULL) {
-        fprintf(stderr, "jus: '%s' dosyası için bellek yetersiz.\n", path);
-        fclose(file);
-        return NULL;
-    }
-
-    size_t bytesRead = fread(buffer, sizeof(char), (size_t)fileSize, file);
-    fclose(file);
-    if (bytesRead < (size_t)fileSize) {
-        fprintf(stderr, "jus: '%s' dosyası okunamadı.\n", path);
-        free(buffer);
-        return NULL;
-    }
-    buffer[bytesRead] = '\0';
-
-    const unsigned char *bytes = (const unsigned char *)buffer;
-    if (bytesRead >= 2 &&
-        ((bytes[0] == 0xFF && bytes[1] == 0xFE) || (bytes[0] == 0xFE && bytes[1] == 0xFF))) {
-        fprintf(stderr, "jus: '%s' UTF-16 olarak kaydedilmiş. Kaynak dosyalar UTF-8 olmalıdır.\n",
-                path);
-        free(buffer);
-        return NULL;
-    }
-    if (memchr(buffer, '\0', bytesRead) != NULL) {
-        fprintf(stderr, "jus: '%s' bir metin dosyası değil. Kaynak dosyalar UTF-8 olmalıdır.\n",
-                path);
-        free(buffer);
-        return NULL;
-    }
-
-    /* UTF-8 BOM varsa atla. */
-    if (bytesRead >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) {
-        memmove(buffer, buffer + 3, bytesRead - 3 + 1);
-    }
-
-    return buffer;
-}
-
-static int runFile(const char *path) {
-    char *source = readFile(path);
-    if (source == NULL) return JUS_EXIT_NO_INPUT;
 
     initVM();
+    setScriptArguments(argumentCount, arguments);
     InterpretResult result = interpret(path, source, false);
     freeVM();
     free(source);
@@ -169,23 +120,20 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    if (argc == 2) {
-        if (strcmp(argv[1], "--surum") == 0) {
-            printf("JUS %s\n", JUS_VERSION);
-            return 0;
-        }
-        if (strcmp(argv[1], "--yardim") == 0) {
-            printUsage(stdout);
-            return 0;
-        }
-        if (argv[1][0] == '-') {
-            fprintf(stderr, "jus: bilinmeyen seçenek '%s'.\n\n", argv[1]);
-            printUsage(stderr);
-            return JUS_EXIT_USAGE;
-        }
-        return runFile(argv[1]);
+    if (strcmp(argv[1], "--surum") == 0) {
+        printf("JUS %s\n", JUS_VERSION);
+        return 0;
+    }
+    if (strcmp(argv[1], "--yardim") == 0) {
+        printUsage(stdout);
+        return 0;
+    }
+    if (argv[1][0] == '-') {
+        fprintf(stderr, "jus: bilinmeyen seçenek '%s'.\n\n", argv[1]);
+        printUsage(stderr);
+        return JUS_EXIT_USAGE;
     }
 
-    printUsage(stderr);
-    return JUS_EXIT_USAGE;
+    /* Dosya adından sonraki argümanlar programa aktarılır (sistem.argümanlar). */
+    return runFile(argv[1], argc - 2, argv + 2);
 }

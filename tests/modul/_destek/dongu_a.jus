@@ -1,0 +1,8 @@
+# Döngüsel kullanım testi: dongu_a ve dongu_b birbirini kullanır.
+kullan dongu_b
+
+fonksiyon a_adı():
+    dön "a"
+
+fonksiyon b_üzerinden():
+    dön dongu_b.b_adı()

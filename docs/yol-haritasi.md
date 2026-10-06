@@ -50,11 +50,10 @@ Liste ve sözlük; dizinleme ve dilimleme; `her ... içinde` döngüsü ve
 `aralık()`; `içinde` işleci; metin işlemleri; Türkçeye duyarlı büyük/küçük
 harf dönüşümü ve sıralama; bileşik atama.
 
-### 0.3 Hata yönetimi ve modüller
+### 0.3 Hata yönetimi ve modüller (tamamlandı)
 
-- `dene` / `yakala` / `fırlat`
-- Modül sistemi: bir dosyayı başka bir dosyadan kullanma
-- Standart kütüphanenin ilk modülleri: matematik, metin, dosya, zaman, rastgele
+`dene` / `yakala` / `fırlat`; `kullan` ile modüller; standart kütüphanenin ilk
+modülleri: matematik, rastgele, zaman, dosya, sistem.
 
 ### 0.4 Nesneler
 

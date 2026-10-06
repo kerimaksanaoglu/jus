@@ -4,7 +4,7 @@ JUS, Türkçe sözdizimli, genel amaçlı bir betik dilidir. Kaynak kod bayt kod
 derlenir ve bir sanal makinede çalışır. Yorumlayıcı C99 ile yazılmıştır ve dış
 bağımlılığı yoktur.
 
-Geçerli sürüm: **0.2.0** (geliştirme aşamasında; dil 1.0'a kadar değişebilir).
+Geçerli sürüm: **0.3.0** (geliştirme aşamasında; dil 1.0'a kadar değişebilir).
 
 ```jus
 fonksiyon faktöriyel(n):
@@ -32,7 +32,7 @@ Windows'ta MSYS2/MinGW ile `mingw32-make` kullanılabilir.
 ## Kullanım
 
 ```sh
-jus program.jus    # dosyayı çalıştırır
+jus program.jus    # dosyayı çalıştırır (sonraki argümanlar programa verilir)
 jus                # etkileşimli kip
 jus --surum
 jus --yardim
@@ -56,11 +56,14 @@ Kaynak dosyalar UTF-8 olmalıdır.
 - Dizinleme ve dilimleme: `liste[0]`, `metin[1:4]`
 - Türkçeye duyarlı metin işlemleri: `büyük_harf("ılık")` sonucu `"ILIK"`,
   alfabetik sıralamada `ç`, `ğ`, `ı`, `ö`, `ş`, `ü` doğru yerlerinde
+- Hata yakalama: `dene` / `yakala` / `fırlat`
+- Modüller (`kullan`) ve standart kütüphane: `matematik`, `rastgele`, `zaman`,
+  `dosya`, `sistem`
 - 30'dan fazla yerleşik fonksiyon
 - Satır ve sütun gösteren Türkçe hata iletileri
 - Otomatik bellek yönetimi (çöp toplayıcı)
 
-Henüz olmayanlar (hata yakalama, modüller, sınıflar ve diğerleri) için
+Henüz olmayanlar (sınıflar, JSON, ağ, araçlar ve diğerleri) için
 [yol haritasına](docs/yol-haritasi.md) bakın.
 
 ## Belgeler

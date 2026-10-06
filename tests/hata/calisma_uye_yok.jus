@@ -1,0 +1,4 @@
+# kod: 70
+# hata: sayı türündeki değerlerin 'ad' adında bir üyesi yok.
+değişken x = 5
+yaz(x.ad)

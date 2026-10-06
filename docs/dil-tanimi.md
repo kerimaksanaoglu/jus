@@ -1,6 +1,6 @@
 # JUS Dil Tanımı
 
-Sürüm 0.2.0
+Sürüm 0.3.0
 
 Bu belge JUS'un sözdizimini ve davranışını tanımlar. Yorumlayıcı bu belgeye
 uymak zorundadır; ikisi arasındaki her fark bir hatadır. Burada yazmayan bir
@@ -31,11 +31,12 @@ harf ayrıdır: `yaş` ile `Yaş` farklı adlardır.
 
 ### 2.3 Anahtar kelimeler
 
-Aşağıdaki 16 kelime ayrılmıştır ve ad olarak kullanılamaz:
+Aşağıdaki 21 kelime ayrılmıştır ve ad olarak kullanılamaz:
 
 ```
-boş    değil      değilse   değişken   devam   doğru   dön    eğer
-her    fonksiyon  içinde    iken       kır     ve      veya   yanlış
+boş      değil    değilse   değişken   dene     devam    doğru
+dön      eğer     fırlat    fonksiyon  her      içinde   iken
+kır      kullan   olarak    ve         veya     yakala   yanlış
 ```
 
 ### 2.4 Sayılar
@@ -139,7 +140,7 @@ Metinler de dizinlenebilir ve dilimlenebilir. Birim bayt değil karakterdir:
 
 | Öncelik | İşleçler              | Açıklama                  | Birleşme |
 |---------|-----------------------|---------------------------|----------|
-| 1       | `f(...)` `x[i]`       | çağrı, dizinleme          | soldan   |
+| 1       | `f(...)` `x[i]` `m.ad` | çağrı, dizinleme, üye erişimi | soldan |
 | 2       | `-x`                  | sayısal olumsuzlama       | sağdan   |
 | 3       | `*` `/` `%`           | çarpma, bölme, kalan      | soldan   |
 | 4       | `+` `-`               | toplama, çıkarma          | soldan   |
@@ -273,6 +274,52 @@ fonksiyon ad(parametre1, parametre2):
 Tek başına yazılan bir ifade hesaplanır ve sonucu atılır. Fonksiyon çağrıları
 ve atamalar bu biçimde kullanılır.
 
+### 5.6 Hata yakalama
+
+```jus
+dene:
+    değişken sonuç = böl(a, b)
+yakala hata:
+    yaz("Hesaplanamadı:", hata)
+```
+
+- `dene` bloğundaki bir deyim hata verirse bloğun kalanı atlanır ve `yakala`
+  bloğu çalışır. Hata yoksa `yakala` bloğu çalışmaz.
+- `yakala`'dan sonra yazılan ad, hata değerini tutan yerel değişkendir. Ad
+  yazılmayabilir: `yakala:`.
+- Dilin kendi ürettiği hatalarda (sıfıra bölme, tanımsız ad, tür uyuşmazlığı,
+  yerleşik fonksiyon hataları ...) hata değeri, hatayı anlatan bir metindir.
+- `fırlat ifade` bir hata oluşturur. Fırlatılan değer her türden olabilir ve
+  `yakala` bloğuna olduğu gibi ulaşır.
+- Hata, onu yakalayan bir `dene` bloğu bulunana kadar çağıran fonksiyonlara
+  doğru ilerler. Hiçbir blok yakalamazsa program 7.2'de anlatıldığı gibi durur.
+- Sözdizimi hataları yakalanamaz; program hiç başlamaz.
+
+### 5.7 Modüller
+
+```jus
+kullan matematik
+kullan matematik olarak m
+kullan "araçlar/geometri"
+
+yaz(matematik.pi, m.üs(2, 10), geometri.alan(3))
+```
+
+- `kullan ad` bir modülü yükler ve onu `ad` değişkenine bağlar. `olarak` ile
+  değişkene başka bir ad verilebilir.
+- Önce standart kütüphanede `ad` adında bir modül aranır. Yoksa, `kullan`
+  deyiminin bulunduğu dosyanın klasöründe `ad.jus` dosyası aranır.
+- Alt klasördeki bir dosya için yol tırnak içinde, `/` ile ve `.jus` uzantısı
+  olmadan yazılır. Değişken adı yolun son parçasıdır.
+- Bir modülün üst düzeyinde tanımlanan tüm değişken ve fonksiyonlar o modülün
+  üyeleridir ve `modül.üye` biçiminde okunur. Modülün üyelerine dışarıdan atama
+  yapılamaz.
+- Her dosyanın genel değişkenleri kendisine aittir; iki dosyadaki aynı adlı
+  değişkenler birbirini etkilemez. Yerleşik fonksiyonlar her dosyadan görülür.
+- Bir modül, kaç kez `kullan` ile istenirse istensin yalnızca bir kez yüklenir
+  ve üst düzey kodu bir kez çalışır.
+- `kullan` bir deyimdir; fonksiyon ya da blok içinde de yazılabilir.
+
 ## 6. Yerleşik fonksiyonlar
 
 Yerleşik fonksiyon adları anahtar kelime değildir; genel kapsamda tanımlı
@@ -342,6 +389,62 @@ sıradan değişkenlerdir.
 Harf dönüşümü ve alfabetik sıralama Türk alfabesindeki harfleri ve İngilizce
 harfleri kapsar; diğer alfabelerin harfleri değiştirilmeden bırakılır.
 
+## 6A. Standart kütüphane
+
+Aşağıdaki modüller `kullan` ile yüklenir.
+
+### matematik
+
+| Üye                    | Açıklama                                              |
+|------------------------|-------------------------------------------------------|
+| `pi`, `e`              | Sabitler.                                             |
+| `üs(taban, üs)`        | Üs alma.                                              |
+| `karekök(x)`           | Karekök.                                              |
+| `sin(x)` `cos(x)` `tan(x)` | Trigonometrik fonksiyonlar; açı radyan cinsindendir. |
+| `ln(x)` `log10(x)`     | Doğal ve onluk logaritma.                             |
+| `en_küçük(...)` `en_büyük(...)` | Verilen sayıların ya da bir sayı listesinin en küçüğü, en büyüğü. |
+| `toplam(...)`          | Verilen sayıların ya da bir sayı listesinin toplamı.  |
+
+### rastgele
+
+| Üye                | Açıklama                                                      |
+|--------------------|---------------------------------------------------------------|
+| `sayı()`           | 0 ile 1 arasında (1 hariç) rastgele sayı.                     |
+| `tam(alt, üst)`    | `alt` ve `üst` dahil rastgele tam sayı.                       |
+| `seç(liste)`       | Listeden rastgele bir öğe.                                    |
+| `karıştır(liste)`  | Listenin öğelerini yerinde karıştırır.                        |
+| `tohum(sayı)`      | Üreteci sıfırlar; aynı tohum her zaman aynı diziyi üretir.    |
+
+### zaman
+
+| Üye              | Açıklama                                                        |
+|------------------|-----------------------------------------------------------------|
+| `şimdi()`        | 1 Ocak 1970'ten bu yana geçen saniye.                           |
+| `bekle(saniye)`  | Programı verilen süre kadar durdurur.                           |
+| `tarih()`        | Yerel tarih ve saat; `yıl`, `ay`, `gün`, `saat`, `dakika`, `saniye`, `haftanın_günü` (1: Pazartesi) anahtarlı sözlük. |
+
+### dosya
+
+| Üye                  | Açıklama                                                    |
+|----------------------|-------------------------------------------------------------|
+| `oku(yol)`           | Dosyanın tüm içeriği, metin olarak.                         |
+| `satırlar(yol)`      | Dosyanın satırları, liste olarak.                           |
+| `yaz(yol, içerik)`   | Dosyayı içerikle oluşturur; varsa üzerine yazar.            |
+| `ekle(yol, içerik)`  | İçeriği dosyanın sonuna ekler.                              |
+| `var_mı(yol)`        | Dosya varsa `doğru`.                                        |
+| `sil(yol)`           | Dosyayı siler.                                              |
+
+Dosyalar UTF-8 olarak okunur ve yazılır.
+
+### sistem
+
+| Üye           | Açıklama                                                          |
+|---------------|-------------------------------------------------------------------|
+| `argümanlar`  | Komut satırında dosya adından sonra verilen argümanların listesi. |
+| `platform`    | `"windows"`, `"linux"` ya da `"macos"`.                           |
+| `ortam(ad)`   | Ortam değişkeninin değeri; tanımlı değilse `boş`.                 |
+| `çık(kod)`    | Programı verilen çıkış koduyla sonlandırır.                       |
+
 ## 7. Hatalar
 
 ### 7.1 Sözdizimi hataları
@@ -360,8 +463,8 @@ ornek.jus:3:13: sözdizimi hatası: İfade bekleniyor.
 
 ### 7.2 Çalışma zamanı hataları
 
-Çalışma sırasında oluşan hata programı durdurur. Hata bir fonksiyonun içinde
-oluştuysa çağrı zinciri de gösterilir:
+Çalışma sırasında oluşan ve bir `dene` bloğunca yakalanmayan hata programı
+durdurur. Hata bir fonksiyonun içinde oluştuysa çağrı zinciri de gösterilir:
 
 ```
 ornek.jus:2: çalışma zamanı hatası: Sıfıra bölünemez.
@@ -387,12 +490,17 @@ ornek.jus:2: çalışma zamanı hatası: Sıfıra bölünemez.
 program        = { bildirim } ;
 bildirim       = değişken_tanımı | fonksiyon_tanımı | deyim ;
 
+
 değişken_tanımı  = "değişken" AD [ "=" ifade ] SATIR_SONU ;
 fonksiyon_tanımı = "fonksiyon" AD "(" [ AD { "," AD } ] ")" blok ;
 
 deyim          = eğer_deyimi | iken_deyimi | her_deyimi | dön_deyimi
+               | dene_deyimi | fırlat_deyimi | kullan_deyimi
                | "kır" SATIR_SONU | "devam" SATIR_SONU
                | ifade SATIR_SONU ;
+dene_deyimi    = "dene" blok "yakala" [ AD ] blok ;
+fırlat_deyimi  = "fırlat" ifade SATIR_SONU ;
+kullan_deyimi  = "kullan" ( AD | METİN ) [ "olarak" AD ] SATIR_SONU ;
 eğer_deyimi    = "eğer" ifade blok [ "değilse" ( eğer_deyimi | blok ) ] ;
 iken_deyimi    = "iken" ifade blok ;
 her_deyimi     = "her" AD "içinde" ifade blok ;
@@ -411,7 +519,7 @@ karşılaştırma  = toplam { ( "<" | "<=" | ">" | ">=" | "içinde" ) toplam } ;
 toplam         = çarpım { ( "+" | "-" ) çarpım } ;
 çarpım         = tekli { ( "*" | "/" | "%" ) tekli } ;
 tekli          = "-" tekli | çağrı ;
-çağrı          = birincil { "(" [ ifade { "," ifade } ] ")" | dizin } ;
+çağrı          = birincil { "(" [ ifade { "," ifade } ] ")" | dizin | "." AD } ;
 dizin          = "[" ifade "]" | "[" [ ifade ] ":" [ ifade ] "]" ;
 birincil       = SAYI | METİN | AD | "doğru" | "yanlış" | "boş"
                | "(" ifade ")" | liste | sözlük ;

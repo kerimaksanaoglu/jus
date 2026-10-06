@@ -7,8 +7,10 @@
 #include "builtins.h"
 #include "common.h"
 #include "compiler.h"
+#include "io.h"
 #include "memory.h"
 #include "object.h"
+#include "stdlib_modules.h"
 #include "text.h"
 #include "vm.h"
 
@@ -40,7 +42,8 @@ static void reportError(void) {
 
     CallFrame *top = &vm.frames[vm.frameCount - 1];
     size_t instruction = (size_t)(top->ip - top->closure->function->chunk.code - 1);
-    fprintf(stderr, "%s:%d: çalışma zamanı hatası: ", vm.sourceName,
+    ObjModule *topModule = top->closure->function->module;
+    fprintf(stderr, "%s:%d: çalışma zamanı hatası: ", topModule->path->chars,
             top->closure->function->chunk.lines[instruction]);
     if (vm.hasThrownValue) {
         printValue(stderr, vm.thrown, false);
@@ -62,10 +65,16 @@ static void reportError(void) {
             size_t offset = (size_t)(frame->ip - function->chunk.code - 1);
             int line = function->chunk.lines[offset];
             if (function->name == NULL) {
-                fprintf(stderr, "    satır %d, ana program\n", line);
+                fprintf(stderr, "    satır %d, %s", line,
+                        function->module == vm.mainModule ? "ana program" : "modülün üst düzeyi");
             } else {
-                fprintf(stderr, "    satır %d, '%s' fonksiyonu\n", line, function->name->chars);
+                fprintf(stderr, "    satır %d, '%s' fonksiyonu", line, function->name->chars);
             }
+            /* Başka dosyadaki çağrılar için dosya adını da göster. */
+            if (function->module != topModule) {
+                fprintf(stderr, " (%s)", function->module->path->chars);
+            }
+            fputc('\n', stderr);
             shown++;
         }
     }
@@ -82,9 +91,35 @@ bool nativeFail(const char *format, ...) {
 void defineNative(const char *name, int arity, NativeFn function) {
     push(OBJ_VAL(copyString(name, (int)strlen(name))));
     push(OBJ_VAL(newNative(name, arity, function)));
-    tableSet(&vm.globals, AS_STRING(vm.stack[0]), vm.stack[1]);
+    tableSet(&vm.builtins, AS_STRING(vm.stack[0]), vm.stack[1]);
     pop();
     pop();
+}
+
+ObjModule *defineModule(const char *name) {
+    ObjString *key = copyString(name, (int)strlen(name));
+    Value existing;
+    if (tableGet(&vm.modules, key, &existing)) return AS_MODULE(existing);
+
+    push(OBJ_VAL(key));
+    ObjModule *module = newModule(key, key);
+    push(OBJ_VAL(module));
+    tableSet(&vm.modules, key, OBJ_VAL(module));
+    pop();
+    pop();
+    return module;
+}
+
+void moduleDefine(ObjModule *module, const char *name, Value value) {
+    push(value);
+    push(OBJ_VAL(copyString(name, (int)strlen(name))));
+    tableSet(&module->globals, AS_STRING(vm.stackTop[-1]), value);
+    pop();
+    pop();
+}
+
+void moduleDefineNative(ObjModule *module, const char *name, int arity, NativeFn function) {
+    moduleDefine(module, name, OBJ_VAL(newNative(name, arity, function)));
 }
 
 void initVM(void) {
@@ -102,18 +137,23 @@ void initVM(void) {
     vm.grayCapacity = 0;
     vm.grayStack = NULL;
 
-    vm.sourceName = "";
     vm.nativeError[0] = '\0';
+    vm.errorMessage[0] = '\0';
+    vm.mainModule = NULL;
 
-    initTable(&vm.globals);
+    initTable(&vm.builtins);
+    initTable(&vm.modules);
     initTable(&vm.strings);
 
     defineBuiltins();
+    defineStandardModules();
 }
 
 void freeVM(void) {
-    freeTable(&vm.globals);
+    freeTable(&vm.builtins);
+    freeTable(&vm.modules);
     freeTable(&vm.strings);
+    vm.mainModule = NULL;
     freeObjects();
     free(vm.stack);
     vm.stack = NULL;
@@ -506,6 +546,103 @@ static bool forNext(bool *done) {
     return true;
 }
 
+/*
+ * Modül adını çözer: önce yerleşik modüllere bakar, sonra içe aktaran dosyanın
+ * klasöründe '<ad>.jus' dosyasını arar. Anahtar (ad ya da dosya yolu) yığına
+ * konur; modül zaten yüklüyse *module doldurulur.
+ */
+static void resolveModule(ObjModule *importer, ObjString *name, Value *module, bool *found) {
+    *found = tableGet(&vm.modules, name, module);
+    if (*found) {
+        push(OBJ_VAL(name));
+        return;
+    }
+
+    const char *importerPath = importer->path->chars;
+    int directoryLength = 0;
+    for (int i = 0; i < importer->path->length; i++) {
+        if (importerPath[i] == '/' || importerPath[i] == '\\') directoryLength = i + 1;
+    }
+
+    int length = directoryLength + name->length + 4;
+    char *path = (char *)malloc((size_t)length + 1);
+    if (path == NULL) {
+        fprintf(stderr, "jus: bellek yetersiz.\n");
+        exit(JUS_EXIT_OUT_OF_MEMORY);
+    }
+    memcpy(path, importerPath, (size_t)directoryLength);
+    memcpy(path + directoryLength, name->chars, (size_t)name->length);
+    memcpy(path + directoryLength + name->length, ".jus", 5);
+
+    ObjString *key = copyString(path, length);
+    free(path);
+    push(OBJ_VAL(key));
+    *found = tableGet(&vm.modules, key, module);
+}
+
+/*
+ * 'kullan' deyimini yürütür. Modül ilk kez yükleniyorsa dosyayı derler ve üst
+ * düzey kodunu çağırır; çağrı dönünce yığında sonucu (boş) kalır. Modül zaten
+ * yüklüyse doğrudan boş koyar.
+ */
+static bool importModule(ObjModule *importer, ObjString *name) {
+    Value existing;
+    bool found;
+    resolveModule(importer, name, &existing, &found);
+    if (found) {
+        pop();
+        push(NIL_VAL);
+        return true;
+    }
+
+    ObjString *path = AS_STRING(peek(0));
+    const char *problem = NULL;
+    char *source = readSource(path->chars, &problem);
+    if (source == NULL) {
+        runtimeError("'%s' modülü yüklenemedi: '%s' için %s.", name->chars, path->chars, problem);
+        return false;
+    }
+
+    ObjModule *module = newModule(name, path);
+    push(OBJ_VAL(module));
+    /* Döngüsel 'kullan' zincirleri sonsuza gitmesin diye çalıştırmadan önce kaydet. */
+    tableSet(&vm.modules, path, OBJ_VAL(module));
+
+    ObjFunction *function = compile(path->chars, source, false, module);
+    free(source);
+    if (function == NULL) {
+        tableDelete(&vm.modules, path);
+        runtimeError("'%s' modülü sözdizimi hataları nedeniyle yüklenemedi.", name->chars);
+        return false;
+    }
+
+    push(OBJ_VAL(function));
+    ObjClosure *closure = newClosure(function);
+    vm.stackTop -= 3;
+    push(OBJ_VAL(closure));
+    return call(closure, 0);
+}
+
+/* [nesne] -> üye */
+static bool getProperty(ObjString *name) {
+    Value object = peek(0);
+    if (IS_MODULE(object)) {
+        Value value;
+        if (!tableGet(&AS_MODULE(object)->globals, name, &value)) {
+            runtimeError("'%s' modülünde '%s' adında bir üye yok.", AS_MODULE(object)->name->chars,
+                         name->chars);
+            return false;
+        }
+        pop();
+        push(value);
+        return true;
+    }
+
+    runtimeError("%s türündeki değerlerin '%s' adında bir üyesi yok.", valueTypeName(object),
+                 name->chars);
+    return false;
+}
+
 static void concatenateLists(void) {
     ObjList *b = AS_LIST(peek(0));
     ObjList *a = AS_LIST(peek(1));
@@ -581,7 +718,8 @@ static InterpretResult run(void) {
             case OP_GET_GLOBAL: {
                 ObjString *name = READ_STRING();
                 Value value;
-                if (!tableGet(&vm.globals, name, &value)) {
+                if (!tableGet(&frame->closure->function->module->globals, name, &value) &&
+                    !tableGet(&vm.builtins, name, &value)) {
                     runtimeError("'%s' adında bir değişken ya da fonksiyon tanımlı değil.",
                                  name->chars);
                     goto on_error;
@@ -591,14 +729,15 @@ static InterpretResult run(void) {
             }
             case OP_DEFINE_GLOBAL: {
                 ObjString *name = READ_STRING();
-                tableSet(&vm.globals, name, peek(0));
+                tableSet(&frame->closure->function->module->globals, name, peek(0));
                 pop();
                 break;
             }
             case OP_SET_GLOBAL: {
                 ObjString *name = READ_STRING();
-                if (tableSet(&vm.globals, name, peek(0))) {
-                    tableDelete(&vm.globals, name);
+                Table *globals = &frame->closure->function->module->globals;
+                if (tableSet(globals, name, peek(0))) {
+                    tableDelete(globals, name);
                     runtimeError("'%s' adında bir değişken tanımlı değil. Yeni değişken için "
                                  "'değişken %s = ...' yazın.", name->chars, name->chars);
                     goto on_error;
@@ -832,6 +971,26 @@ static InterpretResult run(void) {
                 if (done) frame->ip += offset;
                 break;
             }
+            case OP_IMPORT: {
+                ObjString *name = READ_STRING();
+                if (!importModule(frame->closure->function->module, name)) goto on_error;
+                frame = &vm.frames[vm.frameCount - 1];
+                break;
+            }
+            case OP_MODULE: {
+                ObjString *name = READ_STRING();
+                Value module = NIL_VAL;
+                bool found;
+                resolveModule(frame->closure->function->module, name, &module, &found);
+                pop();
+                push(module);
+                break;
+            }
+            case OP_GET_PROPERTY: {
+                ObjString *name = READ_STRING();
+                if (!getProperty(name)) goto on_error;
+                break;
+            }
             case OP_TRY_BEGIN: {
                 uint16_t offset = READ_SHORT();
                 if (vm.handlerCount == HANDLERS_MAX) {
@@ -887,9 +1046,15 @@ static InterpretResult run(void) {
 }
 
 InterpretResult interpret(const char *name, const char *source, bool repl) {
-    vm.sourceName = name;
+    /* Etkileşimli kipte her satır aynı modülün içinde çalışır. */
+    if (vm.mainModule == NULL) {
+        ObjString *path = copyString(name, (int)strlen(name));
+        push(OBJ_VAL(path));
+        vm.mainModule = newModule(path, path);
+        pop();
+    }
 
-    ObjFunction *function = compile(name, source, repl);
+    ObjFunction *function = compile(name, source, repl, vm.mainModule);
     if (function == NULL) return INTERPRET_COMPILE_ERROR;
 
     push(OBJ_VAL(function));

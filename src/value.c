@@ -83,6 +83,7 @@ const char *valueTypeName(Value value) {
                 case OBJ_STRING: return "metin";
                 case OBJ_LIST: return "liste";
                 case OBJ_MAP: return "sözlük";
+                case OBJ_MODULE: return "modül";
                 case OBJ_CLOSURE:
                 case OBJ_FUNCTION:
                 case OBJ_NATIVE: return "fonksiyon";
@@ -226,6 +227,11 @@ static void appendValue(TextBuffer *buffer, Value value, bool quoteStrings, int 
         }
         case OBJ_NATIVE:
             appendFunction(buffer, AS_NATIVE(value)->name);
+            break;
+        case OBJ_MODULE:
+            bufferAppendText(buffer, "<modül ");
+            bufferAppendText(buffer, AS_MODULE(value)->name->chars);
+            bufferAppend(buffer, ">", 1);
             break;
         case OBJ_UPVALUE:
             bufferAppendText(buffer, "<üst değer>");

@@ -35,7 +35,9 @@ typedef struct {
 
     Value *stack;
     Value *stackTop;
-    Table globals;
+    Table builtins; /* her modülden görülen yerleşik fonksiyonlar */
+    Table modules;  /* ad ya da dosya yolu -> yüklenmiş modül */
+    ObjModule *mainModule;
     Table strings;
     ObjUpvalue *openUpvalues;
 
@@ -46,7 +48,6 @@ typedef struct {
     int grayCapacity;
     Obj **grayStack;
 
-    const char *sourceName;
     char nativeError[256];
 } VM;
 
@@ -65,6 +66,10 @@ void push(Value value);
 Value pop(void);
 
 void defineNative(const char *name, int arity, NativeFn function);
+/* Verilen adla yerleşik modülü döndürür; yoksa oluşturur. */
+ObjModule *defineModule(const char *name);
+void moduleDefine(ObjModule *module, const char *name, Value value);
+void moduleDefineNative(ObjModule *module, const char *name, int arity, NativeFn function);
 /* Yerleşik fonksiyonlar hata iletisini bununla bırakır; her zaman false döndürür. */
 bool nativeFail(const char *format, ...);
 

@@ -1,0 +1,7 @@
+kullan dongu_a
+
+fonksiyon b_adı():
+    dön "b"
+
+fonksiyon a_üzerinden():
+    dön dongu_a.a_adı()
