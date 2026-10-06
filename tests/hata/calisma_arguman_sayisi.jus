@@ -1,0 +1,5 @@
+# kod: 70
+# hata: 'topla' fonksiyonu 2 argüman bekliyor, 1 verildi.
+fonksiyon topla(a, b):
+    dön a + b
+topla(1)

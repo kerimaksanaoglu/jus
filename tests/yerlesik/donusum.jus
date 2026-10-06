@@ -1,0 +1,21 @@
+# Yerleşik fonksiyonlar: tür dönüşümü ve sorgulama
+yaz(metin(42) + "!")          # bekle: 42!
+yaz(metin(3.5))               # bekle: 3.5
+yaz(metin(doğru), metin(boş)) # bekle: doğru boş
+yaz(metin("zaten metin"))     # bekle: zaten metin
+yaz(sayı("12") + 1)           # bekle: 13
+yaz(sayı(" -3.5 "))           # bekle: -3.5
+yaz(sayı(7))                  # bekle: 7
+yaz(sayı("007"))              # bekle: 7
+
+yaz(tür(1), tür("a"), tür(doğru), tür(boş))   # bekle: sayı metin mantıksal boş
+
+yaz(karekök(16))              # bekle: 4
+yaz(mutlak(-2.5))             # bekle: 2.5
+yaz(taban(2.7), tavan(2.1))   # bekle: 2 3
+yaz(yuvarla(2.5), yuvarla(2.4), yuvarla(-2.5))   # bekle: 3 2 -3
+yaz(taban(-2.5))              # bekle: -3
+
+yaz()                         # bekle:
+yaz(1, "iki", doğru, boş)     # bekle: 1 iki doğru boş
+yaz(saat() >= 0)              # bekle: doğru

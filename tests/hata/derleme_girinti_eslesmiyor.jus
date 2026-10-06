@@ -1,0 +1,5 @@
+# kod: 65
+# hata: Girinti, önceki blok düzeylerinden hiçbiriyle eşleşmiyor.
+eğer doğru:
+    yaz("a")
+  yaz("b")

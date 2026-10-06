@@ -1,0 +1,12 @@
+# 1'den 20'ye kadar sayar; 3'ün katlarında "Fizz", 5'in katlarında "Buzz" yazar.
+değişken i = 1
+iken i <= 20:
+    eğer i % 15 == 0:
+        yaz("FizzBuzz")
+    değilse eğer i % 3 == 0:
+        yaz("Fizz")
+    değilse eğer i % 5 == 0:
+        yaz("Buzz")
+    değilse:
+        yaz(i)
+    i = i + 1

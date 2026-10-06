@@ -1,0 +1,8 @@
+# oku: standart girdiden satır okur; girdi bitince boş döndürür.
+# girdi: Ayşe
+# girdi: 30
+değişken ad = oku()
+değişken yaş = sayı(oku())
+yaz("Merhaba, " + ad)     # bekle: Merhaba, Ayşe
+yaz(yaş + 1)              # bekle: 31
+yaz(oku())                # bekle: boş

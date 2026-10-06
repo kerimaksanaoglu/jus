@@ -1,0 +1,22 @@
+# 100'e kadar olan asal sayıları bulur.
+fonksiyon asal_mı(n):
+    eğer n < 2:
+        dön yanlış
+    değişken bölen = 2
+    iken bölen * bölen <= n:
+        eğer n % bölen == 0:
+            dön yanlış
+        bölen = bölen + 1
+    dön doğru
+
+değişken aday = 2
+değişken satır = ""
+değişken adet = 0
+iken aday <= 100:
+    eğer asal_mı(aday):
+        satır = satır + metin(aday) + " "
+        adet = adet + 1
+    aday = aday + 1
+
+yaz(satır)
+yaz("Toplam " + metin(adet) + " asal sayı bulundu.")

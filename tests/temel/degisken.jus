@@ -1,0 +1,39 @@
+# Değişken tanımlama, atama ve kapsam
+değişken a = 1
+değişken b
+yaz(a, b)             # bekle: 1 boş
+a = a + 1
+yaz(a)                # bekle: 2
+b = a = 5
+yaz(a, b)             # bekle: 5 5
+
+değişken yaş = 25
+değişken öğrenci_adı = "Ayşe"
+değişken _gizli1 = doğru
+yaz(öğrenci_adı, yaş, _gizli1)   # bekle: Ayşe 25 doğru
+
+# Blok içinde tanımlanan değişken dışarıdakini gölgeler ve blok bitince yok olur.
+değişken x = "dış"
+eğer doğru:
+    değişken x = "iç"
+    yaz(x)            # bekle: iç
+    eğer doğru:
+        x = "iç değişti"
+    yaz(x)            # bekle: iç değişti
+yaz(x)                # bekle: dış
+
+# Blok dışarıdaki değişkeni değiştirebilir.
+değişken sayaç = 0
+eğer doğru:
+    sayaç = sayaç + 10
+yaz(sayaç)            # bekle: 10
+
+# Parantez içinde ifade birden çok satıra yayılabilir.
+değişken toplam = (1 +
+    2 +
+        3)
+yaz(toplam)           # bekle: 6
+yaz(
+    "çok",
+    "satırlı"
+)                     # bekle: çok satırlı

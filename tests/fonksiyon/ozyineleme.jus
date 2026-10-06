@@ -1,0 +1,33 @@
+# Özyineleme
+fonksiyon faktöriyel(n):
+    eğer n <= 1:
+        dön 1
+    dön n * faktöriyel(n - 1)
+
+fonksiyon fib(n):
+    eğer n < 2:
+        dön n
+    dön fib(n - 1) + fib(n - 2)
+
+yaz(faktöriyel(10))     # bekle: 3628800
+yaz(fib(20))            # bekle: 6765
+
+fonksiyon say(n):
+    eğer n == 0:
+        dön 0
+    dön 1 + say(n - 1)
+
+yaz(say(900))           # bekle: 900
+
+# Karşılıklı özyineleme (üst düzey fonksiyonlar birbirini görür)
+fonksiyon çift_mi(n):
+    eğer n == 0:
+        dön doğru
+    dön tek_mi(n - 1)
+
+fonksiyon tek_mi(n):
+    eğer n == 0:
+        dön yanlış
+    dön çift_mi(n - 1)
+
+yaz(çift_mi(10), tek_mi(7))   # bekle: doğru doğru

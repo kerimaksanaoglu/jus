@@ -1,0 +1,13 @@
+#ifndef JUS_COMPILER_H
+#define JUS_COMPILER_H
+
+#include "object.h"
+
+/*
+ * Kaynağı bayt koduna derler. Hata varsa iletileri stderr'e yazıp NULL döndürür.
+ * repl doğruysa üst düzey ifadelerin sonucu ekrana yazılır.
+ */
+ObjFunction *compile(const char *name, const char *source, bool repl);
+void markCompilerRoots(void);
+
+#endif

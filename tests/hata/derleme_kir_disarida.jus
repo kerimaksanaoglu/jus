@@ -1,0 +1,7 @@
+# kod: 65
+# hata: 'kır' yalnızca bir döngünün içinde kullanılabilir.
+# hata: 'devam' yalnızca bir döngünün içinde kullanılabilir.
+kır
+iken yanlış:
+    fonksiyon f():
+        devam

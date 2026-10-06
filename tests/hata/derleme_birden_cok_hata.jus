@@ -1,0 +1,9 @@
+# Her hatalı satır ayrı ayrı bildirilir.
+# kod: 65
+# hata: 6:9: sözdizimi hatası: İfade bekleniyor.
+# hata: 7:5: sözdizimi hatası: Deyimden sonra satır sonu bekleniyor.
+# hata: 8:10: sözdizimi hatası: Değişken adı bekleniyor.
+yaz(1 + )
+değ 5
+değişken 5 = 3
+yaz("geçerli satır")

@@ -1,0 +1,50 @@
+# İç fonksiyonlar tanımlandıkları kapsamdaki değişkenleri kullanabilir.
+fonksiyon sayaç_yap():
+    değişken sayı = 0
+    fonksiyon artır():
+        sayı = sayı + 1
+        dön sayı
+    dön artır
+
+değişken a = sayaç_yap()
+değişken b = sayaç_yap()
+yaz(a(), a(), a())      # bekle: 1 2 3
+yaz(b())                # bekle: 1
+
+fonksiyon toplayıcı(n):
+    fonksiyon ekle(x):
+        dön x + n
+    dön ekle
+
+değişken beş_ekle = toplayıcı(5)
+yaz(beş_ekle(10))       # bekle: 15
+
+# Döngü içinde yakalanan değişken her turda ayrıdır.
+değişken ilk = boş
+değişken son = boş
+değişken i = 0
+iken i < 3:
+    değişken kopya = i
+    fonksiyon ver():
+        dön kopya
+    eğer i == 0:
+        ilk = ver
+    son = ver
+    i = i + 1
+yaz(ilk(), son())       # bekle: 0 2
+
+# Çok sayıda metin üretip çöp toplayıcıyı çalıştır.
+fonksiyon tekrar_et(parça, kaç):
+    değişken sonuç = ""
+    değişken k = 0
+    iken k < kaç:
+        sonuç = sonuç + parça
+        k = k + 1
+    dön sonuç
+
+değişken tur = 0
+değişken toplam = 0
+iken tur < 200:
+    toplam = toplam + uzunluk(tekrar_et("ab", 50))
+    tur = tur + 1
+yaz(toplam)             # bekle: 20000

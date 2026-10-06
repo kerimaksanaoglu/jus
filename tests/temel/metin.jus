@@ -1,0 +1,25 @@
+# Metinler her zaman metin olarak kalır; sayıya benzeseler bile.
+yaz("Merhaba" + ", " + "dünya")   # bekle: Merhaba, dünya
+yaz("")                           # bekle:
+yaz("05321234567")                # bekle: 05321234567
+yaz("12" == 12)                   # bekle: yanlış
+yaz("12" + "3")                   # bekle: 123
+yaz("çğıöşü ÇĞİÖŞÜ")              # bekle: çğıöşü ÇĞİÖŞÜ
+yaz(uzunluk("çğıöşü"))            # bekle: 6
+yaz(uzunluk(""))                  # bekle: 0
+yaz("a\tb")                       # bekle: a	b
+yaz("tırnak: \"x\"")              # bekle: tırnak: "x"
+yaz("ters bölü: \\")              # bekle: ters bölü: \
+yaz("iki\nsatır")
+# bekle: iki
+# bekle: satır
+yaz("a" == "a")                   # bekle: doğru
+yaz("a" != "b")                   # bekle: doğru
+yaz("yaş: " + metin(25))          # bekle: yaş: 25
+
+değişken uzun = "0123456789"
+değişken i = 0
+iken i < 5:
+    uzun = uzun + uzun
+    i = i + 1
+yaz(uzunluk(uzun))                # bekle: 320

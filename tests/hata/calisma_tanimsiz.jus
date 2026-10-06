@@ -1,0 +1,6 @@
+# kod: 70
+# hata: calisma_tanimsiz.jus:5: çalışma zamanı hatası: 'sayac' adında bir değişken ya da fonksiyon tanımlı değil.
+yaz("önce")   # bekle: önce
+değişken sayaç = 1
+yaz(sayac)
+yaz("sonra")

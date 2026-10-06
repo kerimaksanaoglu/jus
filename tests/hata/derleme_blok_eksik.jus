@@ -1,0 +1,4 @@
+# kod: 65
+# hata: girintili bir blok bekleniyor
+eğer doğru:
+yaz("girintisiz")

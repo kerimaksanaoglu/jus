@@ -1,57 +1,43 @@
-# JUS Yorumlayıcısı Makefile
-# JUS Interpreter Makefile
+# JUS derleme dosyası
+#
+#   make          yorumlayıcıyı derler
+#   make test     test paketini çalıştırır
+#   make clean    derleme çıktılarını siler
+#
+# Ek derleyici bayrakları EXTRA ile verilir, örneğin:
+#   make EXTRA="-g -fsanitize=address,undefined -DJUS_DEBUG_STRESS_GC"
 
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -Iinclude
-SRCDIR = src
-SOURCES = $(SRCDIR)/main.c $(SRCDIR)/lexer.c $(SRCDIR)/parser.c $(SRCDIR)/interpreter.c $(SRCDIR)/turkiye_features.c
-OBJECTS = $(SOURCES:.c=.o)
-TARGET = jus
+CFLAGS = -O2
+WARNINGS = -std=c99 -Wall -Wextra -pedantic
+EXTRA =
 
-# Ana hedef / Main target
+ifeq ($(OS),Windows_NT)
+EXE = .exe
+else
+EXE =
+endif
+
+TARGET = jus$(EXE)
+SOURCES = $(wildcard src/*.c)
+HEADERS = $(wildcard src/*.h)
+OBJECTS = $(SOURCES:src/%.c=build/%.o)
+
 all: $(TARGET)
 
-# Executable oluştur / Create executable
 $(TARGET): $(OBJECTS)
-	$(CC) $(OBJECTS) -o $(TARGET) -lm
+	$(CC) $(CFLAGS) $(EXTRA) $(OBJECTS) -o $@ -lm
 
-# Object dosyalarını derle / Compile object files
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+build/%.o: src/%.c $(HEADERS) | build
+	$(CC) $(WARNINGS) $(CFLAGS) $(EXTRA) -c $< -o $@
 
-# Temizlik / Clean
-clean:
-	rm -f $(OBJECTS) $(TARGET)
+build:
+	mkdir -p build
 
-# Debug sürümü / Debug build
-debug: CFLAGS += -g -DDEBUG
-debug: $(TARGET)
-
-# Test / Test
 test: $(TARGET)
-	@echo "JUS Yorumlayıcısı test ediliyor... / Testing JUS Interpreter..."
-	@if [ -f examples/merhaba.jus ]; then \
-		./$(TARGET) examples/merhaba.jus; \
-	else \
-		echo "Test dosyası bulunamadı / Test file not found: examples/merhaba.jus"; \
-	fi
+	bash tests/calistir.sh ./$(TARGET)
 
-# Kurulum / Install (isteğe bağlı)
-install: $(TARGET)
-	@echo "JUS kurulumu henüz desteklenmiyor / JUS installation not yet supported"
+clean:
+	rm -rf build $(TARGET)
 
-# Yardım / Help
-help:
-	@echo "JUS Yorumlayıcısı Derleme Seçenekleri / JUS Interpreter Build Options:"
-	@echo ""
-	@echo "  make          - Normal derleme / Normal build"
-	@echo "  make debug    - Debug derleme / Debug build"
-	@echo "  make clean    - Temizlik / Clean build files"
-	@echo "  make test     - Test çalıştır / Run tests"
-	@echo "  make help     - Bu yardımı göster / Show this help"
-	@echo ""
-	@echo "Kullanım / Usage:"
-	@echo "  ./jus dosya.jus"
-
-# Phony targets
-.PHONY: all clean debug test install help
+.PHONY: all test clean

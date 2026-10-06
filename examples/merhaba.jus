@@ -1,0 +1,6 @@
+# İlk program
+yaz("Merhaba, dünya!")
+
+değişken ad = "JUS"
+değişken sürüm = 0.1
+yaz("Bu program " + ad + " " + metin(sürüm) + " ile çalışıyor.")

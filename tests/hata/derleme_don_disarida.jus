@@ -1,0 +1,3 @@
+# kod: 65
+# hata: 'dön' yalnızca bir fonksiyonun içinde kullanılabilir.
+dön 5
