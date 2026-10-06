@@ -140,10 +140,13 @@ void initVM(void) {
     vm.nativeError[0] = '\0';
     vm.errorMessage[0] = '\0';
     vm.mainModule = NULL;
+    vm.initString = NULL;
 
     initTable(&vm.builtins);
     initTable(&vm.modules);
     initTable(&vm.strings);
+
+    vm.initString = copyString("kur", 3);
 
     defineBuiltins();
     defineStandardModules();
@@ -154,6 +157,7 @@ void freeVM(void) {
     freeTable(&vm.modules);
     freeTable(&vm.strings);
     vm.mainModule = NULL;
+    vm.initString = NULL;
     freeObjects();
     free(vm.stack);
     vm.stack = NULL;
@@ -197,6 +201,25 @@ static bool call(ObjClosure *closure, int argCount) {
 static bool callValue(Value callee, int argCount) {
     if (IS_OBJ(callee)) {
         switch (OBJ_TYPE(callee)) {
+            case OBJ_BOUND_METHOD: {
+                ObjBoundMethod *bound = AS_BOUND_METHOD(callee);
+                vm.stackTop[-argCount - 1] = bound->receiver;
+                return call(bound->method, argCount);
+            }
+            case OBJ_CLASS: {
+                ObjClass *klass = AS_CLASS(callee);
+                vm.stackTop[-argCount - 1] = OBJ_VAL(newInstance(klass));
+                Value initializer;
+                if (tableGet(&klass->methods, vm.initString, &initializer)) {
+                    return call(AS_CLOSURE(initializer), argCount);
+                }
+                if (argCount != 0) {
+                    runtimeError("'%s' sınıfının 'kur' yöntemi yok; argüman verilemez (%d verildi).",
+                                 klass->name->chars, argCount);
+                    return false;
+                }
+                return true;
+            }
             case OBJ_CLOSURE:
                 return call(AS_CLOSURE(callee), argCount);
             case OBJ_NATIVE: {
@@ -623,9 +646,35 @@ static bool importModule(ObjModule *importer, ObjString *name) {
     return call(closure, 0);
 }
 
+/* Yığının tepesindeki nesneyi, sınıfın verilen adlı yöntemine bağlı yöntemle değiştirir. */
+static bool bindMethod(ObjClass *klass, ObjString *name) {
+    Value method;
+    if (!tableGet(&klass->methods, name, &method)) {
+        runtimeError("'%s' nesnesinde '%s' adında bir alan ya da yöntem yok.", klass->name->chars,
+                     name->chars);
+        return false;
+    }
+
+    ObjBoundMethod *bound = newBoundMethod(peek(0), AS_CLOSURE(method));
+    pop();
+    push(OBJ_VAL(bound));
+    return true;
+}
+
 /* [nesne] -> üye */
 static bool getProperty(ObjString *name) {
     Value object = peek(0);
+    if (IS_INSTANCE(object)) {
+        ObjInstance *instance = AS_INSTANCE(object);
+        Value value;
+        if (tableGet(&instance->fields, name, &value)) {
+            pop();
+            push(value);
+            return true;
+        }
+        return bindMethod(instance->klass, name);
+    }
+
     if (IS_MODULE(object)) {
         Value value;
         if (!tableGet(&AS_MODULE(object)->globals, name, &value)) {
@@ -639,6 +688,61 @@ static bool getProperty(ObjString *name) {
     }
 
     runtimeError("%s türündeki değerlerin '%s' adında bir üyesi yok.", valueTypeName(object),
+                 name->chars);
+    return false;
+}
+
+/* [nesne, değer] -> değer */
+static bool setProperty(ObjString *name) {
+    if (!IS_INSTANCE(peek(1))) {
+        runtimeError("Yalnızca nesnelerin alanlarına değer atanabilir; %s verildi.",
+                     valueTypeName(peek(1)));
+        return false;
+    }
+
+    ObjInstance *instance = AS_INSTANCE(peek(1));
+    tableSet(&instance->fields, name, peek(0));
+    Value value = pop();
+    pop();
+    push(value);
+    return true;
+}
+
+static bool invokeFromClass(ObjClass *klass, ObjString *name, int argCount) {
+    Value method;
+    if (!tableGet(&klass->methods, name, &method)) {
+        runtimeError("'%s' nesnesinde '%s' adında bir yöntem yok.", klass->name->chars, name->chars);
+        return false;
+    }
+    return call(AS_CLOSURE(method), argCount);
+}
+
+/* nesne.ad(...) çağrısı; alıcı, argümanların altında yığında durur. */
+static bool invoke(ObjString *name, int argCount) {
+    Value receiver = peek(argCount);
+
+    if (IS_INSTANCE(receiver)) {
+        ObjInstance *instance = AS_INSTANCE(receiver);
+        Value value;
+        if (tableGet(&instance->fields, name, &value)) {
+            vm.stackTop[-argCount - 1] = value;
+            return callValue(value, argCount);
+        }
+        return invokeFromClass(instance->klass, name, argCount);
+    }
+
+    if (IS_MODULE(receiver)) {
+        Value value;
+        if (!tableGet(&AS_MODULE(receiver)->globals, name, &value)) {
+            runtimeError("'%s' modülünde '%s' adında bir üye yok.", AS_MODULE(receiver)->name->chars,
+                         name->chars);
+            return false;
+        }
+        vm.stackTop[-argCount - 1] = value;
+        return callValue(value, argCount);
+    }
+
+    runtimeError("%s türündeki değerlerin '%s' adında bir yöntemi yok.", valueTypeName(receiver),
                  name->chars);
     return false;
 }
@@ -991,6 +1095,58 @@ static InterpretResult run(void) {
                 if (!getProperty(name)) goto on_error;
                 break;
             }
+            case OP_SET_PROPERTY: {
+                ObjString *name = READ_STRING();
+                if (!setProperty(name)) goto on_error;
+                break;
+            }
+            case OP_INVOKE: {
+                ObjString *name = READ_STRING();
+                int argCount = READ_BYTE();
+                if (!invoke(name, argCount)) goto on_error;
+                frame = &vm.frames[vm.frameCount - 1];
+                break;
+            }
+            case OP_CLASS:
+                push(OBJ_VAL(newClass(READ_STRING())));
+                break;
+            case OP_INHERIT: {
+                Value superclass = peek(1);
+                if (!IS_CLASS(superclass)) {
+                    runtimeError("Bir sınıf yalnızca başka bir sınıftan türetilebilir; %s verildi.",
+                                 valueTypeName(superclass));
+                    goto on_error;
+                }
+                ObjClass *subclass = AS_CLASS(peek(0));
+                tableAddAll(&AS_CLASS(superclass)->methods, &subclass->methods);
+                subclass->superclass = AS_CLASS(superclass);
+                pop();
+                break;
+            }
+            case OP_METHOD: {
+                ObjString *name = READ_STRING();
+                ObjClass *klass = AS_CLASS(peek(1));
+                tableSet(&klass->methods, name, peek(0));
+                pop();
+                break;
+            }
+            case OP_GET_SUPER: {
+                ObjString *name = READ_STRING();
+                ObjClass *superclass = AS_CLASS(pop());
+                if (!bindMethod(superclass, name)) goto on_error;
+                break;
+            }
+            case OP_SUPER_INVOKE: {
+                ObjString *name = READ_STRING();
+                int argCount = READ_BYTE();
+                ObjClass *superclass = AS_CLASS(pop());
+                if (!invokeFromClass(superclass, name, argCount)) goto on_error;
+                frame = &vm.frames[vm.frameCount - 1];
+                break;
+            }
+            case OP_DUP:
+                push(peek(0));
+                break;
             case OP_TRY_BEGIN: {
                 uint16_t offset = READ_SHORT();
                 if (vm.handlerCount == HANDLERS_MAX) {

@@ -6,6 +6,16 @@ uyar.
 
 ## [Yayımlanmadı]
 
+## [0.4.0]
+
+### Eklendi
+
+- Sınıflar: `sınıf Ad:`, yöntemler, `kur` ile kurulum, `bu`
+- Kalıtım: `sınıf Alt(Üst):`, `üst.yöntem(...)`
+- Nesne alanları: `nesne.alan`, `nesne.alan = değer`, bileşik atama
+- `örneği_mi(değer, sınıf)` yerleşik fonksiyonu
+- `tür(nesne)` sınıfın adını verir
+
 ## [0.3.0]
 
 ### Eklendi

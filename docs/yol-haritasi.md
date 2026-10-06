@@ -55,10 +55,9 @@ harf dönüşümü ve sıralama; bileşik atama.
 `dene` / `yakala` / `fırlat`; `kullan` ile modüller; standart kütüphanenin ilk
 modülleri: matematik, rastgele, zaman, dosya, sistem.
 
-### 0.4 Nesneler
+### 0.4 Nesneler (tamamlandı)
 
-- Sınıflar, yöntemler, kalıtım
-- Tam sayı ve ondalıklı sayı ayrımının değerlendirilmesi
+Sınıflar, yöntemler, `kur`, `bu`, tekli kalıtım ve `üst`.
 
 ### 0.5 Standart kütüphane
 

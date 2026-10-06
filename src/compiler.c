@@ -58,6 +58,8 @@ typedef struct {
 
 typedef enum {
     TYPE_FUNCTION,
+    TYPE_INITIALIZER, /* sınıfın 'kur' yöntemi */
+    TYPE_METHOD,
     TYPE_SCRIPT
 } FunctionType;
 
@@ -83,8 +85,14 @@ typedef struct Compiler {
     Loop *loop;
 } Compiler;
 
+typedef struct ClassCompiler {
+    struct ClassCompiler *enclosing;
+    bool hasSuperclass;
+} ClassCompiler;
+
 static Parser parser;
 static Compiler *current = NULL;
+static ClassCompiler *currentClass = NULL;
 static ObjModule *currentModule = NULL;
 static const char *sourceName;
 static bool replMode;
@@ -196,7 +204,12 @@ static int emitJump(uint8_t instruction) {
 }
 
 static void emitReturn(void) {
-    emitByte(OP_NIL);
+    if (current->type == TYPE_INITIALIZER) {
+        /* 'kur' her zaman yeni nesneyi döndürür. */
+        emitBytes(OP_GET_LOCAL, 0);
+    } else {
+        emitByte(OP_NIL);
+    }
     emitByte(OP_RETURN);
 }
 
@@ -249,12 +262,17 @@ static void initCompiler(Compiler *compiler, FunctionType type) {
         current->function->name = copyString(parser.previous.start, parser.previous.length);
     }
 
-    /* 0 numaralı yuva çağrılan fonksiyonun kendisine ayrılmıştır. */
+    /* 0 numaralı yuva yöntemlerde 'bu' nesnesini, diğerlerinde fonksiyonun kendisini tutar. */
     Local *local = &current->locals[current->localCount++];
     local->depth = 0;
     local->isCaptured = false;
-    local->name.start = "";
-    local->name.length = 0;
+    if (type == TYPE_METHOD || type == TYPE_INITIALIZER) {
+        local->name.start = "bu";
+        local->name.length = 2;
+    } else {
+        local->name.start = "";
+        local->name.length = 0;
+    }
 }
 
 static ObjFunction *endCompiler(void) {
@@ -550,13 +568,35 @@ static void mapLiteral(bool canAssign) {
     emitShort(count);
 }
 
-/* nesne.üye */
+/* nesne.üye, nesne.üye = değer, nesne.yöntem(...) */
 static void dot(bool canAssign) {
-    (void)canAssign;
     consume(TOKEN_IDENTIFIER, "'.' işaretinden sonra bir ad bekleniyor.");
     int name = identifierConstant(&parser.previous);
-    emitByte(OP_GET_PROPERTY);
-    emitShort(name);
+
+    uint8_t compoundOp;
+    if (canAssign && match(TOKEN_EQUAL)) {
+        expression();
+        emitByte(OP_SET_PROPERTY);
+        emitShort(name);
+        lastExpressionWasAssignment = true;
+    } else if (canAssign && matchCompoundAssign(&compoundOp)) {
+        emitByte(OP_DUP);
+        emitByte(OP_GET_PROPERTY);
+        emitShort(name);
+        expression();
+        emitByte(compoundOp);
+        emitByte(OP_SET_PROPERTY);
+        emitShort(name);
+        lastExpressionWasAssignment = true;
+    } else if (match(TOKEN_LEFT_PAREN)) {
+        uint8_t argCount = argumentList();
+        emitByte(OP_INVOKE);
+        emitShort(name);
+        emitByte(argCount);
+    } else {
+        emitByte(OP_GET_PROPERTY);
+        emitShort(name);
+    }
 }
 
 static void literal(bool canAssign) {
@@ -663,6 +703,52 @@ static void variable(bool canAssign) {
     namedVariable(parser.previous, canAssign);
 }
 
+static Token syntheticToken(const char *text) {
+    Token token;
+    token.type = TOKEN_IDENTIFIER;
+    token.start = text;
+    token.length = (int)strlen(text);
+    token.line = parser.previous.line;
+    token.message = NULL;
+    return token;
+}
+
+static void this_(bool canAssign) {
+    (void)canAssign;
+    if (currentClass == NULL) {
+        error("'bu' yalnızca bir sınıfın yöntemleri içinde kullanılabilir.");
+        return;
+    }
+    variable(false);
+}
+
+/* üst.yöntem ya da üst.yöntem(...) */
+static void super_(bool canAssign) {
+    (void)canAssign;
+    if (currentClass == NULL) {
+        error("'üst' yalnızca bir sınıfın yöntemleri içinde kullanılabilir.");
+    } else if (!currentClass->hasSuperclass) {
+        error("'üst', başka bir sınıftan türetilmemiş bir sınıfta kullanılamaz.");
+    }
+
+    consume(TOKEN_DOT, "'üst' sözcüğünden sonra '.' bekleniyor.");
+    consume(TOKEN_IDENTIFIER, "Üst sınıf yönteminin adı bekleniyor.");
+    int name = identifierConstant(&parser.previous);
+
+    namedVariable(syntheticToken("bu"), false);
+    if (match(TOKEN_LEFT_PAREN)) {
+        uint8_t argCount = argumentList();
+        namedVariable(syntheticToken("üst"), false);
+        emitByte(OP_SUPER_INVOKE);
+        emitShort(name);
+        emitByte(argCount);
+    } else {
+        namedVariable(syntheticToken("üst"), false);
+        emitByte(OP_GET_SUPER);
+        emitShort(name);
+    }
+}
+
 static void not_(bool canAssign) {
     (void)canAssign;
     parsePrecedence(PREC_NOT);
@@ -709,6 +795,9 @@ static const ParseRule rules[] = {
     [TOKEN_IMPORT]        = {NULL,     NULL,   PREC_NONE},
     [TOKEN_BREAK]         = {NULL,     NULL,   PREC_NONE},
     [TOKEN_CATCH]         = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_CLASS]         = {NULL,     NULL,   PREC_NONE},
+    [TOKEN_SUPER]         = {super_,   NULL,   PREC_NONE},
+    [TOKEN_THIS]          = {this_,    NULL,   PREC_NONE},
     [TOKEN_THROW]         = {NULL,     NULL,   PREC_NONE},
     [TOKEN_TRY]           = {NULL,     NULL,   PREC_NONE},
     [TOKEN_CONTINUE]      = {NULL,     NULL,   PREC_NONE},
@@ -827,6 +916,78 @@ static void funDeclaration(void) {
     markInitialized();
     function(TYPE_FUNCTION);
     defineVariable(global);
+}
+
+static void synchronize(void);
+
+static void method(void) {
+    consume(TOKEN_FUNCTION, "Sınıf gövdesinde yalnızca 'fonksiyon' tanımları bulunabilir.");
+    consume(TOKEN_IDENTIFIER, "Yöntem adı bekleniyor.");
+    int constant = identifierConstant(&parser.previous);
+
+    FunctionType type = TYPE_METHOD;
+    if (parser.previous.length == 3 && memcmp(parser.previous.start, "kur", 3) == 0) {
+        type = TYPE_INITIALIZER;
+    }
+
+    function(type);
+    emitByte(OP_METHOD);
+    emitShort(constant);
+}
+
+/* sınıf Ad [(ÜstSınıf)]: yöntemler */
+static void classDeclaration(void) {
+    consume(TOKEN_IDENTIFIER, "Sınıf adı bekleniyor.");
+    Token className = parser.previous;
+    int nameConstant = identifierConstant(&parser.previous);
+    declareVariable(&parser.previous);
+
+    emitByte(OP_CLASS);
+    emitShort(nameConstant);
+    defineVariable(nameConstant);
+
+    ClassCompiler classCompiler;
+    classCompiler.hasSuperclass = false;
+    classCompiler.enclosing = currentClass;
+    currentClass = &classCompiler;
+
+    if (match(TOKEN_LEFT_PAREN)) {
+        consume(TOKEN_IDENTIFIER, "Üst sınıfın adı bekleniyor.");
+        variable(false);
+        if (identifiersEqual(&className, &parser.previous)) {
+            error("Bir sınıf kendisinden türetilemez.");
+        }
+        consume(TOKEN_RIGHT_PAREN, "Üst sınıf adından sonra ')' bekleniyor.");
+
+        /* Üst sınıf, yöntemlerin 'üst' ile erişebilmesi için gizli bir yerelde tutulur. */
+        beginScope();
+        addLocal(syntheticToken("üst"));
+        defineVariable(0);
+
+        namedVariable(className, false);
+        emitByte(OP_INHERIT);
+        classCompiler.hasSuperclass = true;
+    }
+
+    namedVariable(className, false);
+    consume(TOKEN_COLON, "Sınıf adından sonra ':' bekleniyor.");
+    consume(TOKEN_NEWLINE, "':' işaretinden sonra satır sonu bekleniyor.");
+    if (match(TOKEN_INDENT)) {
+        while (!check(TOKEN_DEDENT) && !check(TOKEN_EOF)) {
+            method();
+            if (parser.panicMode) synchronize();
+        }
+        consume(TOKEN_DEDENT, "Sınıf gövdesinin sonu bekleniyor.");
+    } else {
+        errorAtCurrent("Sınıfın en az bir yöntemi olmalı; ':' işaretinden sonra girintili bir blok bekleniyor.");
+    }
+    emitByte(OP_POP);
+
+    if (classCompiler.hasSuperclass) {
+        endScope();
+    }
+
+    currentClass = currentClass->enclosing;
 }
 
 static void varDeclaration(void) {
@@ -1069,6 +1230,9 @@ static void returnStatement(void) {
     if (match(TOKEN_NEWLINE)) {
         emitReturn();
     } else {
+        if (current->type == TYPE_INITIALIZER) {
+            error("'kur' yöntemi değer döndüremez.");
+        }
         expression();
         endStatement();
         emitByte(OP_RETURN);
@@ -1088,6 +1252,8 @@ static void synchronize(void) {
 static void declaration(void) {
     if (match(TOKEN_FUNCTION)) {
         funDeclaration();
+    } else if (match(TOKEN_CLASS)) {
+        classDeclaration();
     } else if (match(TOKEN_VAR)) {
         varDeclaration();
     } else {
@@ -1135,6 +1301,7 @@ ObjFunction *compile(const char *name, const char *source, bool repl, ObjModule 
     initScanner(source);
     Compiler compiler;
     currentModule = module;
+    currentClass = NULL;
     sourceName = name;
     replMode = repl;
     lastExpressionWasAssignment = false;

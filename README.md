@@ -4,7 +4,7 @@ JUS, Türkçe sözdizimli, genel amaçlı bir betik dilidir. Kaynak kod bayt kod
 derlenir ve bir sanal makinede çalışır. Yorumlayıcı C99 ile yazılmıştır ve dış
 bağımlılığı yoktur.
 
-Geçerli sürüm: **0.3.0** (geliştirme aşamasında; dil 1.0'a kadar değişebilir).
+Geçerli sürüm: **0.4.0** (geliştirme aşamasında; dil 1.0'a kadar değişebilir).
 
 ```jus
 fonksiyon faktöriyel(n):
@@ -56,6 +56,7 @@ Kaynak dosyalar UTF-8 olmalıdır.
 - Dizinleme ve dilimleme: `liste[0]`, `metin[1:4]`
 - Türkçeye duyarlı metin işlemleri: `büyük_harf("ılık")` sonucu `"ILIK"`,
   alfabetik sıralamada `ç`, `ğ`, `ı`, `ö`, `ş`, `ü` doğru yerlerinde
+- Sınıflar, yöntemler ve kalıtım (`sınıf`, `bu`, `üst`)
 - Hata yakalama: `dene` / `yakala` / `fırlat`
 - Modüller (`kullan`) ve standart kütüphane: `matematik`, `rastgele`, `zaman`,
   `dosya`, `sistem`
@@ -63,7 +64,7 @@ Kaynak dosyalar UTF-8 olmalıdır.
 - Satır ve sütun gösteren Türkçe hata iletileri
 - Otomatik bellek yönetimi (çöp toplayıcı)
 
-Henüz olmayanlar (sınıflar, JSON, ağ, araçlar ve diğerleri) için
+Henüz olmayanlar (JSON, ağ, araçlar ve diğerleri) için
 [yol haritasına](docs/yol-haritasi.md) bakın.
 
 ## Belgeler

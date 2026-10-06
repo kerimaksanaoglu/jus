@@ -84,6 +84,9 @@ const char *valueTypeName(Value value) {
                 case OBJ_LIST: return "liste";
                 case OBJ_MAP: return "sözlük";
                 case OBJ_MODULE: return "modül";
+                case OBJ_CLASS: return "sınıf";
+                case OBJ_INSTANCE: return AS_INSTANCE(value)->klass->name->chars;
+                case OBJ_BOUND_METHOD:
                 case OBJ_CLOSURE:
                 case OBJ_FUNCTION:
                 case OBJ_NATIVE: return "fonksiyon";
@@ -227,6 +230,21 @@ static void appendValue(TextBuffer *buffer, Value value, bool quoteStrings, int 
         }
         case OBJ_NATIVE:
             appendFunction(buffer, AS_NATIVE(value)->name);
+            break;
+        case OBJ_BOUND_METHOD: {
+            ObjString *name = AS_BOUND_METHOD(value)->method->function->name;
+            appendFunction(buffer, name == NULL ? NULL : name->chars);
+            break;
+        }
+        case OBJ_CLASS:
+            bufferAppendText(buffer, "<sınıf ");
+            bufferAppendText(buffer, AS_CLASS(value)->name->chars);
+            bufferAppend(buffer, ">", 1);
+            break;
+        case OBJ_INSTANCE:
+            bufferAppend(buffer, "<", 1);
+            bufferAppendText(buffer, AS_INSTANCE(value)->klass->name->chars);
+            bufferAppendText(buffer, " nesnesi>");
             break;
         case OBJ_MODULE:
             bufferAppendText(buffer, "<modül ");

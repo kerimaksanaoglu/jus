@@ -1,0 +1,4 @@
+# kod: 65
+# hata: Sınıf gövdesinde yalnızca 'fonksiyon' tanımları bulunabilir.
+sınıf A:
+    değişken x = 1

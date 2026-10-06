@@ -220,6 +220,24 @@ static bool uzunlukNative(int argCount, Value *args, Value *result) {
     return true;
 }
 
+/* örneği_mi(değer, sınıf): değer bu sınıfın ya da ondan türeyen bir sınıfın nesnesi mi? */
+static bool ornegiMiNative(int argCount, Value *args, Value *result) {
+    (void)argCount;
+    if (!IS_CLASS(args[1])) {
+        return nativeFail("'örneği_mi' fonksiyonunun ikinci argümanı sınıf olmalı; %s verildi.",
+                          valueTypeName(args[1]));
+    }
+    bool matches = false;
+    if (IS_INSTANCE(args[0])) {
+        for (ObjClass *klass = AS_INSTANCE(args[0])->klass; klass != NULL && !matches;
+             klass = klass->superclass) {
+            matches = klass == AS_CLASS(args[1]);
+        }
+    }
+    *result = BOOL_VAL(matches);
+    return true;
+}
+
 /* ---- Sayılar ---- */
 
 /* saat(): programın kullandığı işlemci süresi, saniye cinsinden. */
@@ -691,6 +709,7 @@ void defineBuiltins(void) {
     defineNative("sayı", 1, sayiNative);
     defineNative("tür", 1, turNative);
     defineNative("uzunluk", 1, uzunlukNative);
+    defineNative("örneği_mi", 2, ornegiMiNative);
 
     defineNative("saat", 0, saatNative);
     defineNative("karekök", 1, karekokNative);

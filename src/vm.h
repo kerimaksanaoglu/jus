@@ -38,6 +38,7 @@ typedef struct {
     Table builtins; /* her modülden görülen yerleşik fonksiyonlar */
     Table modules;  /* ad ya da dosya yolu -> yüklenmiş modül */
     ObjModule *mainModule;
+    ObjString *initString; /* "kur" */
     Table strings;
     ObjUpvalue *openUpvalues;
 

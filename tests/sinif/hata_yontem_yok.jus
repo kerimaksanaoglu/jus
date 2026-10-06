@@ -1,0 +1,6 @@
+# kod: 70
+# hata: 'K' nesnesinde 'yok' adında bir yöntem yok.
+sınıf K:
+    fonksiyon kur(a):
+        bu.a = a
+K(1).yok()

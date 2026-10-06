@@ -55,6 +55,14 @@ typedef enum {
     OP_IMPORT,         /* (u16 ad sabiti) modülü yükler; gerekiyorsa üst düzey kodunu çağırır */
     OP_MODULE,         /* (u16 ad sabiti) yüklenmiş modülü yığına koyar */
     OP_GET_PROPERTY,   /* (u16 ad sabiti) [nesne] -> üye */
+    OP_SET_PROPERTY,   /* (u16 ad sabiti) [nesne, değer] -> değer */
+    OP_INVOKE,         /* (u16 ad sabiti, u8 argüman sayısı) nesne.ad(...) çağrısı */
+    OP_CLASS,          /* (u16 ad sabiti) yeni sınıf oluşturur */
+    OP_INHERIT,        /* [üst sınıf, sınıf] -> [üst sınıf]; yöntemleri devralır */
+    OP_METHOD,         /* (u16 ad sabiti) [sınıf, fonksiyon] -> [sınıf] */
+    OP_GET_SUPER,      /* (u16 ad sabiti) [bu, üst sınıf] -> bağlı yöntem */
+    OP_SUPER_INVOKE,   /* (u16 ad sabiti, u8 argüman sayısı) üst.ad(...) çağrısı */
+    OP_DUP,            /* yığının tepesindeki değeri çoğaltır */
     OP_RETURN
 } OpCode;
 

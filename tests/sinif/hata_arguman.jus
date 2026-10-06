@@ -1,0 +1,6 @@
+# kod: 70
+# hata: 'kur' fonksiyonu 1 argüman bekliyor, 0 verildi.
+sınıf K:
+    fonksiyon kur(a):
+        bu.a = a
+K()

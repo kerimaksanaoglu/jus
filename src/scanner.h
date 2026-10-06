@@ -16,6 +16,7 @@ typedef enum {
     TOKEN_AS,       /* olarak */
     TOKEN_BREAK,    /* kır */
     TOKEN_CATCH,    /* yakala */
+    TOKEN_CLASS,    /* sınıf */
     TOKEN_CONTINUE, /* devam */
     TOKEN_ELSE,     /* değilse */
     TOKEN_FALSE,    /* yanlış */
@@ -28,6 +29,8 @@ typedef enum {
     TOKEN_NOT,      /* değil */
     TOKEN_OR,       /* veya */
     TOKEN_RETURN,   /* dön */
+    TOKEN_SUPER,    /* üst */
+    TOKEN_THIS,     /* bu */
     TOKEN_THROW,    /* fırlat */
     TOKEN_TRUE,     /* doğru */
     TOKEN_TRY,      /* dene */

@@ -1,6 +1,6 @@
 # JUS Dil Tanımı
 
-Sürüm 0.3.0
+Sürüm 0.4.0
 
 Bu belge JUS'un sözdizimini ve davranışını tanımlar. Yorumlayıcı bu belgeye
 uymak zorundadır; ikisi arasındaki her fark bir hatadır. Burada yazmayan bir
@@ -31,12 +31,12 @@ harf ayrıdır: `yaş` ile `Yaş` farklı adlardır.
 
 ### 2.3 Anahtar kelimeler
 
-Aşağıdaki 21 kelime ayrılmıştır ve ad olarak kullanılamaz:
+Aşağıdaki 24 kelime ayrılmıştır ve ad olarak kullanılamaz:
 
 ```
-boş      değil    değilse   değişken   dene     devam    doğru
-dön      eğer     fırlat    fonksiyon  her      içinde   iken
-kır      kullan   olarak    ve         veya     yakala   yanlış
+boş      bu       değil    değilse   değişken   dene     devam    doğru
+dön      eğer     fırlat   fonksiyon her        içinde   iken     kır
+kullan   olarak   sınıf    üst       ve         veya     yakala   yanlış
 ```
 
 ### 2.4 Sayılar
@@ -84,6 +84,9 @@ Başka bir kaçış dizisi sözdizimi hatasıdır.
 | `liste`     | `[1, 2, 3]`           | sıralı, değiştirilebilir öğe dizisi    |
 | `sözlük`    | `{"ad": "Ayşe"}`      | anahtar-değer eşlemesi                 |
 | `fonksiyon` |                       | kullanıcı tanımlı ya da yerleşik       |
+| `sınıf`     |                       | `sınıf` ile tanımlanır                 |
+| sınıf adı   |                       | bir sınıfın nesnesi; türü sınıfın adıdır |
+| `modül`     |                       | `kullan` ile yüklenir                  |
 
 JUS dinamik tiplidir: değişkenlerin değil, değerlerin türü vardır. Türler
 arasında örtük dönüşüm yapılmaz; dönüşüm için `metin()` ve `sayı()` kullanılır.
@@ -320,6 +323,47 @@ yaz(matematik.pi, m.üs(2, 10), geometri.alan(3))
   ve üst düzey kodu bir kez çalışır.
 - `kullan` bir deyimdir; fonksiyon ya da blok içinde de yazılabilir.
 
+### 5.8 Sınıflar
+
+```jus
+sınıf Hayvan:
+    fonksiyon kur(ad):
+        bu.ad = ad
+
+    fonksiyon tanıt():
+        dön bu.ad + ": " + bu.ses()
+
+    fonksiyon ses():
+        dön "..."
+
+sınıf Köpek(Hayvan):
+    fonksiyon ses():
+        dön "Hav"
+
+değişken k = Köpek("Karabaş")
+yaz(k.tanıt())        # Karabaş: Hav
+```
+
+- Bir sınıfın gövdesi yalnızca `fonksiyon` tanımlarından oluşur; bunlar sınıfın
+  yöntemleridir. Her sınıfın en az bir yöntemi olmalıdır.
+- Sınıf, fonksiyon gibi çağrılarak nesne oluşturulur: `Köpek("Karabaş")`.
+  Sınıfın `kur` adında bir yöntemi varsa yeni nesne için çağrılır ve argümanlar
+  ona verilir. `kur` değer döndüremez. `kur` yoksa sınıf argümansız çağrılır.
+- Yöntemlerin içinde `bu`, yöntemin çağrıldığı nesnedir. Parametre listesine
+  yazılmaz.
+- Nesnenin alanları `nesne.alan` ile okunur, `nesne.alan = değer` ile atanır.
+  Alanlar önceden bildirilmez; ilk atamada oluşur. Olmayan bir alanı okumak
+  hatadır.
+- `nesne.yöntem(...)` yöntemi çağırır. `nesne.yöntem` yazılırsa nesnesine bağlı
+  bir fonksiyon değeri elde edilir.
+- `sınıf Alt(Üst):` kalıtım kurar: alt sınıf üst sınıfın tüm yöntemlerini
+  devralır ve aynı adla yeniden tanımlayarak değiştirebilir. Bir sınıfın tek
+  bir üst sınıfı olabilir.
+- `üst.yöntem(...)`, yöntemin üst sınıftaki tanımını çağırır.
+- `tür(nesne)` sınıfın adını verir. `örneği_mi(değer, sınıf)`, değerin o
+  sınıfın ya da ondan türeyen bir sınıfın nesnesi olup olmadığını söyler.
+- İki nesne yalnızca aynı nesneyse eşittir. Nesneler başvuruyla taşınır.
+
 ## 6. Yerleşik fonksiyonlar
 
 Yerleşik fonksiyon adları anahtar kelime değildir; genel kapsamda tanımlı
@@ -341,6 +385,7 @@ sıradan değişkenlerdir.
 | `sayı(değer)`    | Metni sayıya çevirir. Metin geçerli bir sayı değilse hata verir.         |
 | `tür(değer)`     | Değerin tür adını metin olarak döndürür.                                 |
 | `uzunluk(kap)`   | Metnin karakter, listenin öğe, sözlüğün girdi sayısı.                    |
+| `örneği_mi(d, sınıf)` | `d`, sınıfın ya da ondan türeyen bir sınıfın nesnesiyse `doğru`.    |
 
 ### 6.3 Sayılar
 
@@ -488,8 +533,9 @@ ornek.jus:2: çalışma zamanı hatası: Sıfıra bölünemez.
 
 ```
 program        = { bildirim } ;
-bildirim       = değişken_tanımı | fonksiyon_tanımı | deyim ;
-
+bildirim       = değişken_tanımı | fonksiyon_tanımı | sınıf_tanımı | deyim ;
+sınıf_tanımı   = "sınıf" AD [ "(" AD ")" ] ":" SATIR_SONU
+                 GİRİNTİ fonksiyon_tanımı { fonksiyon_tanımı } GİRİNTİ_SONU ;
 
 değişken_tanımı  = "değişken" AD [ "=" ifade ] SATIR_SONU ;
 fonksiyon_tanımı = "fonksiyon" AD "(" [ AD { "," AD } ] ")" blok ;
@@ -509,7 +555,7 @@ blok           = ":" SATIR_SONU GİRİNTİ bildirim { bildirim } GİRİNTİ_SONU
 
 ifade          = atama ;
 atama          = hedef atama_işleci atama | veya_ifadesi ;
-hedef          = AD | çağrı "[" ifade "]" ;
+hedef          = AD | çağrı "[" ifade "]" | çağrı "." AD ;
 atama_işleci   = "=" | "+=" | "-=" | "*=" | "/=" ;
 veya_ifadesi   = ve_ifadesi { "veya" ve_ifadesi } ;
 ve_ifadesi     = değil_ifadesi { "ve" değil_ifadesi } ;
@@ -521,8 +567,8 @@ toplam         = çarpım { ( "+" | "-" ) çarpım } ;
 tekli          = "-" tekli | çağrı ;
 çağrı          = birincil { "(" [ ifade { "," ifade } ] ")" | dizin | "." AD } ;
 dizin          = "[" ifade "]" | "[" [ ifade ] ":" [ ifade ] "]" ;
-birincil       = SAYI | METİN | AD | "doğru" | "yanlış" | "boş"
-               | "(" ifade ")" | liste | sözlük ;
+birincil       = SAYI | METİN | AD | "doğru" | "yanlış" | "boş" | "bu"
+               | "üst" "." AD | "(" ifade ")" | liste | sözlük ;
 liste          = "[" [ ifade { "," ifade } [ "," ] ] "]" ;
 sözlük         = "{" [ çift { "," çift } [ "," ] ] "}" ;
 çift           = ifade ":" ifade ;
