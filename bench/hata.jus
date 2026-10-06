@@ -1,0 +1,21 @@
+# Hata yakalama: fırlat/yakala ve dil hatası yakalama
+fonksiyon kontrol(i):
+    eğer i % 3 == 0:
+        fırlat i
+    dön i
+
+değişken yakalanan = 0
+değişken tamam = 0
+her i içinde aralık(2000000):
+    dene:
+        tamam += kontrol(i)
+    yakala e:
+        yakalanan += e
+değişken sifir = 0
+değişken bolme = 0
+her i içinde aralık(600000):
+    dene:
+        değişken x = i / sifir
+    yakala:
+        bolme += 1
+yaz(yakalanan, tamam, bolme)

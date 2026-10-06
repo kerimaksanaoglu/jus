@@ -4,7 +4,7 @@ JUS, Türkçe sözdizimli, genel amaçlı bir betik dilidir. Kaynak kod bayt kod
 derlenir ve bir sanal makinede çalışır. Yorumlayıcı C99 ile yazılmıştır ve dış
 bağımlılığı yoktur.
 
-Geçerli sürüm: **0.4.0** (geliştirme aşamasında; dil 1.0'a kadar değişebilir).
+Geçerli sürüm: **0.5.0** (geliştirme aşamasında; dil 1.0'a kadar değişebilir).
 
 ```jus
 fonksiyon faktöriyel(n):
@@ -59,18 +59,20 @@ Kaynak dosyalar UTF-8 olmalıdır.
 - Sınıflar, yöntemler ve kalıtım (`sınıf`, `bu`, `üst`)
 - Hata yakalama: `dene` / `yakala` / `fırlat`
 - Modüller (`kullan`) ve standart kütüphane: `matematik`, `rastgele`, `zaman`,
-  `dosya`, `sistem`, `json`, `tr`
+  `dosya`, `sistem`, `json`, `ağ`, `http`, `tr`
 - 30'dan fazla yerleşik fonksiyon
 - Satır ve sütun gösteren Türkçe hata iletileri
 - Otomatik bellek yönetimi (çöp toplayıcı)
 
-Henüz olmayanlar (ağ, biçimlendirici, paket yöneticisi ve diğerleri) için
+Henüz olmayanlar (biçimlendirici, paket yöneticisi, şifreli ağ bağlantıları ve
+diğerleri) için
 [yol haritasına](docs/yol-haritasi.md) bakın.
 
 ## Belgeler
 
 - [Dil tanımı](docs/dil-tanimi.md): sözdizimi ve davranışın tam tanımı
 - [VS Code eklentisi](editors/vscode/): sözdizimi renklendirme
+- [Hız ölçümleri](bench/): CPython ile karşılaştırma
 - [Yol haritası](docs/yol-haritasi.md): planlanan sürümler ve 1.0 ölçütleri
 - [Değişiklik günlüğü](CHANGELOG.md)
 - [Örnekler](examples/)
@@ -79,10 +81,13 @@ Henüz olmayanlar (ağ, biçimlendirici, paket yöneticisi ve diğerleri) için
 
 ```
 src/        yorumlayıcının kaynak kodu
+lib/        JUS ile yazılmış standart kütüphane modülleri (yorumlayıcıya gömülür)
 tests/      test paketi (beklentiler .jus dosyalarının içinde yazılıdır)
 examples/   örnek programlar
 docs/       belgeler
 editors/    düzenleyici eklentileri
+bench/      hız ölçüm paketi
+tools/      geliştirme araçları
 ```
 
 ## Lisans

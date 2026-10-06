@@ -1,0 +1,25 @@
+# İç içe liste: matris çarpımı
+değişken n = 140
+değişken a = []
+değişken b = []
+her i içinde aralık(n):
+    değişken sa = []
+    değişken sb = []
+    her j içinde aralık(n):
+        ekle(sa, (i + j) % 10)
+        ekle(sb, (i * j) % 10)
+    ekle(a, sa)
+    ekle(b, sb)
+değişken c = []
+her i içinde aralık(n):
+    değişken satır = []
+    her j içinde aralık(n):
+        değişken t = 0
+        her k içinde aralık(n):
+            t += a[i][k] * b[k][j]
+        ekle(satır, t)
+    ekle(c, satır)
+değişken iz = 0
+her i içinde aralık(n):
+    iz += c[i][i]
+yaz(iz, c[0][0], c[n - 1][n - 1])

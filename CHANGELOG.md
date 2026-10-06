@@ -6,12 +6,24 @@ uyar.
 
 ## [Yayımlanmadı]
 
+## [0.5.0]
+
 ### Eklendi
 
+- `ağ` modülü: TCP istemcisi ve sunucusu
+- `http` modülü: HTTP/1.1 istemcisi ve sunucusu (yalnızca şifresiz bağlantı)
+- `geç` deyimi: boş bırakılacak bloklar için
+- JUS ile yazılıp yorumlayıcıya gömülen standart kütüphane modülleri (`lib/`)
+- Hız ölçüm paketi (`bench/`)
 - `json` modülü: `çöz`, `yaz`
 - `tr` modülü: `kimlik_no_geçerli_mi`, `iban_geçerli_mi`, `telefon_geçerli_mi`,
   `para`, `plaka_ili`, `iller`
 - VS Code eklentisi: sözdizimi renklendirme (`editors/vscode`)
+
+### Düzeltildi
+
+- CRLF satır sonlu dosyalarda sözdizimi hatasının sütunu bir fazla gösteriliyordu
+- 10^15 ile 2^53 arasındaki tam sayılar üslü biçimde yazılıyordu
 
 ## [0.4.0]
 

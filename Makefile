@@ -14,8 +14,10 @@ EXTRA =
 
 ifeq ($(OS),Windows_NT)
 EXE = .exe
+LDLIBS = -lm -lws2_32
 else
 EXE =
+LDLIBS = -lm
 endif
 
 TARGET = jus$(EXE)
@@ -26,7 +28,7 @@ OBJECTS = $(SOURCES:src/%.c=build/%.o)
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
-	$(CC) $(CFLAGS) $(EXTRA) $(OBJECTS) -o $@ -lm
+	$(CC) $(CFLAGS) $(EXTRA) $(OBJECTS) -o $@ $(LDLIBS)
 
 build/%.o: src/%.c $(HEADERS) | build
 	$(CC) $(WARNINGS) $(CFLAGS) $(EXTRA) -c $< -o $@

@@ -1,0 +1,14 @@
+# Metin: metne çevirme, birleştir/böl, büyük harf, karakter dolaşma
+değişken parcalar = []
+her i içinde aralık(300000):
+    ekle(parcalar, metin(i))
+değişken uzun = birleştir(parcalar, ",")
+değişken geri = böl(uzun, ",")
+değişken toplam = 0
+her p içinde geri:
+    toplam += uzunluk(p)
+değişken virgül = 0
+her karakter içinde uzun:
+    eğer karakter == ",":
+        virgül += 1
+yaz(uzunluk(uzun), uzunluk(geri), toplam, virgül, uzunluk(büyük_harf(uzun)))

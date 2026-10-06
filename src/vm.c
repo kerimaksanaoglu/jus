@@ -619,11 +619,20 @@ static bool importModule(ObjModule *importer, ObjString *name) {
     }
 
     ObjString *path = AS_STRING(peek(0));
-    const char *problem = NULL;
-    char *source = readSource(path->chars, &problem);
-    if (source == NULL) {
-        runtimeError("'%s' modülü yüklenemedi: '%s' için %s.", name->chars, path->chars, problem);
-        return false;
+    /* JUS ile yazılmış standart kütüphane modülleri yorumlayıcının içinde durur. */
+    const char *embedded = embeddedModuleSource(name->chars);
+    char *source = NULL;
+    if (embedded != NULL) {
+        pop();
+        push(OBJ_VAL(name));
+        path = name;
+    } else {
+        const char *problem = NULL;
+        source = readSource(path->chars, &problem);
+        if (source == NULL) {
+            runtimeError("'%s' modülü yüklenemedi: '%s' için %s.", name->chars, path->chars, problem);
+            return false;
+        }
     }
 
     ObjModule *module = newModule(name, path);
@@ -631,7 +640,7 @@ static bool importModule(ObjModule *importer, ObjString *name) {
     /* Döngüsel 'kullan' zincirleri sonsuza gitmesin diye çalıştırmadan önce kaydet. */
     tableSet(&vm.modules, path, OBJ_VAL(module));
 
-    ObjFunction *function = compile(path->chars, source, false, module);
+    ObjFunction *function = compile(path->chars, embedded != NULL ? embedded : source, false, module);
     free(source);
     if (function == NULL) {
         tableDelete(&vm.modules, path);

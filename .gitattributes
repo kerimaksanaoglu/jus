@@ -1,2 +1,3 @@
 * text=auto
 *.sh text eol=lf
+tests/hata/derleme_crlf_sutun.jus text eol=crlf

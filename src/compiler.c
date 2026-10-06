@@ -119,13 +119,14 @@ static void errorAt(const Token *token, const char *message) {
     /* Sütun, bayt değil karakter (kod noktası) cinsinden sayılır. */
     int column = 1;
     for (const char *p = lineStart; p < token->start; p++) {
+        if (*p == '\r') continue;
         if (((unsigned char)*p & 0xC0) != 0x80) column++;
     }
 
     fprintf(stderr, "%s:%d:%d: sözdizimi hatası: %s\n", sourceName, token->line, column, message);
     fprintf(stderr, "    %.*s\n    ", (int)(lineEnd - lineStart), lineStart);
     for (const char *p = lineStart; p < token->start; p++) {
-        if (((unsigned char)*p & 0xC0) == 0x80) continue;
+        if (((unsigned char)*p & 0xC0) == 0x80 || *p == '\r') continue;
         fputc(*p == '\t' ? '\t' : ' ', stderr);
     }
     fputs("^\n", stderr);
@@ -810,6 +811,7 @@ static const ParseRule rules[] = {
     [TOKEN_NIL]           = {literal,  NULL,   PREC_NONE},
     [TOKEN_NOT]           = {not_,     NULL,   PREC_NONE},
     [TOKEN_OR]            = {NULL,     or_,    PREC_OR},
+    [TOKEN_PASS]          = {NULL,     NULL,   PREC_NONE},
     [TOKEN_RETURN]        = {NULL,     NULL,   PREC_NONE},
     [TOKEN_TRUE]          = {literal,  NULL,   PREC_NONE},
     [TOKEN_VAR]           = {NULL,     NULL,   PREC_NONE},
@@ -1270,6 +1272,9 @@ static void statement(void) {
         whileStatement();
     } else if (match(TOKEN_FOR)) {
         forStatement();
+    } else if (match(TOKEN_PASS)) {
+        /* Hiçbir şey yapmaz; boş bırakılacak bloklar için. */
+        endStatement();
     } else if (match(TOKEN_IMPORT)) {
         importStatement();
     } else if (match(TOKEN_TRY)) {

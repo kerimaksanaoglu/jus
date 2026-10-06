@@ -1,0 +1,15 @@
+# Kapanım: yakalanan değişkeni değiştiren iç fonksiyon çağrıları
+fonksiyon sayaç_yap():
+    değişken n = 0
+    fonksiyon artır(k):
+        n += k
+        dön n
+    dön artır
+
+değişken f = sayaç_yap()
+değişken g = sayaç_yap()
+değişken son = 0
+her i içinde aralık(2000000):
+    son = f(1)
+    g(2)
+yaz(son, g(0))

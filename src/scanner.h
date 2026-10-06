@@ -28,6 +28,7 @@ typedef enum {
     TOKEN_NIL,      /* boş */
     TOKEN_NOT,      /* değil */
     TOKEN_OR,       /* veya */
+    TOKEN_PASS,     /* geç */
     TOKEN_RETURN,   /* dön */
     TOKEN_SUPER,    /* üst */
     TOKEN_THIS,     /* bu */

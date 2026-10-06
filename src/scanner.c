@@ -30,6 +30,7 @@ static const Keyword keywords[] = {
     {"olarak", TOKEN_AS},
     {"kullan", TOKEN_IMPORT},
     {"kır", TOKEN_BREAK},
+    {"geç", TOKEN_PASS},
     {"sınıf", TOKEN_CLASS},
     {"üst", TOKEN_SUPER},
     {"bu", TOKEN_THIS},

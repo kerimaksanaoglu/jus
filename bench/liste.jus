@@ -1,0 +1,11 @@
+# Liste: ekleme, dizinleme, sıralama
+değişken x = 12345
+değişken l = []
+her i içinde aralık(900000):
+    x = (x * 1103 + 12345) % 1000003
+    ekle(l, x)
+değişken toplam = 0
+her i içinde aralık(900000):
+    toplam += l[i] % 10
+değişken s = sırala(l)
+yaz(toplam, s[0], s[450000], s[-1])

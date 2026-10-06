@@ -449,6 +449,7 @@ void defineStandardModules(void) {
     setScriptArguments(0, NULL);
 
     defineDataModules();
+    defineNetworkModule();
 }
 
 void setScriptArguments(int count, char **arguments) {

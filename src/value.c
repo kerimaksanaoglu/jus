@@ -101,7 +101,7 @@ int formatNumber(double number, char *buffer, size_t size) {
     if (isnan(number)) return snprintf(buffer, size, "tanımsız");
     if (isinf(number)) return snprintf(buffer, size, number > 0 ? "sonsuz" : "-sonsuz");
     /* Tam sayı değerleri ondalık kısım olmadan yazılır. */
-    if (number == floor(number) && fabs(number) < 1e15) {
+    if (number == floor(number) && fabs(number) <= 9007199254740992.0) {
         if (number == 0) number = 0; /* -0 yerine 0 */
         return snprintf(buffer, size, "%.0f", number);
     }

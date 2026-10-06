@@ -59,15 +59,12 @@ modülleri: matematik, rastgele, zaman, dosya, sistem.
 
 Sınıflar, yöntemler, `kur`, `bu`, tekli kalıtım ve `üst`.
 
-### 0.5 Standart kütüphane (sürüyor)
+### 0.5 Standart kütüphane (tamamlandı)
 
-Tamamlananlar: `json` modülü, `tr` modülü, komut satırı argümanları.
+`json`, `ağ`, `http` ve `tr` modülleri; komut satırı argümanları; `geç` deyimi.
 
-Kalanlar:
-
-- Dosya sistemi: klasör listeleme ve oluşturma
-- Süreç çalıştırma
-- Ağ: TCP ve HTTP istemcisi/sunucusu
+Sonraki sürümlere bırakılanlar: klasör listeleme ve oluşturma, süreç
+çalıştırma, şifreli (https) bağlantılar.
 
 ### 0.6 Araçlar
 
@@ -78,7 +75,9 @@ Kalanlar:
 
 ### 0.7 Hız ve sağlamlık
 
-- Ölçüm paketi ve CPython ile karşılaştırma
+- Ölçüm paketi ve CPython ile karşılaştırma (tamamlandı; sonuçlar `bench/README.md`)
+- Döngüde metin birleştirmenin (`m += parça`) hızlandırılması; şu an her
+  adımda metnin tamamı kopyalanıyor
 - Sanal makine iyileştirmeleri
 - Rastgele girdiyle sınama (fuzzing)
 
@@ -95,3 +94,7 @@ Kalanlar:
   ayarına bağlıdır.
 - Windows'ta ASCII dışı karakter içeren dosya yolları açılamayabilir.
 - Etkileşimli kipte satır düzenleme ve geçmiş yoktur.
+- `http` modülü şifreli (`https://`) adreslere bağlanamaz.
+- Ağ işlemleri bekletir; aynı anda birden çok bağlantıya hizmet verilemez.
+- Uzun bir metni döngüde `+=` ile büyütmek yavaştır; parçaları listede toplayıp
+  `birleştir` ile birleştirmek hızlıdır.

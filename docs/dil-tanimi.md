@@ -1,6 +1,6 @@
 # JUS Dil Tanımı
 
-Sürüm 0.4.0
+Sürüm 0.5.0
 
 Bu belge JUS'un sözdizimini ve davranışını tanımlar. Yorumlayıcı bu belgeye
 uymak zorundadır; ikisi arasındaki her fark bir hatadır. Burada yazmayan bir
@@ -31,12 +31,12 @@ harf ayrıdır: `yaş` ile `Yaş` farklı adlardır.
 
 ### 2.3 Anahtar kelimeler
 
-Aşağıdaki 24 kelime ayrılmıştır ve ad olarak kullanılamaz:
+Aşağıdaki 25 kelime ayrılmıştır ve ad olarak kullanılamaz:
 
 ```
-boş      bu       değil    değilse   değişken   dene     devam    doğru
-dön      eğer     fırlat   fonksiyon her        içinde   iken     kır
-kullan   olarak   sınıf    üst       ve         veya     yakala   yanlış
+boş      bu       değil    değilse   değişken   dene     devam    doğru   dön
+eğer     fırlat   fonksiyon geç      her        içinde   iken     kır     kullan
+olarak   sınıf    üst      ve        veya       yakala   yanlış
 ```
 
 ### 2.4 Sayılar
@@ -71,7 +71,8 @@ Başka bir kaçış dizisi sözdizimi hatasıdır.
 - Girinti boşlukla ya da sekmeyle yapılabilir; aynı dosyada ikisi birlikte
   kullanılamaz.
 - Boş satırlar ve yalnızca yorum içeren satırlar girintiyi etkilemez.
-- Her blokta en az bir deyim bulunmalıdır.
+- Her blokta en az bir deyim bulunmalıdır. Boş bırakılmak istenen bloğa hiçbir
+  şey yapmayan `geç` deyimi yazılır.
 
 ## 3. Değerler ve türler
 
@@ -92,7 +93,9 @@ JUS dinamik tiplidir: değişkenlerin değil, değerlerin türü vardır. Türle
 arasında örtük dönüşüm yapılmaz; dönüşüm için `metin()` ve `sayı()` kullanılır.
 
 Tam sayı değerli sayılar ondalık kısım olmadan yazılır (`4`); diğerleri en çok
-14 anlamlı basamakla yazılır (`0.33333333333333`).
+14 anlamlı basamakla yazılır (`0.33333333333333`). Tam sayılar 2^53'e
+(9007199254740992) kadar kesin olarak tutulur; bundan büyük sayılar yaklaşık
+değerlidir ve üslü biçimde yazılır (`1e+20`).
 
 ### 3.1 Listeler
 
@@ -501,6 +504,69 @@ Dosyalar UTF-8 olarak okunur ve yazılır.
 JSON'a çevrilebilen değerler: `boş`, mantıksal, sayı, metin, liste ve anahtarları
 metin olan sözlük.
 
+### ağ
+
+TCP bağlantıları. Bağlantılar ve dinleyiciler birer sayı ile temsil edilir;
+bu sayı diğer fonksiyonlara verilir.
+
+| Üye                       | Açıklama                                              |
+|---------------------------|-------------------------------------------------------|
+| `bağlan(sunucu, port)`    | Sunucuya bağlanır, bağlantıyı döndürür.               |
+| `dinle(port)`             | Yalnızca bu bilgisayardan (127.0.0.1) gelen bağlantıları bekleyen dinleyici açar. Port 0 verilirse boş bir port seçilir. |
+| `dinle(port, adres)`      | Verilen IPv4 adresinde dinler; `"0.0.0.0"` tüm ağ arayüzleridir. |
+| `port(dinleyici)`         | Dinleyicinin kullandığı port.                         |
+| `kabul_et(dinleyici)`     | Bir bağlantı gelene kadar bekler, bağlantıyı döndürür. |
+| `gönder(bağlantı, metin)` | Metnin tamamını gönderir.                             |
+| `satır_al(bağlantı)`      | Bir satır okur (satır sonu atılmış). Veri bittiyse `boş`. |
+| `al(bağlantı, en_çok)`    | En çok verilen bayt kadar veri okur. Bağlantı kapandıysa `boş`. |
+| `tam_al(bağlantı, adet)`  | Tam olarak verilen bayt kadar veri okur; bağlantı erken kapanırsa daha azını döndürür. |
+| `zaman_aşımı(bağlantı, saniye)` | Okurken beklenecek en uzun süre; aşılırsa okuma hata verir. 0 sınırsızdır. |
+| `kapat(tutamaç)`          | Bağlantıyı ya da dinleyiciyi kapatır.                 |
+| `bayt_sayısı(metin)`      | Metnin UTF-8 olarak kapladığı bayt sayısı.            |
+| `url_kodla(metin)`        | Metni adreslerde kullanılabilecek biçime çevirir (`%XX`). |
+| `url_çöz(metin)`          | `%XX` dizilerini ve `+` işaretini çözer.              |
+
+Tüm işlemler bekletir: `kabul_et` ve okuma fonksiyonları sonuç gelene kadar
+programı durdurur. Aynı anda en çok 256 bağlantı açık olabilir.
+
+### http
+
+HTTP/1.1 istemcisi ve sunucusu. Yalnızca şifresiz (`http://`) adresler
+desteklenir; `https://` adresleri hata verir.
+
+| Üye                                   | Açıklama                                  |
+|---------------------------------------|-------------------------------------------|
+| `getir(adres)`                        | GET isteği gönderir, yanıtı döndürür.     |
+| `gönder(adres, gövde)`                | POST isteği gönderir, yanıtı döndürür.    |
+| `iste(yöntem, adres, başlıklar, gövde)` | Herhangi bir istek gönderir. `başlıklar` bir sözlüktür. |
+| `sun(port, işleyici)`                 | Bu bilgisayarda bir sunucu başlatır; her istek için `işleyici(istek)` çağrılır. |
+| `dinleyiciyle_sun(dinleyici, işleyici)` | Aynı, `ağ.dinle` ile açılmış bir dinleyici üzerinde. |
+
+Yanıt, `durum` (sayı), `başlıklar` (sözlük; adlar küçük harfli) ve `gövde`
+(metin) anahtarlı bir sözlüktür.
+
+İşleyiciye verilen istek, `yöntem`, `yol`, `sorgu` (sözlük), `başlıklar`
+(sözlük; adlar küçük harfli) ve `gövde` anahtarlı bir sözlüktür. İşleyici ya
+bir metin (gövde; durum 200 olur) ya da `durum`, `gövde`, `başlıklar`
+anahtarlarından istediklerini içeren bir sözlük döndürür. Sözlükte
+`"durdur": doğru` varsa sunucu o yanıttan sonra durur. İşleyicideki
+yakalanmamış hata istemciye 500 yanıtı olarak gider; sunucu çalışmayı sürdürür.
+
+```jus
+kullan http
+
+fonksiyon işle(istek):
+    eğer istek["yol"] == "/":
+        dön "Merhaba, " + al(istek["sorgu"], "ad", "dünya")
+    dön {"durum": 404, "gövde": "Bulunamadı"}
+
+http.sun(8080, işle)
+```
+
+Sunucu istekleri sırayla, birer birer işler. Daha alt düzey kullanım için
+`istek_gönder`, `yanıtı_oku`, `isteği_oku` ve `yanıt_gönder` fonksiyonları açık
+bağlantılar üzerinde çalışır.
+
 ### tr
 
 Türkiye'ye özgü doğrulama ve biçimlendirme işlevleri.
@@ -569,7 +635,7 @@ fonksiyon_tanımı = "fonksiyon" AD "(" [ AD { "," AD } ] ")" blok ;
 
 deyim          = eğer_deyimi | iken_deyimi | her_deyimi | dön_deyimi
                | dene_deyimi | fırlat_deyimi | kullan_deyimi
-               | "kır" SATIR_SONU | "devam" SATIR_SONU
+               | "kır" SATIR_SONU | "devam" SATIR_SONU | "geç" SATIR_SONU
                | ifade SATIR_SONU ;
 dene_deyimi    = "dene" blok "yakala" [ AD ] blok ;
 fırlat_deyimi  = "fırlat" ifade SATIR_SONU ;

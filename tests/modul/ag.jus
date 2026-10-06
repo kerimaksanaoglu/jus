@@ -1,0 +1,46 @@
+# ağ modülü: aynı program içinde hem sunucu hem istemci
+kullan ağ
+
+değişken dinleyici = ağ.dinle(0)
+değişken port = ağ.port(dinleyici)
+yaz(port > 0 ve port < 65536)           # bekle: doğru
+
+değişken istemci = ağ.bağlan("127.0.0.1", port)
+değişken sunucu = ağ.kabul_et(dinleyici)
+
+ağ.gönder(istemci, "merhaba\nikinci satır ş\r\nüçüncü")
+yaz(ağ.satır_al(sunucu))                # bekle: merhaba
+yaz(ağ.satır_al(sunucu))                # bekle: ikinci satır ş
+
+# Yanıt ters yönde
+ağ.gönder(sunucu, "0123456789")
+yaz(ağ.tam_al(istemci, 4))              # bekle: 0123
+yaz(ağ.al(istemci, 3))                  # bekle: 456
+yaz(ağ.al(istemci, 100))                # bekle: 789
+
+# Veri yokken zaman aşımı hata verir
+ağ.zaman_aşımı(istemci, 0.2)
+dene:
+    ağ.satır_al(istemci)
+yakala hata:
+    yaz(hata)                           # bekle: Veri alınamadı; zaman aşımına uğradı ya da bağlantı koptu.
+
+# Karşı taraf kapatınca kalan veri, sonra boş gelir
+ağ.kapat(istemci)
+yaz(ağ.satır_al(sunucu))                # bekle: üçüncü
+yaz(ağ.satır_al(sunucu), ağ.al(sunucu, 10))   # bekle: boş boş
+ağ.kapat(sunucu)
+ağ.kapat(dinleyici)
+
+dene:
+    ağ.gönder(sunucu, "x")
+yakala hata:
+    yaz(hata)                           # bekle: 'ağ.gönder' için geçerli, açık bir bağlantı gerekli.
+dene:
+    ağ.bağlan("127.0.0.1", port)
+yakala hata:
+    yaz(başlar_mı(hata, "'127.0.0.1' sunucusunun"))   # bekle: doğru
+
+yaz(ağ.bayt_sayısı("çay"), uzunluk("çay"))   # bekle: 4 3
+yaz(ağ.url_kodla("Ayşe & Ali/1"))       # bekle: Ay%C5%9Fe%20%26%20Ali%2F1
+yaz(ağ.url_çöz("Ay%C5%9Fe+%26+Ali%2F1%"))   # bekle: Ayşe & Ali/1%
