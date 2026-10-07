@@ -3,6 +3,8 @@
 JUS programlarını kurulum yapmadan, tarayıcıda çalıştıran sayfa. Yorumlayıcı
 WebAssembly'ye derlenir; programlar tümüyle tarayıcıda çalışır.
 
+Yayımlanmış hâli: <https://kerimaksanaoglu.github.io/jus/>
+
 ## Derleme
 
 [Emscripten](https://emscripten.org) kurulu olmalıdır.

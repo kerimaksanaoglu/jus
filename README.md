@@ -19,6 +19,15 @@ iken i <= 5:
     i = i + 1
 ```
 
+## Denemek ve kurmak
+
+- **Tarayıcıda:** [deneme alanı](https://kerimaksanaoglu.github.io/jus/) kurulum
+  gerektirmez.
+- **Hazır paket:** [sürümler sayfasından](https://github.com/kerimaksanaoglu/jus/releases)
+  işletim sisteminize uygun paketi indirin, açın ve içindeki `jus` dosyasını
+  çalıştırın. Her yerden çalıştırabilmek için klasörü `PATH` değişkenine ekleyin.
+- **Kaynaktan:** aşağıdaki gibi derleyin.
+
 ## Derleme
 
 Bir C derleyicisi (GCC ya da Clang) ve `make` gerekir.

@@ -17,6 +17,7 @@ değiştirmez.
 - `dosya.klasör_mü`
 - Başlangıç rehberine JSON, ağ ve HTTP, test, biçimlendirme ve paket bölümleri
 - 1.0 ölçütlerinin durumunu gösteren yol haritası
+- Linux, macOS ve Windows için hazır paketler; deneme alanının yayımlanması
 
 ### Değişti
 
