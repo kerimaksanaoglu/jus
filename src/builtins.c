@@ -238,6 +238,38 @@ static bool ornegiMiNative(int argCount, Value *args, Value *result) {
     return true;
 }
 
+/* doğrula(koşul) / doğrula(koşul, ileti): koşul doğru değilse hata verir. */
+static bool dogrulaNative(int argCount, Value *args, Value *result) {
+    (void)result;
+    if (argCount < 1 || argCount > 2) {
+        return nativeFail("'doğrula' fonksiyonu 1 ya da 2 argüman alır, %d verildi.", argCount);
+    }
+    if (!IS_BOOL(args[0])) {
+        return nativeFail("'doğrula' mantıksal bir değer ister; %s verildi.", valueTypeName(args[0]));
+    }
+    if (AS_BOOL(args[0])) return true;
+    if (argCount == 1) return nativeFail("Doğrulama başarısız.");
+
+    char *message = valueToChars(args[1], false, NULL);
+    nativeFail("Doğrulama başarısız: %.400s", message);
+    free(message);
+    return false;
+}
+
+/* eşit_olmalı(bulunan, beklenen): iki değer eşit değilse ikisini de gösteren bir hata verir. */
+static bool esitOlmaliNative(int argCount, Value *args, Value *result) {
+    (void)argCount;
+    (void)result;
+    if (valuesEqual(args[0], args[1])) return true;
+
+    char *found = valueToChars(args[0], true, NULL);
+    char *expected = valueToChars(args[1], true, NULL);
+    nativeFail("Beklenen %.200s, bulunan %.200s.", expected, found);
+    free(found);
+    free(expected);
+    return false;
+}
+
 /* ---- Sayılar ---- */
 
 /* saat(): programın kullandığı işlemci süresi, saniye cinsinden. */
@@ -918,6 +950,8 @@ void defineBuiltins(void) {
     defineNative("tür", 1, turNative);
     defineNative("uzunluk", 1, uzunlukNative);
     defineNative("örneği_mi", 2, ornegiMiNative);
+    defineNative("doğrula", -1, dogrulaNative);
+    defineNative("eşit_olmalı", 2, esitOlmaliNative);
 
     defineNative("saat", 0, saatNative);
     defineNative("karekök", 1, karekokNative);

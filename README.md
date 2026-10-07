@@ -34,6 +34,7 @@ Windows'ta MSYS2/MinGW ile `mingw32-make` kullanılabilir.
 ```sh
 jus program.jus    # dosyayı çalıştırır (sonraki argümanlar programa verilir)
 jus                # etkileşimli kip
+jus test [klasör]  # adı _test.jus ile biten dosyalardaki testleri çalıştırır
 jus --surum
 jus --yardim
 ```

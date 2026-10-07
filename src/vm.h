@@ -31,6 +31,9 @@ typedef struct {
     /* Bekleyen hata: 'fırlat' ile atılan değer ya da çalışma zamanı hata iletisi. */
     /* Yerleşik bir fonksiyonun çağırdığı JUS fonksiyonu hata verdi; ileti zaten kayıtlı. */
     bool errorPending;
+    /* Doğruysa yakalanmayan hatalar yazılmaz, capturedError içine kaydedilir (test çalıştırıcı). */
+    bool captureErrors;
+    char capturedError[700];
     bool hasThrownValue;
     Value thrown;
     char errorMessage[512];
@@ -65,6 +68,13 @@ extern VM vm;
 void initVM(void);
 void freeVM(void);
 InterpretResult interpret(const char *name, const char *source, bool repl);
+
+/*
+ * Bir test dosyasını çalıştırır: önce dosyanın üst düzey kodu, ardından adı
+ * "test_" ile başlayan parametresiz her fonksiyon (ad sırasıyla) çağrılır.
+ * Sonuçları stdout'a yazar; geçen ve kalan test sayılarını ekler.
+ */
+void runTestFile(const char *name, const char *source, int *passed, int *failed);
 void push(Value value);
 Value pop(void);
 

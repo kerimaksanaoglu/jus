@@ -18,6 +18,7 @@ static void printUsage(FILE *out) {
           "\n"
           "  jus                  Etkileşimli kipi başlatır.\n"
           "  jus dosya.jus [...]  Dosyadaki programı çalıştırır; kalan argümanlar programa verilir.\n"
+          "  jus test [yol]       Adı _test.jus ile biten dosyalardaki testleri çalıştırır.\n"
           "  jus --surum          Sürüm numarasını yazar.\n"
           "  jus --yardim         Bu yardım metnini yazar.\n",
           out);
@@ -41,6 +42,86 @@ static int runFile(const char *path, int argumentCount, char **arguments) {
     if (result == INTERPRET_COMPILE_ERROR) return JUS_EXIT_COMPILE_ERROR;
     if (result == INTERPRET_RUNTIME_ERROR) return JUS_EXIT_RUNTIME_ERROR;
     return 0;
+}
+
+static bool endsWith(const char *text, const char *suffix) {
+    size_t length = strlen(text);
+    size_t suffixLength = strlen(suffix);
+    return length >= suffixLength && strcmp(text + length - suffixLength, suffix) == 0;
+}
+
+typedef struct {
+    char **paths;
+    int count;
+    int capacity;
+    const char *directory;
+} PathList;
+
+static void addPath(PathList *list, const char *directory, const char *name) {
+    if (list->count == list->capacity) {
+        list->capacity = list->capacity == 0 ? 16 : list->capacity * 2;
+        list->paths = (char **)realloc(list->paths, sizeof(char *) * (size_t)list->capacity);
+    }
+    size_t length = strlen(directory) + strlen(name) + 2;
+    char *path = (char *)malloc(length);
+    if (list->paths == NULL || path == NULL) {
+        fprintf(stderr, "jus: bellek yetersiz.\n");
+        exit(JUS_EXIT_OUT_OF_MEMORY);
+    }
+    if (directory[0] == '\0') {
+        snprintf(path, length, "%s", name);
+    } else {
+        snprintf(path, length, "%s/%s", directory, name);
+    }
+    list->paths[list->count++] = path;
+}
+
+static void collectEntry(const char *name, void *context) {
+    PathList *list = (PathList *)context;
+    if (name[0] == '.') return;
+    addPath(list, list->directory, name);
+}
+
+static int comparePaths(const void *a, const void *b) {
+    return strcmp(*(char *const *)a, *(char *const *)b);
+}
+
+/* path bir klasörse içindeki test dosyalarını (alt klasörler dahil) çalıştırır; dosyaysa onu. */
+static void runTestsUnder(const char *path, int *files, int *passed, int *failed) {
+    PathList entries = {NULL, 0, 0, path};
+    if (listDirectory(path, collectEntry, &entries)) {
+        qsort(entries.paths, (size_t)entries.count, sizeof(char *), comparePaths);
+        for (int i = 0; i < entries.count; i++) {
+            runTestsUnder(entries.paths[i], files, passed, failed);
+            free(entries.paths[i]);
+        }
+        free(entries.paths);
+        return;
+    }
+
+    if (!endsWith(path, "_test.jus")) return;
+    const char *problem = NULL;
+    char *source = readSource(path, &problem);
+    if (source == NULL) return;
+
+    (*files)++;
+    initVM();
+    setScriptPath(path);
+    runTestFile(path, source, passed, failed);
+    freeVM();
+    free(source);
+}
+
+static int runTests(const char *path) {
+    int files = 0, passed = 0, failed = 0;
+    runTestsUnder(path, &files, &passed, &failed);
+
+    if (files == 0) {
+        fprintf(stderr, "jus: '%s' altında adı _test.jus ile biten dosya bulunamadı.\n", path);
+        return JUS_EXIT_NO_INPUT;
+    }
+    printf("\n%d dosya, %d test: %d geçti, %d kaldı.\n", files, passed + failed, passed, failed);
+    return failed == 0 ? 0 : 1;
 }
 
 /* Satırı sonundaki satır sonu karakterleri olmadan arabelleğe ekler. Girdi bittiyse false. */
@@ -140,6 +221,13 @@ int main(int argc, char *argv[]) {
     if (strcmp(argv[1], "--yardim") == 0) {
         printUsage(stdout);
         return 0;
+    }
+    if (strcmp(argv[1], "test") == 0) {
+        if (argc > 3) {
+            printUsage(stderr);
+            return JUS_EXIT_USAGE;
+        }
+        return runTests(argc == 3 ? argv[2] : ".");
     }
     if (argv[1][0] == '-') {
         fprintf(stderr, "jus: bilinmeyen seçenek '%s'.\n\n", argv[1]);

@@ -15,5 +15,7 @@ trap 'rm -rf "$CIKTI"' EXIT
     -fsanitize=address,undefined -fno-sanitize-recover=all \
     -DJUS_DEBUG_STRESS_GC \
     "$KOK"/src/*.c -o "$CIKTI/jus" -lm
+cd "$KOK"
 
 bash "$KOK/tests/calistir.sh" "$CIKTI/jus"
+bash "$KOK/tests/araclar.sh" "$CIKTI/jus"

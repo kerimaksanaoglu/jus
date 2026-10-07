@@ -69,7 +69,7 @@ Sonraki sürümlere bırakılanlar: klasör listeleme ve oluşturma, süreç
 ### 0.6 Araçlar
 
 - Biçimlendirici (`jus bicimle`)
-- Test çalıştırıcı (`jus test`)
+- Test çalıştırıcı (`jus test`) (tamamlandı)
 - VS Code eklentisi: renklendirme (tamamlandı), hata gösterimi, tamamlama
 - Tarayıcıda deneme alanı (WebAssembly)
 
@@ -79,7 +79,7 @@ Sonraki sürümlere bırakılanlar: klasör listeleme ve oluşturma, süreç
 - Döngüde metin birleştirmenin (`m += parça`) hızlandırılması; şu an her
   adımda metnin tamamı kopyalanıyor
 - Sanal makine iyileştirmeleri
-- Rastgele girdiyle sınama (fuzzing)
+- Rastgele girdiyle sınama (tamamlandı; `tools/fuzz`)
 
 ### 0.8 - 0.9 Kararlılık
 

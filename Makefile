@@ -38,6 +38,7 @@ build:
 
 test: $(TARGET)
 	bash tests/calistir.sh ./$(TARGET)
+	bash tests/araclar.sh ./$(TARGET)
 
 clean:
 	rm -rf build $(TARGET)

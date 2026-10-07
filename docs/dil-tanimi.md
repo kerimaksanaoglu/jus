@@ -391,6 +391,17 @@ sıradan değişkenlerdir.
 | `uzunluk(kap)`   | Metnin karakter, listenin öğe, sözlüğün girdi sayısı.                    |
 | `örneği_mi(d, sınıf)` | `d`, sınıfın ya da ondan türeyen bir sınıfın nesnesiyse `doğru`.    |
 
+### 6.2A Doğrulama
+
+| Fonksiyon                       | Açıklama                                              |
+|---------------------------------|-------------------------------------------------------|
+| `doğrula(koşul)`                | Koşul `yanlış` ise hata verir.                        |
+| `doğrula(koşul, ileti)`         | Aynı; hata iletisine `ileti` eklenir.                 |
+| `eşit_olmalı(bulunan, beklenen)` | İki değer eşit değilse ikisini de gösteren bir hata verir. |
+
+Bu fonksiyonlar testlerde ve bir fonksiyonun girdilerini denetlemek için
+kullanılır. Verdikleri hata `dene` / `yakala` ile yakalanabilir.
+
 ### 6.3 Sayılar
 
 | Fonksiyon                | Açıklama                                                         |
@@ -637,6 +648,42 @@ ornek.jus:2: çalışma zamanı hatası: Sıfıra bölünemez.
 - Tek başına yazılan bir ifadenin sonucu `boş` değilse ekrana yazılır.
 - `:` ile biten satır bir blok başlatır; blok boş bir satırla bitirilir.
 - `çıkış` yazmak ya da girdiyi kapatmak kipi sonlandırır.
+
+## 8A. Testler
+
+`jus test [yol]` komutu, verilen klasördeki (yazılmazsa bulunulan klasördeki)
+ve alt klasörlerindeki, adı `_test.jus` ile biten dosyaları çalıştırır.
+
+Her dosya için önce dosyanın üst düzey kodu çalışır. Ardından adı `test_` ile
+başlayan, parametresiz her fonksiyon ad sırasıyla çağrılır. Hata vermeden biten
+fonksiyon geçmiş, hata veren kalmış sayılır; bir testin kalması diğerlerinin
+çalışmasını engellemez.
+
+```jus
+# hesap_test.jus
+kullan hesap
+
+fonksiyon test_toplama():
+    eşit_olmalı(hesap.topla(2, 3), 5)
+
+fonksiyon test_sıfıra_bölme_hata_verir():
+    değişken hata_verdi = yanlış
+    dene:
+        hesap.böl(1, 0)
+    yakala:
+        hata_verdi = doğru
+    doğrula(hata_verdi, "böl(1, 0) hata vermeliydi")
+```
+
+```
+hesap_test.jus
+  geçti  test_sıfıra_bölme_hata_verir
+  geçti  test_toplama
+
+1 dosya, 2 test: 2 geçti, 0 kaldı.
+```
+
+Tüm testler geçerse çıkış kodu 0, en az biri kalırsa 1 olur.
 
 ## 9. Dilbilgisi
 

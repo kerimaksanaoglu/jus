@@ -67,7 +67,7 @@ while IFS= read -r dosya; do
             sed 's/^/  /' "$hata"
         fi
     fi
-done < <(find "$KOK" -name '*.jus' -not -path '*/_*' | sort)
+done < <(find "$KOK" -name '*.jus' -not -path '*/_*' -not -path '*/araclar/*' | sort)
 
 echo "$gecen test geçti, $kalan test başarısız."
 [ "$kalan" -eq 0 ]

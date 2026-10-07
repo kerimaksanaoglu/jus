@@ -44,6 +44,15 @@ static void reportError(void) {
     CallFrame *top = &vm.frames[vm.frameCount - 1];
     size_t instruction = (size_t)(top->ip - top->closure->function->chunk.code - 1);
     ObjModule *topModule = top->closure->function->module;
+
+    if (vm.captureErrors) {
+        char *thrown = vm.hasThrownValue ? valueToChars(vm.thrown, false, NULL) : NULL;
+        snprintf(vm.capturedError, sizeof(vm.capturedError), "%s:%d: %.500s", topModule->path->chars,
+                 top->closure->function->chunk.lines[instruction],
+                 thrown != NULL ? thrown : vm.errorMessage);
+        free(thrown);
+        return;
+    }
     fprintf(stderr, "%s:%d: çalışma zamanı hatası: ", topModule->path->chars,
             top->closure->function->chunk.lines[instruction]);
     if (vm.hasThrownValue) {
@@ -140,6 +149,8 @@ void initVM(void) {
 
     vm.nativeError[0] = '\0';
     vm.errorMessage[0] = '\0';
+    vm.captureErrors = false;
+    vm.capturedError[0] = '\0';
     vm.mainModule = NULL;
     vm.initString = NULL;
 
@@ -789,8 +800,9 @@ static void concatenateLists(void) {
 /*
  * Bayt kodunu yürütür. Çağrı derinliği stopAt'e döndüğünde (ana program için
  * program bittiğinde) durur; iç içe yürütmede sonuç yığının tepesinde kalır.
+ * script, bir modülün üst düzey kodunun (sonucu atılır) yürütüldüğünü belirtir.
  */
-static InterpretResult run(int stopAt) {
+static InterpretResult run(int stopAt, bool script) {
     CallFrame *frame = &vm.frames[vm.frameCount - 1];
 
 #define READ_BYTE() (*frame->ip++)
@@ -1203,7 +1215,7 @@ static InterpretResult run(int stopAt) {
                     vm.handlerCount--;
                 }
                 vm.frameCount--;
-                if (vm.frameCount == 0) {
+                if (vm.frameCount == 0 && script) {
                     pop();
                     return INTERPRET_OK;
                 }
@@ -1248,7 +1260,7 @@ InterpretResult interpret(const char *name, const char *source, bool repl) {
     push(OBJ_VAL(closure));
     call(closure, 0);
 
-    InterpretResult result = run(0);
+    InterpretResult result = run(0, true);
     fflush(stdout);
     return result;
 }
@@ -1263,10 +1275,66 @@ bool callFunction(Value callee, int argCount, Value *args, Value *result) {
         return false;
     }
     /* Yerleşik fonksiyonlar hemen sonuç verir; JUS fonksiyonları için yürütmeyi sürdür. */
-    if (vm.frameCount > base && run(base) != INTERPRET_OK) {
+    if (vm.frameCount > base && run(base, false) != INTERPRET_OK) {
         return false;
     }
 
     *result = pop();
     return true;
+}
+
+static int compareNames(const void *a, const void *b) {
+    return strcmp((*(ObjString *const *)a)->chars, (*(ObjString *const *)b)->chars);
+}
+
+void runTestFile(const char *name, const char *source, int *passed, int *failed) {
+    printf("%s\n", name);
+    vm.captureErrors = true;
+    vm.capturedError[0] = '\0';
+
+    InterpretResult loaded = interpret(name, source, false);
+    if (loaded != INTERPRET_OK) {
+        if (loaded == INTERPRET_RUNTIME_ERROR) {
+            printf("  KALDI  dosya yüklenirken hata: %s\n", vm.capturedError);
+        } else {
+            printf("  KALDI  dosyada sözdizimi hatası var\n");
+        }
+        (*failed)++;
+        return;
+    }
+
+    /* Test fonksiyonlarını topla ve ada göre sırala; tablo sırası belirsizdir. */
+    Table *globals = &vm.mainModule->globals;
+    ObjString **names = (ObjString **)malloc(sizeof(ObjString *) * (size_t)(globals->capacity + 1));
+    if (names == NULL) {
+        fprintf(stderr, "jus: bellek yetersiz.\n");
+        exit(JUS_EXIT_OUT_OF_MEMORY);
+    }
+    int count = 0;
+    for (int i = 0; i < globals->capacity; i++) {
+        Entry *entry = &globals->entries[i];
+        if (entry->key == NULL || !IS_CLOSURE(entry->value)) continue;
+        if (strncmp(entry->key->chars, "test_", 5) != 0) continue;
+        if (AS_CLOSURE(entry->value)->function->arity != 0) continue;
+        names[count++] = entry->key;
+    }
+    qsort(names, (size_t)count, sizeof(ObjString *), compareNames);
+
+    if (count == 0) printf("  (adı \"test_\" ile başlayan fonksiyon yok)\n");
+    for (int i = 0; i < count; i++) {
+        Value function;
+        Value ignored;
+        if (!tableGet(globals, names[i], &function)) continue;
+        vm.capturedError[0] = '\0';
+        if (callFunction(function, 0, NULL, &ignored)) {
+            printf("  geçti  %s\n", names[i]->chars);
+            (*passed)++;
+        } else {
+            vm.errorPending = false;
+            printf("  KALDI  %s\n         %s\n", names[i]->chars, vm.capturedError);
+            (*failed)++;
+        }
+        fflush(stdout);
+    }
+    free(names);
 }

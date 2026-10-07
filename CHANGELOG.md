@@ -8,6 +8,8 @@ uyar.
 
 ### Eklendi
 
+- Test çalıştırıcı: `jus test [yol]`; `doğrula` ve `eşit_olmalı` yerleşik fonksiyonları
+- Rastgele girdiyle sınama aracı (`tools/fuzz`)
 - `sırala(liste, anahtar)`: anahtar fonksiyonuyla kararlı sıralama
 - `eşle`, `süz`, `biçimle`, `sola_doldur`, `sağa_doldur`, `tekrarla`
 - `yuvarla(x, basamak)`
@@ -23,6 +25,8 @@ uyar.
 ### Düzeltildi
 
 - Windows'ta Türkçe harf içeren komut satırı argümanları ve dosya yolları bozuluyordu
+- Sınıf gövdesinde `fonksiyon` olmayan bir satır derleyiciyi sonsuz döngüye sokuyordu
+- Çok sayıda sabit içeren dosyalarda derleme aşırı yavaştı
 - Girinti uyuşmazlığı hatasının ardından gereksiz ikinci bir hata bildiriliyordu
 - `1e5` gibi desteklenmeyen sayı yazımları yanıltıcı bir hata iletisi veriyordu
 
