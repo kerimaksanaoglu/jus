@@ -1,0 +1,50 @@
+# Döngüler, kır ve devam
+değişken i = 0
+iken i < 3:
+    yaz("a", i)
+    yaz("b", i)
+    i = i + 1
+yaz("bitti", i)
+# bekle: a 0
+# bekle: b 0
+# bekle: a 1
+# bekle: b 1
+# bekle: a 2
+# bekle: b 2
+# bekle: bitti 3
+
+# kır: döngüden çıkar
+değişken n = 0
+iken doğru:
+    değişken kare = n * n
+    eğer kare > 20:
+        kır
+    n = n + 1
+yaz(n)                # bekle: 5
+
+# devam: sonraki tura geçer
+değişken k = 0
+değişken tekler = ""
+iken k < 10:
+    k = k + 1
+    değişken yerel = k
+    eğer k % 2 == 0:
+        devam
+    tekler = tekler + metin(yerel)
+yaz(tekler)           # bekle: 13579
+
+# İç içe döngüler: kır yalnızca en içteki döngüyü etkiler
+değişken satır = 1
+iken satır <= 3:
+    değişken sütun = 1
+    değişken çıktı = ""
+    iken doğru:
+        eğer sütun > satır:
+            kır
+        çıktı = çıktı + "*"
+        sütun = sütun + 1
+    yaz(çıktı)
+    satır = satır + 1
+# bekle: *
+# bekle: **
+# bekle: ***

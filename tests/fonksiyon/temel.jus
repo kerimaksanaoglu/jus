@@ -1,0 +1,37 @@
+# Fonksiyon tanımı, çağrı ve dönüş değeri
+fonksiyon topla(a, b):
+    dön a + b
+
+fonksiyon selamla(isim):
+    dön "Merhaba, " + isim + "!"
+
+fonksiyon değersiz():
+    değişken x = 1
+
+fonksiyon erken(n):
+    eğer n < 0:
+        dön
+    yaz("negatif değil")
+
+yaz(topla(3, 5))            # bekle: 8
+yaz(selamla("Ayşe"))        # bekle: Merhaba, Ayşe!
+yaz(değersiz())             # bekle: boş
+yaz(erken(-1))              # bekle: boş
+erken(1)                    # bekle: negatif değil
+yaz(topla(topla(1, 2), topla(3, 4)))   # bekle: 10
+
+# Fonksiyonlar değerdir: değişkene atanabilir, argüman olarak verilebilir.
+değişken işlem = topla
+yaz(işlem(10, 20))          # bekle: 30
+
+fonksiyon iki_kez(f, x):
+    dön f(f(x, 1), 1)
+
+yaz(iki_kez(topla, 5))      # bekle: 7
+yaz(tür(topla), tür(yaz))   # bekle: fonksiyon fonksiyon
+yaz(topla)                  # bekle: <fonksiyon topla>
+
+# Parametreler yereldir; dışarıdaki aynı adlı değişkeni etkilemez.
+değişken a = "dış"
+topla(1, 2)
+yaz(a)                      # bekle: dış

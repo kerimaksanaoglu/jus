@@ -1,0 +1,21 @@
+# İşleç önceliği ve sayı yazımı
+yaz(2 + 3 * 4)          # bekle: 14
+yaz((2 + 3) * 4)        # bekle: 20
+yaz(10 - 2 - 3)         # bekle: 5
+yaz(2 * 3 + 4 * 5)      # bekle: 26
+yaz(15 / 4)             # bekle: 3.75
+yaz(8 / 2)              # bekle: 4
+yaz(15 % 4)             # bekle: 3
+yaz(-7 % 3)             # bekle: 2
+yaz(7 % -3)             # bekle: -2
+yaz(-3 + 5)             # bekle: 2
+yaz(--3)                # bekle: 3
+yaz(-(2 + 3))           # bekle: -5
+yaz(0.1 + 0.2)          # bekle: 0.3
+yaz(1 / 3)              # bekle: 0.33333333333333
+yaz(1000000 * 1000000)  # bekle: 1000000000000
+yaz(2.50)               # bekle: 2.5
+yaz(0 * -1)             # bekle: 0
+yaz(1000000000000000)   # bekle: 1000000000000000
+yaz(9007199254740992)   # bekle: 9007199254740992
+yaz(100000000000000000000)   # bekle: 1e+20

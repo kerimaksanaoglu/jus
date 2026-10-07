@@ -1,0 +1,5 @@
+# kod: 65
+# hata: Bu kapsamda aynı adla bir değişken zaten tanımlı.
+fonksiyon f():
+    değişken a = 1
+    değişken a = 2

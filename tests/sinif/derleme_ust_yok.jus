@@ -1,0 +1,5 @@
+# kod: 65
+# hata: 'üst', başka bir sınıftan türetilmemiş bir sınıfta kullanılamaz.
+sınıf A:
+    fonksiyon f():
+        üst.f()

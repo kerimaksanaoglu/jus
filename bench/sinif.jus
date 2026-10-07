@@ -1,0 +1,28 @@
+# Sınıf: nesne oluşturma, yöntem çağrısı, alan erişimi, kalıtım
+sınıf Sayaç:
+    fonksiyon kur(adım):
+        bu.adım = adım
+        bu.değer = 0
+
+    fonksiyon artır():
+        bu.değer += bu.adım
+
+    fonksiyon al():
+        dön bu.değer
+
+sınıf ÇiftSayaç(Sayaç):
+    fonksiyon artır():
+        üst.artır()
+        bu.değer += 1
+
+değişken a = Sayaç(2)
+değişken b = ÇiftSayaç(3)
+her i içinde aralık(1000000):
+    a.artır()
+    b.artır()
+değişken nesne_toplam = 0
+her i içinde aralık(100000):
+    değişken s = Sayaç(i)
+    s.artır()
+    nesne_toplam += s.al()
+yaz(a.al(), b.al(), nesne_toplam)

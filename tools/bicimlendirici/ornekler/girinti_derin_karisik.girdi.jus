@@ -1,0 +1,7 @@
+eğer a:
+ eğer b:
+   eğer c:
+        yaz(1)
+   yaz(2)
+ yaz(3)
+yaz(4)

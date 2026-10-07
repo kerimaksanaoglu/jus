@@ -1,0 +1,8 @@
+# kod: 70
+# hata: çalışma zamanı hatası: Sıfıra bölünemez.
+# hata: satır 6, 'böl' fonksiyonu
+# hata: satır 8, ana program
+fonksiyon böl(a, b):
+    dön a / b
+
+yaz(böl(1, 0))

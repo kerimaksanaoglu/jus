@@ -1,0 +1,7 @@
+değişken a = [
+    # ilk
+    1,
+
+    2  # iki
+]
+yaz(a)

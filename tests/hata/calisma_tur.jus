@@ -1,0 +1,3 @@
+# kod: 70
+# hata: '+' işleci iki sayı, iki metin ya da iki liste ister; metin ve sayı verildi.
+yaz("yaş: " + 25)

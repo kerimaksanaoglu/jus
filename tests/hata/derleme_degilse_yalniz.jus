@@ -1,0 +1,4 @@
+# kod: 65
+# hata: 'değilse' kendisinden önce bir 'eğer' bloğu olmadan kullanılamaz.
+değilse:
+    yaz("x")

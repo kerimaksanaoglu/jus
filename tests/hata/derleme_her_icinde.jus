@@ -1,0 +1,4 @@
+# kod: 65
+# hata: Döngü değişkeninden sonra 'içinde' bekleniyor.
+her x [1, 2]:
+    yaz(x)

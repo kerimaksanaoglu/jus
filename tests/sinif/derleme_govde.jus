@@ -1,0 +1,14 @@
+# kod: 65
+# hata: 6:5: sözdizimi hatası: Sınıf gövdesinde yalnızca 'fonksiyon' tanımları bulunabilir.
+# hata: 7:5: sözdizimi hatası: Sınıf gövdesinde yalnızca 'fonksiyon' tanımları bulunabilir.
+# hata: 13:5: sözdizimi hatası: Sınıf gövdesinde yalnızca 'fonksiyon' tanımları bulunabilir.
+sınıf A:
+    değişken x = 1
+    eğer doğru:
+        yaz("iç blok da atlanır")
+        eğer doğru:
+            yaz("daha içteki de")
+    fonksiyon geçerli():
+        dön 1
+    yaz(3)
+yaz("sınıftan sonra")

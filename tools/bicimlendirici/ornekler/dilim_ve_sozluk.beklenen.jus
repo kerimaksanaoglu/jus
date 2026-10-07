@@ -1,0 +1,7 @@
+değişken s = metin[1:3]
+değişken t = metin[:2]
+değişken u = metin[1:]
+değişken v = metin[1:-1]
+değişken w = {"a": 1, "b": 2, "c": [1, 2]}
+değişken z = {"x": l[1:2], "y": 3}
+eğer x: yaz(1)

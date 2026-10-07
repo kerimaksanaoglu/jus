@@ -1,0 +1,6 @@
+# kod: 70
+# hata: 'K' nesnesinde 'yok' adında bir alan ya da yöntem yok.
+sınıf K:
+    fonksiyon kur(a):
+        bu.a = a
+yaz(K(1).yok)

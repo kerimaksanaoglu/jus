@@ -1,0 +1,3 @@
+# kod: 65
+# hata: 'bu' yalnızca bir sınıfın yöntemleri içinde kullanılabilir.
+yaz(bu)

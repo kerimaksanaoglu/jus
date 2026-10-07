@@ -1,0 +1,6 @@
+# kod: 70
+# hata: Yığın taştı
+# hata: çağrı daha)
+fonksiyon f(n):
+    dön f(n + 1)
+f(0)

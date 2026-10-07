@@ -1,0 +1,4 @@
+# kod: 70
+# hata: Koşul mantıksal bir değer (doğru/yanlış) olmalı; sayı verildi.
+eğer 1:
+    yaz("x")

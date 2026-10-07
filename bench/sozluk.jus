@@ -1,0 +1,13 @@
+# Sözlük: sayı ve metin anahtarlarla ekleme ve okuma
+değişken d = {}
+her i içinde aralık(400000):
+    d[i] = i * 2
+değişken toplam = 0
+her i içinde aralık(400000):
+    toplam += d[i]
+değişken m = {}
+her i içinde aralık(300000):
+    m["k" + metin(i % 20000)] = i
+her i içinde aralık(300000):
+    toplam += m["k" + metin(i % 20000)]
+yaz(toplam, uzunluk(d), uzunluk(m))

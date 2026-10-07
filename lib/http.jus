@@ -1,0 +1,254 @@
+# http modülü: HTTP/1.1 istemcisi ve sunucusu.
+#
+# Yalnızca şifresiz (http://) bağlantılar desteklenir. Bu dosya yorumlayıcının
+# içine gömülür; değiştirdikten sonra tools/gomulu_uret.py çalıştırılmalıdır.
+kullan ağ
+
+değişken _BÜYÜK = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+değişken _KÜÇÜK = "abcdefghijklmnopqrstuvwxyz"
+değişken _ONALTILIK = "0123456789abcdef"
+
+değişken _DURUMLAR = {
+    200: "OK", 201: "Created", 204: "No Content",
+    301: "Moved Permanently", 302: "Found", 304: "Not Modified",
+    400: "Bad Request", 401: "Unauthorized", 403: "Forbidden", 404: "Not Found",
+    405: "Method Not Allowed", 500: "Internal Server Error",
+}
+
+# Başlık adları büyük/küçük harfe duyarsızdır; İngilizce küçük harfe çevrilerek saklanır.
+fonksiyon _küçült(ad):
+    değişken sonuç = ""
+    her harf içinde ad:
+        değişken sıra = bul(_BÜYÜK, harf)
+        eğer sıra >= 0:
+            sonuç += _KÜÇÜK[sıra]
+        değilse:
+            sonuç += harf
+    dön sonuç
+
+fonksiyon _onaltılık(yazı):
+    değişken değer = 0
+    değişken basamak_sayısı = 0
+    her harf içinde _küçült(yazı):
+        değişken basamak = bul(_ONALTILIK, harf)
+        eğer basamak < 0:
+            fırlat "Geçersiz parça uzunluğu: " + yazı
+        değer = değer * 16 + basamak
+        basamak_sayısı += 1
+    eğer basamak_sayısı == 0:
+        fırlat "Parça uzunluğu eksik."
+    dön değer
+
+fonksiyon _başlıkları_oku(bağlantı):
+    değişken başlıklar = {}
+    iken doğru:
+        değişken satır = ağ.satır_al(bağlantı)
+        eğer satır == boş veya satır == "":
+            kır
+        değişken ayrım = bul(satır, ":")
+        eğer ayrım < 0:
+            devam
+        başlıklar[_küçült(kırp(satır[:ayrım]))] = kırp(satır[ayrım + 1:])
+    dön başlıklar
+
+fonksiyon _gövdeyi_oku(bağlantı, başlıklar, kapanana_kadar):
+    eğer "content-length" içinde başlıklar:
+        dön ağ.tam_al(bağlantı, sayı(başlıklar["content-length"]))
+
+    eğer "chunked" içinde _küçült(al(başlıklar, "transfer-encoding", "")):
+        değişken gövde = ""
+        iken doğru:
+            değişken satır = ağ.satır_al(bağlantı)
+            eğer satır == boş:
+                kır
+            değişken boyut = _onaltılık(kırp(böl(satır, ";")[0]))
+            eğer boyut == 0:
+                # Son parçadan sonra gelebilecek ek başlıkları atla.
+                iken doğru:
+                    değişken ek = ağ.satır_al(bağlantı)
+                    eğer ek == boş veya ek == "":
+                        kır
+                kır
+            gövde += ağ.tam_al(bağlantı, boyut)
+            ağ.satır_al(bağlantı)
+        dön gövde
+
+    eğer kapanana_kadar:
+        değişken gövde = ""
+        iken doğru:
+            değişken parça = ağ.al(bağlantı, 65536)
+            eğer parça == boş:
+                kır
+            gövde += parça
+        dön gövde
+
+    dön ""
+
+fonksiyon _adresi_ayır(adres):
+    eğer başlar_mı(adres, "https://"):
+        fırlat "http modülü şifreli (https) bağlantıları desteklemiyor: " + adres
+    eğer değil başlar_mı(adres, "http://"):
+        fırlat "Adres 'http://' ile başlamalı: " + adres
+
+    değişken sunucu = adres[7:]
+    değişken yol = "/"
+    değişken bölü = bul(sunucu, "/")
+    eğer bölü >= 0:
+        yol = sunucu[bölü:]
+        sunucu = sunucu[:bölü]
+
+    değişken port = 80
+    değişken iki_nokta = bul(sunucu, ":")
+    eğer iki_nokta >= 0:
+        port = sayı(sunucu[iki_nokta + 1:])
+        sunucu = sunucu[:iki_nokta]
+
+    eğer sunucu == "":
+        fırlat "Adreste sunucu adı yok: " + adres
+    dön {"sunucu": sunucu, "port": port, "yol": yol}
+
+fonksiyon _sorguyu_çöz(yazı):
+    değişken sorgu = {}
+    her çift içinde böl(yazı, "&"):
+        eğer çift == "":
+            devam
+        değişken eşit = bul(çift, "=")
+        eğer eşit < 0:
+            sorgu[ağ.url_çöz(çift)] = ""
+        değilse:
+            sorgu[ağ.url_çöz(çift[:eşit])] = ağ.url_çöz(çift[eşit + 1:])
+    dön sorgu
+
+# ---- İstemci ----
+
+# Açık bir bağlantı üzerinden istek gönderir.
+fonksiyon istek_gönder(bağlantı, yöntem, sunucu, yol, başlıklar, gövde):
+    değişken ileti = yöntem + " " + yol + " HTTP/1.1\r\n"
+    ileti += "Host: " + sunucu + "\r\n"
+    ileti += "Connection: close\r\n"
+    eğer gövde != "" veya yöntem içinde ["POST", "PUT", "PATCH"]:
+        ileti += "Content-Length: " + metin(ağ.bayt_sayısı(gövde)) + "\r\n"
+    her ad içinde başlıklar:
+        ileti += ad + ": " + metin(başlıklar[ad]) + "\r\n"
+    ağ.gönder(bağlantı, ileti + "\r\n" + gövde)
+
+# Açık bir bağlantıdan yanıtı okur: {"durum", "başlıklar", "gövde"}
+fonksiyon yanıtı_oku(bağlantı):
+    değişken durum_satırı = ağ.satır_al(bağlantı)
+    eğer durum_satırı == boş:
+        fırlat "Sunucu yanıt vermeden bağlantıyı kapattı."
+    değişken parçalar = böl(durum_satırı, " ")
+    eğer uzunluk(parçalar) < 2 veya değil başlar_mı(parçalar[0], "HTTP/"):
+        fırlat "Geçersiz HTTP yanıtı: " + durum_satırı
+    değişken başlıklar = _başlıkları_oku(bağlantı)
+    değişken gövde = _gövdeyi_oku(bağlantı, başlıklar, doğru)
+    dön {"durum": sayı(parçalar[1]), "başlıklar": başlıklar, "gövde": gövde}
+
+# Verilen adrese istek gönderir ve yanıtı döndürür.
+fonksiyon iste(yöntem, adres, başlıklar, gövde):
+    değişken hedef = _adresi_ayır(adres)
+    değişken bağlantı = ağ.bağlan(hedef["sunucu"], hedef["port"])
+    değişken yanıt = boş
+    dene:
+        ağ.zaman_aşımı(bağlantı, 30)
+        istek_gönder(bağlantı, yöntem, hedef["sunucu"], hedef["yol"], başlıklar, gövde)
+        yanıt = yanıtı_oku(bağlantı)
+    yakala hata:
+        ağ.kapat(bağlantı)
+        fırlat hata
+    ağ.kapat(bağlantı)
+    dön yanıt
+
+fonksiyon getir(adres):
+    dön iste("GET", adres, {}, "")
+
+fonksiyon gönder(adres, gövde):
+    dön iste("POST", adres, {"Content-Type": "text/plain; charset=utf-8"}, gövde)
+
+# ---- Sunucu ----
+
+# Açık bir bağlantıdan isteği okur:
+# {"yöntem", "yol", "sorgu", "başlıklar", "gövde"}; bağlantı boş kapandıysa boş.
+fonksiyon isteği_oku(bağlantı):
+    değişken satır = ağ.satır_al(bağlantı)
+    eğer satır == boş:
+        dön boş
+    değişken parçalar = böl(satır, " ")
+    eğer uzunluk(parçalar) < 2:
+        fırlat "Geçersiz HTTP isteği: " + satır
+
+    değişken yol = parçalar[1]
+    değişken sorgu = {}
+    değişken soru = bul(yol, "?")
+    eğer soru >= 0:
+        sorgu = _sorguyu_çöz(yol[soru + 1:])
+        yol = yol[:soru]
+
+    değişken başlıklar = _başlıkları_oku(bağlantı)
+    değişken gövde = _gövdeyi_oku(bağlantı, başlıklar, yanlış)
+    dön {
+        "yöntem": parçalar[0],
+        # Yolda '+' boşluk anlamına gelmez; çözülmeden önce korunur.
+        "yol": ağ.url_çöz(değiştir(yol, "+", "%2B")),
+        "sorgu": sorgu,
+        "başlıklar": başlıklar,
+        "gövde": gövde,
+    }
+
+# Açık bir bağlantıya yanıt gönderir. yanıt bir metin (gövde) ya da
+# {"durum", "gövde", "başlıklar"} anahtarlarından bazılarını içeren bir sözlüktür.
+fonksiyon yanıt_gönder(bağlantı, yanıt):
+    eğer tür(yanıt) == "metin":
+        yanıt = {"gövde": yanıt}
+    eğer tür(yanıt) != "sözlük":
+        fırlat "İşleyici metin ya da sözlük döndürmeli; " + tür(yanıt) + " döndürdü."
+
+    değişken durum = al(yanıt, "durum", 200)
+    değişken gövde = al(yanıt, "gövde", "")
+    değişken başlıklar = al(yanıt, "başlıklar", {})
+
+    değişken ileti = "HTTP/1.1 " + metin(durum) + " " + al(_DURUMLAR, durum, "Status") + "\r\n"
+    değişken tür_verildi = yanlış
+    her ad içinde başlıklar:
+        eğer _küçült(ad) == "content-type":
+            tür_verildi = doğru
+        ileti += ad + ": " + metin(başlıklar[ad]) + "\r\n"
+    eğer değil tür_verildi:
+        ileti += "Content-Type: text/plain; charset=utf-8\r\n"
+    ileti += "Content-Length: " + metin(ağ.bayt_sayısı(gövde)) + "\r\n"
+    ileti += "Connection: close\r\n"
+    ağ.gönder(bağlantı, ileti + "\r\n" + gövde)
+
+# Dinleyiciye gelen her isteği işleyici(istek) ile yanıtlar. İşleyicinin
+# döndürdüğü sözlükte "durdur": doğru varsa o yanıttan sonra sunucu durur.
+fonksiyon dinleyiciyle_sun(dinleyici, işleyici):
+    değişken sürsün = doğru
+    iken sürsün:
+        değişken bağlantı = ağ.kabul_et(dinleyici)
+        dene:
+            ağ.zaman_aşımı(bağlantı, 10)
+            değişken istek = isteği_oku(bağlantı)
+            eğer istek != boş:
+                değişken yanıt = boş
+                dene:
+                    yanıt = işleyici(istek)
+                yakala hata:
+                    yanıt = {"durum": 500, "gövde": "Sunucu hatası: " + metin(hata)}
+                eğer tür(yanıt) != "metin" ve tür(yanıt) != "sözlük":
+                    yanıt = {
+                        "durum": 500,
+                        "gövde": "Sunucu hatası: işleyici metin ya da sözlük döndürmeli; " + tür(yanıt) + " döndürdü.",
+                    }
+                eğer tür(yanıt) == "sözlük" ve al(yanıt, "durdur", yanlış) == doğru:
+                    sürsün = yanlış
+                yanıt_gönder(bağlantı, yanıt)
+        yakala:
+            # Bağlantı hataları tek bir isteği etkiler; sunucu çalışmayı sürdürür.
+            geç
+        ağ.kapat(bağlantı)
+    ağ.kapat(dinleyici)
+
+# Yalnızca bu bilgisayardan erişilebilen (127.0.0.1) bir sunucu başlatır.
+# Başka bilgisayarlardan erişim için: dinleyiciyle_sun(ağ.dinle(port, "0.0.0.0"), işleyici)
+fonksiyon sun(port, işleyici):
+    dinleyiciyle_sun(ağ.dinle(port), işleyici)

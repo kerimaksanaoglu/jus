@@ -1,0 +1,4 @@
+yaz("a  ,  b:c  #d\n\t\"x\"  ")
+değişken p=3.14
+değişken q  =  007
+değişken r=  "a#b"  #gerçek yorum

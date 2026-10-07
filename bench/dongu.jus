@@ -1,0 +1,6 @@
+# İç içe döngü ile toplam: döngü, kalan ve toplama
+değişken toplam = 0
+her i içinde aralık(3000):
+    her j içinde aralık(2000):
+        toplam += (i * j) % 7
+yaz(toplam)

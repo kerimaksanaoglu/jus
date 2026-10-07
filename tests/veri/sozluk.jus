@@ -1,0 +1,45 @@
+# Sözlükler
+değişken kişi = {"ad": "Ayşe", "yaş": 30}
+yaz(kişi)                       # bekle: {"ad": "Ayşe", "yaş": 30}
+yaz(kişi["ad"], uzunluk(kişi), tür(kişi))   # bekle: Ayşe 2 sözlük
+kişi["şehir"] = "Ankara"
+kişi["yaş"] += 1
+yaz(kişi)                       # bekle: {"ad": "Ayşe", "yaş": 31, "şehir": "Ankara"}
+yaz("ad" içinde kişi, "soyad" içinde kişi)   # bekle: doğru yanlış
+yaz(al(kişi, "soyad", "bilinmiyor"), al(kişi, "ad", "?"))   # bekle: bilinmiyor Ayşe
+yaz(anahtarlar(kişi))           # bekle: ["ad", "yaş", "şehir"]
+yaz(değerler(kişi))             # bekle: ["Ayşe", 31, "Ankara"]
+yaz(sil(kişi, "yaş"), kişi)     # bekle: 31 {"ad": "Ayşe", "şehir": "Ankara"}
+yaz({})                         # bekle: {}
+
+# Sayı ve mantıksal anahtarlar; 1 ile "1" farklıdır
+değişken s = {1: "bir", "1": "metin bir", doğru: "evet", 2.5: "iki buçuk"}
+yaz(s[1], s["1"], s[doğru], s[2.5])   # bekle: bir metin bir evet iki buçuk
+
+# Eşitlik sıradan bağımsızdır
+yaz({"a": 1, "b": 2} == {"b": 2, "a": 1})   # bekle: doğru
+yaz({"a": 1} == {"a": 2})       # bekle: yanlış
+
+# İç içe yapı
+değişken okul = {
+    "ad": "Atatürk Lisesi",
+    "sınıflar": [{"şube": "9-A", "mevcut": 28}, {"şube": "9-B", "mevcut": 31}],
+}
+yaz(okul["sınıflar"][1]["mevcut"])   # bekle: 31
+
+# Çok sayıda ekleme ve silme (tablo büyümesi ve sıkıştırma)
+değişken d = {}
+her i içinde aralık(500):
+    d[i] = i * i
+her i içinde aralık(0, 500, 2):
+    sil(d, i)
+yaz(uzunluk(d), d[499], 498 içinde d)   # bekle: 250 249001 yanlış
+her i içinde aralık(500, 1000):
+    d[metin(i)] = i
+yaz(uzunluk(d), d["999"], d[1])   # bekle: 750 999 1
+
+# Kelime sayma
+değişken sayım = {}
+her kelime içinde böl("bir iki bir üç bir iki", " "):
+    sayım[kelime] = al(sayım, kelime, 0) + 1
+yaz(sayım)                      # bekle: {"bir": 3, "iki": 2, "üç": 1}

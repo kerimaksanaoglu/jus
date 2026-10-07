@@ -1,0 +1,8 @@
+dene:
+    fırlat "hata"
+yakala e:
+    yaz(e)
+dene:
+    yaz(1 / 0)
+yakala:
+    geç

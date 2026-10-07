@@ -1,0 +1,6 @@
+# kod: 70
+# hata: 'B' sınıfının 'kur' yöntemi yok; argüman verilemez (2 verildi).
+sınıf B:
+    fonksiyon f():
+        dön 1
+B(1, 2)

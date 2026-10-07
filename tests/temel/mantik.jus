@@ -1,0 +1,30 @@
+# Karşılaştırma ve mantıksal işleçler
+yaz(1 < 2)                    # bekle: doğru
+yaz(2 <= 2)                   # bekle: doğru
+yaz(3 > 4)                    # bekle: yanlış
+yaz(4 >= 5)                   # bekle: yanlış
+yaz(1 == 1)                   # bekle: doğru
+yaz(1 != 1)                   # bekle: yanlış
+yaz(boş == boş)               # bekle: doğru
+yaz(boş == yanlış)            # bekle: yanlış
+yaz(0 == yanlış)              # bekle: yanlış
+
+yaz(1 < 2 ve 3 < 4)           # bekle: doğru
+yaz(1 < 2 ve 3 > 4)           # bekle: yanlış
+yaz(1 > 2 veya 3 < 4)         # bekle: doğru
+yaz(doğru veya yanlış ve yanlış)  # bekle: doğru
+yaz(değil doğru)              # bekle: yanlış
+yaz(değil 1 == 2)             # bekle: doğru
+yaz(değil değil doğru)        # bekle: doğru
+yaz(doğru ve değil yanlış)    # bekle: doğru
+
+# Kısa devre: sağ taraf gerekmiyorsa hesaplanmaz.
+fonksiyon gürültü():
+    yaz("çağrıldı")
+    dön doğru
+
+yaz(yanlış ve gürültü())      # bekle: yanlış
+yaz(doğru veya gürültü())     # bekle: doğru
+yaz(doğru ve gürültü())
+# bekle: çağrıldı
+# bekle: doğru

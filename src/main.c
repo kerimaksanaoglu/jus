@@ -1,313 +1,305 @@
-#include "lexer.h"
-#include "parser.h"
-#include "interpreter.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-/* Yardımcı fonksiyonlar - common.h'da tanımlanan fonksiyonların implementasyonu */
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
+#include <windows.h>
+#endif
 
-/* String'i kopyala */
-char *str_duplicate(const char *str) {
-    if (!str) return NULL;
-    
-    int len = strlen(str);
-    char *copy = malloc(len + 1);
-    if (copy) {
-        strcpy(copy, str);
-    }
-    return copy;
+#include "common.h"
+#include "format.h"
+#include "io.h"
+#include "package.h"
+#include "stdlib_modules.h"
+#include "vm.h"
+
+static void printUsage(FILE *out) {
+    fputs("Kullanım: jus [seçenek] [dosya.jus]\n"
+          "\n"
+          "  jus                  Etkileşimli kipi başlatır.\n"
+          "  jus dosya.jus [...]  Dosyadaki programı çalıştırır; kalan argümanlar programa verilir.\n"
+          "  jus test [yol]       Adı _test.jus ile biten dosyalardaki testleri çalıştırır.\n"
+          "  jus bicimle [--denetle] <dosya>...\n"
+          "                       Dosyaları standart biçime getirir; --denetle yalnızca bildirir.\n"
+          "  jus paket <komut>    Paketleri kurar, listeler, kaldırır (jus paket: ayrıntı).\n"
+          "  jus --surum          Sürüm numarasını yazar.\n"
+          "  jus --yardim         Bu yardım metnini yazar.\n",
+          out);
 }
 
-/* Token'ı temizle */
-void free_token(Token *token) {
-    if (token && token->lexeme) {
-        free(token->lexeme);
-        token->lexeme = NULL;
+static int runFile(const char *path, int argumentCount, char **arguments) {
+    const char *problem = NULL;
+    char *source = readSource(path, &problem);
+    if (source == NULL) {
+        fprintf(stderr, "jus: '%s': %s.\n", path, problem);
+        return JUS_EXIT_NO_INPUT;
     }
-}
 
-/* AST düğümünü temizle */
-void free_ast_node(ASTNode *node) {
-    if (!node) return;
-    
-    switch (node->type) {
-        case AST_VAR_DECL:
-            free(node->data.var_decl.name);
-            free_ast_node(node->data.var_decl.value);
-            break;
-            
-        case AST_FUNC_DECL:
-            free(node->data.func_decl.name);
-            for (int i = 0; i < node->data.func_decl.param_count; i++) {
-                free(node->data.func_decl.params[i]);
-            }
-            free(node->data.func_decl.params);
-            for (int i = 0; i < node->data.func_decl.body_count; i++) {
-                free_ast_node(node->data.func_decl.body[i]);
-            }
-            free(node->data.func_decl.body);
-            break;
-            
-        case AST_PRINT_STMT:
-            free_ast_node(node->data.print_stmt.expression);
-            break;
-            
-        case AST_IF_STMT:
-            free_ast_node(node->data.if_stmt.condition);
-            for (int i = 0; i < node->data.if_stmt.then_count; i++) {
-                free_ast_node(node->data.if_stmt.then_branch[i]);
-            }
-            free(node->data.if_stmt.then_branch);
-            for (int i = 0; i < node->data.if_stmt.else_count; i++) {
-                free_ast_node(node->data.if_stmt.else_branch[i]);
-            }
-            free(node->data.if_stmt.else_branch);
-            break;
-            
-        case AST_WHILE_STMT:
-            free_ast_node(node->data.while_stmt.condition);
-            for (int i = 0; i < node->data.while_stmt.body_count; i++) {
-                free_ast_node(node->data.while_stmt.body[i]);
-            }
-            free(node->data.while_stmt.body);
-            break;
-            
-        case AST_RETURN_STMT:
-            free_ast_node(node->data.return_stmt.expression);
-            break;
-            
-        case AST_BINARY_EXPR:
-            free(node->data.binary_expr.operator);
-            free_ast_node(node->data.binary_expr.left);
-            free_ast_node(node->data.binary_expr.right);
-            break;
-            
-        case AST_UNARY_EXPR:
-            free(node->data.unary_expr.operator);
-            free_ast_node(node->data.unary_expr.operand);
-            break;
-            
-        case AST_LITERAL_EXPR:
-            free(node->data.literal_expr.value);
-            break;
-            
-        case AST_VARIABLE_EXPR:
-            free(node->data.variable_expr.name);
-            break;
-            
-        case AST_CALL_EXPR:
-            free(node->data.call_expr.name);
-            for (int i = 0; i < node->data.call_expr.arg_count; i++) {
-                free_ast_node(node->data.call_expr.args[i]);
-            }
-            free(node->data.call_expr.args);
-            break;
-            
-        case AST_ASSIGN_EXPR:
-            free(node->data.assign_expr.name);
-            free_ast_node(node->data.assign_expr.value);
-            break;
-            
-        default:
-            break;
-    }
-    
-    free(node);
-}
-
-/* Environment'ı temizle */
-void free_environment(SimpleEnvironment *env) {
-    env_free(env);
-}
-
-/* Hata yazdır */
-void print_error(const Error *error) {
-    if (!error) return;
-    
-    const char *error_type;
-    switch (error->type) {
-        case ERROR_LEXER:
-            error_type = "Lexer Hatası / Lexer Error";
-            break;
-        case ERROR_PARSER:
-            error_type = "Parser Hatası / Parser Error";
-            break;
-        case ERROR_RUNTIME:
-            error_type = "Çalışma Zamanı Hatası / Runtime Error";
-            break;
-        case ERROR_FILE_NOT_FOUND:
-            error_type = "Dosya Bulunamadı / File Not Found";
-            break;
-        case ERROR_MEMORY:
-            error_type = "Bellek Hatası / Memory Error";
-            break;
-        default:
-            error_type = "Bilinmeyen Hata / Unknown Error";
-            break;
-    }
-    
-    if (error->line > 0) {
-        fprintf(stderr, "%s [Satır/Line %d, Sütun/Column %d]: %s\n", 
-                error_type, error->line, error->column, error->message);
-    } else {
-        fprintf(stderr, "%s: %s\n", error_type, error->message);
-    }
-}
-
-/* Dosya okuma fonksiyonu */
-char *read_file(const char *filename) {
-    FILE *file = fopen(filename, "r");
-    if (!file) {
-        return NULL;
-    }
-    
-    // Dosya boyutunu öğren
-    fseek(file, 0, SEEK_END);
-    long length = ftell(file);
-    fseek(file, 0, SEEK_SET);
-    
-    // Bellek ayır ve dosyayı oku
-    char *content = malloc(length + 1);
-    if (!content) {
-        fclose(file);
-        return NULL;
-    }
-    
-    size_t read_length = fread(content, 1, length, file);
-    content[read_length] = '\0';
-    
-    fclose(file);
-    return content;
-}
-
-/* Kullanım bilgisini yazdır */
-void print_usage(const char *program_name) {
-    printf("Kullanım / Usage: %s <dosya.jus>\n", program_name);
-    printf("Örnek / Example: %s merhaba.jus\n", program_name);
-    printf("\n");
-    printf("JUS Yorumlayıcısı - Türkçe programlama dili\n");
-    printf("JUS Interpreter - Turkish programming language\n");
-    printf("\n");
-    printf("Desteklenen anahtar kelimeler / Supported keywords:\n");
-    printf("  eğer       - if\n");
-    printf("  değilse    - else\n");
-    printf("  yaz        - print\n");
-    printf("  girdi      - input\n");
-    printf("  döngü      - loop\n");
-    printf("  iken       - while\n");
-    printf("  fonksiyon  - function\n");
-    printf("  dönüş      - return\n");
-    printf("  ve         - and\n");
-    printf("  veya       - or\n");
-    printf("  doğru      - true\n");
-    printf("  yanlış     - false\n");
-    printf("  boşluk     - null\n");
-}
-
-/* Ana program işlevi */
-int main(int argc, char **argv) {
-    /* Komut satırı argüman kontrolü */
-    if (argc != 2) {
-        fprintf(stderr, "Hata: Geçersiz argüman sayısı / Error: Invalid number of arguments\n\n");
-        print_usage(argv[0]);
-        return 1;
-    }
-    
-    const char *filename = argv[1];
-    
-    /* Dosyayı oku */
-    char *source = read_file(filename);
-    if (!source) {
-        Error error;
-        error.type = ERROR_FILE_NOT_FOUND;
-        error.message = malloc(256);
-        snprintf(error.message, 256, "Dosya açılamadı: '%s' / Could not open file: '%s'", filename, filename);
-        error.line = 0;
-        error.column = 0;
-        
-        print_error(&error);
-        free(error.message);
-        return 1;
-    }
-    
-    printf("JUS Yorumlayıcısı başlatılıyor... / Starting JUS Interpreter...\n");
-    printf("Dosya okunuyor: %s / Reading file: %s\n", filename, filename);
-    
-    /* Lexical Analysis (Tokenization) */
-    printf("\n1. Lexical Analysis (Sözcüksel Analiz)...\n");
-    int token_count = 0;
-    Lexer lexer;
-    lexer_init(&lexer, source);
-    Token *tokens = lexer_scan_all(&lexer, &token_count);
-    
-    if (!tokens) {
-        Error error;
-        error.type = ERROR_LEXER;
-        error.message = str_duplicate("Tokenization başarısız / Tokenization failed");
-        error.line = 0;
-        error.column = 0;
-        
-        print_error(&error);
-        free(error.message);
-        free(source);
-        return 1;
-    }
-    
-    printf("   %d token bulundu / Found %d tokens\n", token_count, token_count);
-    
-    /* Syntax Analysis (Parsing) */
-    printf("\n2. Syntax Analysis (Sözdizimi Analizi)...\n");
-    int ast_count = 0;
-    ASTNode **ast = parse(tokens, token_count, &ast_count);
-    
-    if (!ast) {
-        Error error;
-        error.type = ERROR_PARSER;
-        error.message = str_duplicate("Parsing başarısız / Parsing failed");
-        error.line = 0;
-        error.column = 0;
-        
-        print_error(&error);
-        free(error.message);
-        
-        // Token'ları temizle
-        for (int i = 0; i < token_count; i++) {
-            free_token(&tokens[i]);
-        }
-        free(tokens);
-        free(source);
-        return 1;
-    }
-    
-    printf("   %d AST düğümü oluşturuldu / Created %d AST nodes\n", ast_count, ast_count);
-    
-    /* Semantic Analysis ve Interpretation */
-    printf("\n3. Interpretation (Yorumlama)...\n");
-    printf("=====================================\n");
-    
-    SimpleEnvironment global_env;
-    env_init(&global_env);
-    interpret(ast, ast_count, &global_env);
-    
-    printf("=====================================\n");
-    printf("Program tamamlandı / Program completed\n");
-    
-    /* Bellek temizliği */
-    printf("\nBellek temizliği / Memory cleanup...\n");
-    
-    // AST'yi temizle
-    for (int i = 0; i < ast_count; i++) {
-        free_ast_node(ast[i]);
-    }
-    free(ast);
-    
-    // Token'ları temizle
-    token_free(tokens, token_count);
-    
-    // Environment'ı temizle
-    env_free(&global_env);
-    
-    // Kaynak kodu temizle
+    initVM();
+    setScriptPath(path);
+    setScriptArguments(argumentCount, arguments);
+    InterpretResult result = interpret(path, source, false);
+    freeVM();
     free(source);
-    
-    printf("JUS Yorumlayıcısı sonlandırıldı / JUS Interpreter terminated\n");
+
+    if (result == INTERPRET_COMPILE_ERROR) return JUS_EXIT_COMPILE_ERROR;
+    if (result == INTERPRET_RUNTIME_ERROR) return JUS_EXIT_RUNTIME_ERROR;
     return 0;
+}
+
+/*
+ * Dosyaları standart biçime getirir. check doğruysa dosyalar değiştirilmez;
+ * biçimi bozuk dosya varsa 1 döner.
+ */
+static int formatFiles(int count, char **paths, bool check) {
+    int changed = 0;
+    int failed = 0;
+    for (int i = 0; i < count; i++) {
+        const char *problem = NULL;
+        char *source = readSource(paths[i], &problem);
+        if (source == NULL) {
+            fprintf(stderr, "jus: '%s': %s.\n", paths[i], problem);
+            failed++;
+            continue;
+        }
+
+        int line = 0;
+        char *formatted = formatSource(source, &problem, &line);
+        if (formatted == NULL) {
+            fprintf(stderr, "%s:%d: biçimlendirilemedi: %s\n", paths[i], line, problem);
+            failed++;
+            free(source);
+            continue;
+        }
+
+        if (strcmp(source, formatted) != 0) {
+            changed++;
+            if (check) {
+                printf("biçimlendirilmeli: %s\n", paths[i]);
+            } else {
+                FILE *file = openFile(paths[i], "wb");
+                if (file == NULL || fwrite(formatted, 1, strlen(formatted), file) != strlen(formatted)) {
+                    fprintf(stderr, "jus: '%s' dosyasına yazılamadı.\n", paths[i]);
+                    failed++;
+                } else {
+                    printf("biçimlendirildi: %s\n", paths[i]);
+                }
+                if (file != NULL) fclose(file);
+            }
+        }
+        free(formatted);
+        free(source);
+    }
+
+    if (failed > 0) return JUS_EXIT_COMPILE_ERROR;
+    return check && changed > 0 ? 1 : 0;
+}
+
+static bool endsWith(const char *text, const char *suffix) {
+    size_t length = strlen(text);
+    size_t suffixLength = strlen(suffix);
+    return length >= suffixLength && strcmp(text + length - suffixLength, suffix) == 0;
+}
+
+typedef struct {
+    char **paths;
+    int count;
+    int capacity;
+    const char *directory;
+} PathList;
+
+static void addPath(PathList *list, const char *directory, const char *name) {
+    if (list->count == list->capacity) {
+        list->capacity = list->capacity == 0 ? 16 : list->capacity * 2;
+        list->paths = (char **)realloc(list->paths, sizeof(char *) * (size_t)list->capacity);
+    }
+    size_t length = strlen(directory) + strlen(name) + 2;
+    char *path = (char *)malloc(length);
+    if (list->paths == NULL || path == NULL) {
+        fprintf(stderr, "jus: bellek yetersiz.\n");
+        exit(JUS_EXIT_OUT_OF_MEMORY);
+    }
+    if (directory[0] == '\0') {
+        snprintf(path, length, "%s", name);
+    } else {
+        snprintf(path, length, "%s/%s", directory, name);
+    }
+    list->paths[list->count++] = path;
+}
+
+static void collectEntry(const char *name, void *context) {
+    PathList *list = (PathList *)context;
+    if (name[0] == '.') return;
+    addPath(list, list->directory, name);
+}
+
+static int comparePaths(const void *a, const void *b) {
+    return strcmp(*(char *const *)a, *(char *const *)b);
+}
+
+/* path bir klasörse içindeki test dosyalarını (alt klasörler dahil) çalıştırır; dosyaysa onu. */
+static void runTestsUnder(const char *path, int *files, int *passed, int *failed) {
+    PathList entries = {NULL, 0, 0, path};
+    if (listDirectory(path, collectEntry, &entries)) {
+        qsort(entries.paths, (size_t)entries.count, sizeof(char *), comparePaths);
+        for (int i = 0; i < entries.count; i++) {
+            runTestsUnder(entries.paths[i], files, passed, failed);
+            free(entries.paths[i]);
+        }
+        free(entries.paths);
+        return;
+    }
+
+    if (!endsWith(path, "_test.jus")) return;
+    const char *problem = NULL;
+    char *source = readSource(path, &problem);
+    if (source == NULL) return;
+
+    (*files)++;
+    initVM();
+    setScriptPath(path);
+    runTestFile(path, source, passed, failed);
+    freeVM();
+    free(source);
+}
+
+static int runTests(const char *path) {
+    int files = 0, passed = 0, failed = 0;
+    runTestsUnder(path, &files, &passed, &failed);
+
+    if (files == 0) {
+        fprintf(stderr, "jus: '%s' altında adı _test.jus ile biten dosya bulunamadı.\n", path);
+        return JUS_EXIT_NO_INPUT;
+    }
+    printf("\n%d dosya, %d test: %d geçti, %d kaldı.\n", files, passed + failed, passed, failed);
+    return failed == 0 ? 0 : 1;
+}
+
+/* Satırı sonundaki satır sonu karakterleri olmadan arabelleğe ekler. Girdi bittiyse false. */
+static bool readLine(char **buffer, size_t *length, size_t *capacity) {
+    bool readAny = false;
+    int c;
+    while ((c = fgetc(stdin)) != EOF) {
+        readAny = true;
+        if (c == '\n') break;
+        if (*length + 2 >= *capacity) {
+            *capacity = *capacity < 256 ? 256 : *capacity * 2;
+            char *grown = (char *)realloc(*buffer, *capacity);
+            if (grown == NULL) {
+                fprintf(stderr, "jus: bellek yetersiz.\n");
+                exit(JUS_EXIT_OUT_OF_MEMORY);
+            }
+            *buffer = grown;
+        }
+        (*buffer)[(*length)++] = (char)c;
+    }
+    if (*buffer != NULL) {
+        if (*length > 0 && (*buffer)[*length - 1] == '\r') (*length)--;
+        (*buffer)[*length] = '\0';
+    }
+    return readAny;
+}
+
+static bool endsWithColon(const char *text, size_t length) {
+    while (length > 0 && (text[length - 1] == ' ' || text[length - 1] == '\t')) length--;
+    return length > 0 && text[length - 1] == ':';
+}
+
+static void repl(void) {
+    printf("JUS %s - çıkmak için 'çıkış' yazın.\n", JUS_VERSION);
+    initVM();
+
+    char *buffer = NULL;
+    size_t capacity = 0;
+
+    for (;;) {
+        size_t length = 0;
+        fputs(">>> ", stdout);
+        fflush(stdout);
+        if (!readLine(&buffer, &length, &capacity)) {
+            fputc('\n', stdout);
+            break;
+        }
+        if (buffer == NULL || length == 0) continue;
+        if (strcmp(buffer, "çıkış") == 0) break;
+
+        /* ':' ile biten satır bir blok açar; boş satıra kadar okumayı sürdür. */
+        if (endsWithColon(buffer, length)) {
+            for (;;) {
+                buffer[length++] = '\n';
+                size_t lineStart = length;
+                fputs("... ", stdout);
+                fflush(stdout);
+                if (!readLine(&buffer, &length, &capacity)) break;
+                if (length == lineStart) break;
+            }
+            buffer[length] = '\0';
+        }
+
+        interpret("<etkileşimli>", buffer, true);
+    }
+
+    free(buffer);
+    freeVM();
+}
+
+int main(int argc, char *argv[]) {
+#ifdef _WIN32
+    /* Konsolun Türkçe karakterleri doğru göstermesi için UTF-8 kullan. */
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+    /* Çıktıda satır sonu her platformda '\n' olsun. */
+    _setmode(_fileno(stdout), _O_BINARY);
+    _setmode(_fileno(stderr), _O_BINARY);
+    /* Argümanları sistemin kod sayfasıyla değil, UTF-8 olarak al. */
+    int utf8Count = 0;
+    char **utf8 = utf8Arguments(&utf8Count);
+    if (utf8 != NULL) {
+        argc = utf8Count;
+        argv = utf8;
+    }
+#endif
+
+    if (argc == 1) {
+        repl();
+        return 0;
+    }
+
+    if (strcmp(argv[1], "--surum") == 0) {
+        printf("JUS %s\n", JUS_VERSION);
+        return 0;
+    }
+    if (strcmp(argv[1], "--yardim") == 0) {
+        printUsage(stdout);
+        return 0;
+    }
+    if (strcmp(argv[1], "bicimle") == 0) {
+        bool check = argc > 2 && strcmp(argv[2], "--denetle") == 0;
+        int first = check ? 3 : 2;
+        if (argc <= first) {
+            printUsage(stderr);
+            return JUS_EXIT_USAGE;
+        }
+        return formatFiles(argc - first, argv + first, check);
+    }
+    if (strcmp(argv[1], "paket") == 0) {
+        return runPackageCommand(argc - 2, argv + 2);
+    }
+    if (strcmp(argv[1], "test") == 0) {
+        if (argc > 3) {
+            printUsage(stderr);
+            return JUS_EXIT_USAGE;
+        }
+        return runTests(argc == 3 ? argv[2] : ".");
+    }
+    if (argv[1][0] == '-') {
+        fprintf(stderr, "jus: bilinmeyen seçenek '%s'.\n\n", argv[1]);
+        printUsage(stderr);
+        return JUS_EXIT_USAGE;
+    }
+
+    /* Dosya adından sonraki argümanlar programa aktarılır (sistem.argümanlar). */
+    return runFile(argv[1], argc - 2, argv + 2);
 }

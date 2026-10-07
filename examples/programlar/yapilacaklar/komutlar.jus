@@ -1,0 +1,109 @@
+# Komutlar modülü: her alt komut bir fonksiyondur.
+#
+# Komut fonksiyonları (depo, argümanlar) alır. Hatalı kullanımda
+# {"ileti": ..., "kod": ...} biçiminde bir sözlük fırlatırlar; ana dosya bunu
+# yakalayıp iletiyi yazar ve kodla çıkar.
+
+kullan sistem
+
+# Sağa hizalı yazmak için metnin soluna boşluk ekler.
+fonksiyon sola_boşluk(m, genişlik):
+    değişken s = metin(m)
+    iken uzunluk(s) < genişlik:
+        s = " " + s
+    dön s
+
+fonksiyon kullanım_hatası(ileti):
+    fırlat {"ileti": ileti, "kod": 2}
+
+fonksiyon bulunamadı(no):
+    fırlat {"ileti": "Görev bulunamadı: " + metin(no), "kod": 1}
+
+# Argümanlardan görev numarasını okur; geçersizse kullanım hatası verir.
+fonksiyon numara_oku(argümanlar, komut):
+    eğer uzunluk(argümanlar) != 1:
+        kullanım_hatası("'" + komut + "' tam olarak bir görev numarası ister. Örnek: " + komut + " 2")
+    değişken no = boş
+    dene:
+        no = sayı(argümanlar[0])
+    yakala hata:
+        kullanım_hatası("Geçersiz görev numarası: '" + argümanlar[0] + "'")
+    eğer no < 1 veya no != taban(no):
+        kullanım_hatası("Geçersiz görev numarası: '" + argümanlar[0] + "' (pozitif tam sayı olmalı)")
+    dön no
+
+fonksiyon görev_satırı(görev):
+    değişken işaret = "[ ]"
+    eğer görev["tamam"]:
+        işaret = "[x]"
+    dön sola_boşluk(görev["no"], 3) + "  " + işaret + "  " + görev["başlık"] + "  (" + görev["tarih"] + ")"
+
+fonksiyon göster(görevler, boş_ileti):
+    eğer uzunluk(görevler) == 0:
+        yaz(boş_ileti)
+        dön
+    her görev içinde görevler:
+        yaz(görev_satırı(görev))
+
+fonksiyon ekle_komutu(depo, argümanlar):
+    eğer uzunluk(argümanlar) == 0:
+        kullanım_hatası("'ekle' bir başlık ister. Örnek: ekle \"Süt al\"")
+    # Birden çok sözcük tırnaksız verilmişse boşlukla birleştirilir.
+    değişken başlık = kırp(birleştir(argümanlar, " "))
+    eğer başlık == "":
+        kullanım_hatası("Görev başlığı boş olamaz.")
+    değişken görev = depo.ekle(başlık)
+    yaz("Eklendi: #" + metin(görev["no"]) + " " + görev["başlık"])
+
+fonksiyon listele_komutu(depo, argümanlar):
+    değişken süzgeç = "tümü"
+    eğer uzunluk(argümanlar) > 1:
+        kullanım_hatası("'listele' en çok bir argüman alır: tümü, bekleyen ya da tamamlanan.")
+    eğer uzunluk(argümanlar) == 1:
+        süzgeç = argümanlar[0]
+    eğer değil (süzgeç içinde ["tümü", "bekleyen", "tamamlanan"]):
+        kullanım_hatası("Bilinmeyen süzgeç: '" + süzgeç + "'. Seçenekler: tümü, bekleyen, tamamlanan.")
+    değişken seçilen = []
+    her görev içinde depo.görevler:
+        eğer süzgeç == "tümü" veya (süzgeç == "bekleyen" ve değil görev["tamam"]) veya (süzgeç == "tamamlanan" ve görev["tamam"]):
+            ekle(seçilen, görev)
+    göster(seçilen, "Gösterilecek görev yok.")
+    değişken tamam = 0
+    her görev içinde depo.görevler:
+        eğer görev["tamam"]:
+            tamam += 1
+    yaz("Toplam " + metin(uzunluk(depo.görevler)) + " görev, " + metin(tamam) + " tamamlandı.")
+
+fonksiyon tamamla_komutu(depo, argümanlar):
+    değişken no = numara_oku(argümanlar, "tamamla")
+    değişken görev = depo.tamamla(no)
+    eğer görev == boş:
+        bulunamadı(no)
+    yaz("Tamamlandı: #" + metin(no) + " " + görev["başlık"])
+
+fonksiyon sil_komutu(depo, argümanlar):
+    değişken no = numara_oku(argümanlar, "sil")
+    değişken görev = depo.kaldır(no)
+    eğer görev == boş:
+        bulunamadı(no)
+    yaz("Silindi: #" + metin(no) + " " + görev["başlık"])
+
+fonksiyon ara_komutu(depo, argümanlar):
+    eğer uzunluk(argümanlar) == 0:
+        kullanım_hatası("'ara' aranacak metni ister. Örnek: ara süt")
+    değişken aranan = birleştir(argümanlar, " ")
+    göster(depo.ara(aranan), "Eşleşen görev yok.")
+
+fonksiyon yardım_komutu():
+    yaz("Kullanım: jus yapilacaklar.jus [--dosya yol] <komut> [argümanlar]")
+    yaz("")
+    yaz("Komutlar:")
+    yaz("  ekle <başlık>      Yeni görev ekler")
+    yaz("  listele [süzgeç]   Görevleri listeler (tümü, bekleyen, tamamlanan)")
+    yaz("  tamamla <no>       Görevi tamamlandı işaretler")
+    yaz("  sil <no>           Görevi siler")
+    yaz("  ara <metin>        Başlığında metin geçen görevleri bulur")
+    yaz("  yardım (yardim)    Bu iletiyi gösterir")
+    yaz("")
+    yaz("Seçenekler:")
+    yaz("  --dosya <yol>      Veri dosyası (varsayılan: yapilacaklar.json)")

@@ -1,0 +1,22 @@
+{
+  "dönem": "2024-2025 Güz",
+  "öğrenciler": [
+    {"numara": 1001, "ad": "Ayşe Yılmaz",     "notlar": {"Matematik": 85, "Fizik": 78, "Türkçe": 92, "Tarih": 88}},
+    {"numara": 1002, "ad": "Mehmet Çelik",    "notlar": {"Matematik": 62, "Fizik": 55, "Türkçe": 70, "Tarih": 64}},
+    {"numara": 1003, "ad": "Şule Öztürk",     "notlar": {"Matematik": 95, "Fizik": 91, "Türkçe": 89, "Tarih": 97}},
+    {"numara": 1004, "ad": "İpek Demir",      "notlar": {"Matematik": 74, "Fizik": 68, "Türkçe": 81, "Tarih": 79}},
+    {"numara": 1005, "ad": "Ilgaz Kaya",      "notlar": {"Matematik": 48, "Fizik": 52, "Türkçe": 60, "Tarih": 45}},
+    {"numara": 1006, "ad": "Çağla Şahin",     "notlar": {"Matematik": 90, "Fizik": 84, "Türkçe": 77, "Tarih": 93}},
+    {"numara": 1007, "ad": "Ömer Faruk Aydın", "notlar": {"Matematik": 71, "Fizik": 66, "Türkçe": 58, "Tarih": 73}},
+    {"numara": 1008, "ad": "Gül Arslan",      "notlar": {"Matematik": 100, "Fizik": 98, "Türkçe": 95, "Tarih": 99}},
+    {"numara": 1009, "ad": "Ünal Koç",        "notlar": {"Matematik": 39, "Fizik": 44, "Türkçe": 51, "Tarih": 47}},
+    {"numara": 1010, "ad": "Zeynep Kurt",     "notlar": {"Matematik": 83, "Fizik": 79, "Türkçe": 86, "Tarih": 80}},
+    {"numara": 1011, "ad": "Hasan Hüseyin Yıldız", "notlar": {"Matematik": 56, "Fizik": 61, "Türkçe": 49, "Tarih": 58}},
+    {"numara": 1012, "ad": "Elif Doğan",      "notlar": {"Matematik": 77, "Fizik": 82, "Türkçe": 90, "Tarih": 85}},
+    {"numara": 1013, "ad": "Burak Özkan",     "notlar": {"Matematik": 66, "Fizik": 70, "Türkçe": 73}},
+    {"numara": 1014, "ad": "Sevgi Aksoy",     "notlar": {"Matematik": 88, "Fizik": 93, "Türkçe": 84, "Tarih": 91}},
+    {"numara": 1015, "ad": "Ali Can Tunç",    "notlar": {"Matematik": 59.5, "Fizik": 64.5, "Türkçe": 67, "Tarih": 62}},
+    {"numara": 1016, "ad": "Ebru Güneş",      "notlar": {"Matematik": 81, "Fizik": 75, "Türkçe": 79, "Tarih": 70}},
+    {"numara": 1017, "ad": "Ismail Polat",    "notlar": {"Matematik": 93, "Fizik": 87, "Türkçe": 82, "Tarih": 86}}
+  ]
+}

@@ -1,0 +1,5 @@
+# kod: 65
+# hata: 'kur' yöntemi değer döndüremez.
+sınıf A:
+    fonksiyon kur():
+        dön 5

@@ -1,0 +1,4 @@
+# kod: 70
+# hata: bozuk.jus:2:10: sözdizimi hatası: Değişken adı bekleniyor.
+# hata: '_destek/bozuk' modülü sözdizimi hataları nedeniyle yüklenemedi.
+kullan "_destek/bozuk"

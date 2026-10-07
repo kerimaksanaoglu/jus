@@ -1,0 +1,66 @@
+# Modül sistemi
+kullan "_destek/geometri"                  # bekle: geometri yüklendi
+kullan "_destek/geometri" olarak geo       # ikinci kez yüklenmez
+kullan matematik
+kullan matematik olarak m
+
+yaz(tür(geometri), geometri)               # bekle: modül <modül _destek/geometri>
+yaz(yuvarla(geometri.daire_alanı(2)))      # bekle: 13
+yaz(yuvarla(geo.daire_alanı(1)))           # bekle: 3
+
+# Modülün değişkenleri modüle aittir; iki ad aynı modülü gösterir
+yaz(geo.kaç_kez(), geometri.çağrı_sayısı)  # bekle: 2 2
+
+# Modülün adları içe aktaranın adlarıyla karışmaz
+değişken çağrı_sayısı = "benim"
+geometri.daire_alanı(1)
+yaz(çağrı_sayısı, geometri.çağrı_sayısı)   # bekle: benim 3
+
+# Standart kütüphane
+yaz(matematik.üs(2, 10), m.karekök(81))    # bekle: 1024 9
+yaz(yuvarla(matematik.pi * 100) / 100)     # bekle: 3.14
+yaz(matematik.en_büyük(3, 9, 4), matematik.en_küçük([3, 9, 4]), matematik.toplam([1, 2, 3]))   # bekle: 9 3 6
+yaz(yuvarla(matematik.sin(matematik.pi / 2)), matematik.log10(1000))   # bekle: 1 3
+
+kullan rastgele
+rastgele.tohum(42)
+değişken ilk = [rastgele.tam(1, 100), rastgele.tam(1, 100), rastgele.sayı()]
+rastgele.tohum(42)
+değişken ikinci = [rastgele.tam(1, 100), rastgele.tam(1, 100), rastgele.sayı()]
+yaz(ilk == ikinci)                         # bekle: doğru
+değişken zar = rastgele.tam(1, 6)
+yaz(zar >= 1 ve zar <= 6, rastgele.seç(["a"]))   # bekle: doğru a
+değişken deste = aralık(20)
+rastgele.karıştır(deste)
+yaz(sırala(deste) == aralık(20))           # bekle: doğru
+
+kullan zaman
+değişken t = zaman.tarih()
+yaz(zaman.şimdi() > 1700000000, t["yıl"] >= 2025, t["ay"] >= 1 ve t["ay"] <= 12)   # bekle: doğru doğru doğru
+
+kullan sistem
+yaz(sistem.argümanlar, sistem.platform içinde ["windows", "linux", "macos"])   # bekle: [] doğru
+
+# Fonksiyon içinde yerel olarak kullanma
+fonksiyon hipotenüs(a, b):
+    kullan matematik olarak mat
+    dön mat.karekök(a * a + b * b)
+yaz(hipotenüs(3, 4))                       # bekle: 5
+
+# Döngüsel kullanım
+kullan "_destek/dongu_a"
+yaz(dongu_a.b_üzerinden(), dongu_a.dongu_b.a_üzerinden())   # bekle: b a
+
+# Modül içindeki hata yakalanabilir
+dene:
+    geometri.hatalı()
+yakala hata:
+    yaz(hata)                              # bekle: Sıfıra bölünemez.
+dene:
+    yaz(matematik.yok)
+yakala hata:
+    yaz(hata)                              # bekle: 'matematik' modülünde 'yok' adında bir üye yok.
+dene:
+    kullan olmayan_modül
+yakala hata:
+    yaz(başlar_mı(hata, "'olmayan_modül' modülü yüklenemedi"))   # bekle: doğru

@@ -1,0 +1,62 @@
+# http modülü: istek ve yanıt, aynı program içinde uçtan uca
+kullan ağ
+kullan http
+
+değişken dinleyici = ağ.dinle(0)
+değişken port = ağ.port(dinleyici)
+
+# İstemci isteği gönderir, sunucu okur
+değişken istemci = ağ.bağlan("127.0.0.1", port)
+http.istek_gönder(istemci, "POST", "localhost", "/kişi/ara+bul?ad=Ay%C5%9Fe&not=1+2&boş", {"X-Deneme": "evet"}, "gövde ç")
+değişken sunucu = ağ.kabul_et(dinleyici)
+değişken istek = http.isteği_oku(sunucu)
+yaz(istek["yöntem"], istek["yol"])      # bekle: POST /kişi/ara+bul
+yaz(istek["sorgu"])                     # bekle: {"ad": "Ayşe", "not": "1 2", "boş": ""}
+yaz(istek["başlıklar"]["host"], istek["başlıklar"]["x-deneme"], istek["başlıklar"]["content-length"])   # bekle: localhost evet 9
+yaz(istek["gövde"])                     # bekle: gövde ç
+
+# Sunucu yanıtlar, istemci okur
+http.yanıt_gönder(sunucu, {"durum": 201, "gövde": "tamam ş", "başlıklar": {"X-Sunucu": "jus"}})
+ağ.kapat(sunucu)
+değişken yanıt = http.yanıtı_oku(istemci)
+ağ.kapat(istemci)
+yaz(yanıt["durum"], yanıt["gövde"])     # bekle: 201 tamam ş
+yaz(yanıt["başlıklar"]["x-sunucu"], yanıt["başlıklar"]["content-type"], yanıt["başlıklar"]["content-length"])   # bekle: jus text/plain; charset=utf-8 8
+
+# Metin yanıt 200 olur; parçalı (chunked) yanıt çözülür
+istemci = ağ.bağlan("127.0.0.1", port)
+sunucu = ağ.kabul_et(dinleyici)
+ağ.gönder(sunucu, "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nmerha\r\nA;x=1\r\nba dünya!\r\n0\r\n\r\n")
+ağ.kapat(sunucu)
+yanıt = http.yanıtı_oku(istemci)
+ağ.kapat(istemci)
+yaz(yanıt["durum"], yanıt["gövde"])     # bekle: 200 merhaba dünya!
+
+# Uzunluk verilmeyen yanıt bağlantı kapanana kadar okunur
+istemci = ağ.bağlan("127.0.0.1", port)
+sunucu = ağ.kabul_et(dinleyici)
+ağ.gönder(sunucu, "HTTP/1.0 404 Not Found\r\n\r\nyok")
+ağ.kapat(sunucu)
+yanıt = http.yanıtı_oku(istemci)
+ağ.kapat(istemci)
+yaz(yanıt["durum"], yanıt["gövde"])     # bekle: 404 yok
+ağ.kapat(dinleyici)
+
+# Adres hataları
+dene:
+    http.getir("https://ornek.com/")
+yakala hata:
+    yaz(hata)                           # bekle: http modülü şifreli (https) bağlantıları desteklemiyor: https://ornek.com/
+dene:
+    http.getir("ornek.com")
+yakala hata:
+    yaz(hata)                           # bekle: Adres 'http://' ile başlamalı: ornek.com
+dene:
+    http.getir("http://127.0.0.1:" + metin(port) + "/")
+yakala hata:
+    yaz(başlar_mı(hata, "'127.0.0.1' sunucusunun"))   # bekle: doğru
+
+# geç: hiçbir şey yapmayan deyim
+fonksiyon boş_fonksiyon():
+    geç
+yaz(boş_fonksiyon())                    # bekle: boş

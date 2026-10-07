@@ -1,0 +1,20 @@
+# Eratosthenes eleği: liste dizinleme ve atama
+değişken n = 2000000
+değişken asal = []
+her i içinde aralık(n + 1):
+    ekle(asal, doğru)
+asal[0] = yanlış
+asal[1] = yanlış
+değişken i = 2
+iken i * i <= n:
+    eğer asal[i]:
+        değişken j = i * i
+        iken j <= n:
+            asal[j] = yanlış
+            j += i
+    i += 1
+değişken sayı_ = 0
+her k içinde asal:
+    eğer k:
+        sayı_ += 1
+yaz(sayı_)

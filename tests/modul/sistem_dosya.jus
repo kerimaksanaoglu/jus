@@ -1,0 +1,37 @@
+# sistem ve dosya modüllerinin ek üyeleri
+kullan sistem
+kullan dosya
+kullan zaman
+kullan "_destek/çeviri"
+
+yaz(çeviri.selam())                             # bekle: merhaba
+yaz(biter_mi(sistem.betik, "sistem_dosya.jus"), biter_mi(sistem.betik_klasörü, "modul"))   # bekle: doğru doğru
+yaz("_destek" içinde dosya.listele(sistem.betik_klasörü))   # bekle: doğru
+
+değişken klasör = sistem.betik_klasörü + "/jus_geçici_klasör"
+dosya.klasör_oluştur(klasör)
+yaz(dosya.var_mı(klasör), dosya.klasör_mü(klasör), dosya.klasör_mü(sistem.betik), dosya.klasör_mü(klasör + "/yok"))   # bekle: doğru doğru yanlış yanlış
+dosya.yaz(klasör + "/öğe.txt", "içerik")
+dosya.yaz(klasör + "/b.txt", "")
+yaz(sırala(dosya.listele(klasör)))              # bekle: ["b.txt", "öğe.txt"]
+yaz(dosya.oku(klasör + "/öğe.txt"))             # bekle: içerik
+dosya.sil(klasör + "/öğe.txt")
+dosya.sil(klasör + "/b.txt")
+yaz(dosya.listele(klasör))                      # bekle: []
+dene:
+    dosya.klasör_oluştur(klasör)
+yakala hata:
+    yaz(biter_mi(hata, "klasörü oluşturulamadı."))   # bekle: doğru
+dosya.klasör_sil(klasör)
+yaz("jus_geçici_klasör" içinde dosya.listele(sistem.betik_klasörü))   # bekle: yanlış
+dene:
+    dosya.listele(klasör + "/yok")
+yakala hata:
+    yaz(biter_mi(hata, "klasörü okunamadı."))   # bekle: doğru
+
+değişken önce = zaman.şimdi()
+zaman.bekle(0.05)
+değişken fark = zaman.şimdi() - önce
+yaz(fark > 0.01 ve fark < 5)                    # bekle: doğru
+sistem.hata_yaz("uyarı:", 42)
+# hata: uyarı: 42

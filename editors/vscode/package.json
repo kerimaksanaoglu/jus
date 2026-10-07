@@ -1,0 +1,31 @@
+{
+  "name": "jus",
+  "displayName": "JUS",
+  "description": "JUS programlama dili için sözdizimi renklendirme ve dil yapılandırması.",
+  "version": "1.0.0",
+  "publisher": "jusbil",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "jus",
+        "aliases": ["JUS", "jus"],
+        "extensions": [".jus"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "jus",
+        "scopeName": "source.jus",
+        "path": "./syntaxes/jus.tmLanguage.json"
+      }
+    ]
+  }
+}

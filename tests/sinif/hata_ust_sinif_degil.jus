@@ -1,0 +1,6 @@
+# kod: 70
+# hata: Bir sınıf yalnızca başka bir sınıftan türetilebilir; sayı verildi.
+değişken x = 5
+sınıf A(x):
+    fonksiyon f():
+        dön 1

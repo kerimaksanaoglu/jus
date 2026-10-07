@@ -1,0 +1,5 @@
+# kod: 65
+# hata: Bir sınıf kendisinden türetilemez.
+sınıf A(A):
+    fonksiyon f():
+        dön 1

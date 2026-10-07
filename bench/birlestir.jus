@@ -1,0 +1,8 @@
+# Metin ekleme: bir metne döngüde parça eklemek (s += parça)
+değişken s = ""
+her i içinde aralık(20000):
+    s += "ab"
+değişken t = ""
+her i içinde aralık(5000):
+    t = t + metin(i) + ";"
+yaz(uzunluk(s), uzunluk(t))

@@ -1,0 +1,6 @@
+# kod: 70
+# hata: 'yok' adında bir değişken ya da fonksiyon tanımlı değil.
+dene:
+    fırlat "a"
+yakala hata:
+    yaz(yok)

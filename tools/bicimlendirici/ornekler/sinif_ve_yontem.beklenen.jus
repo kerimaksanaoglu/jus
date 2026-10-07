@@ -1,0 +1,11 @@
+sınıf Hayvan:
+    fonksiyon başlat(ad):
+        bu.ad = ad
+    fonksiyon konuş():
+        yaz(bu.ad + " konuşuyor")
+sınıf Kedi(Hayvan):
+    fonksiyon konuş():
+        üst.konuş()
+        yaz("miyav")
+değişken k = Kedi("pamuk")
+k.konuş()

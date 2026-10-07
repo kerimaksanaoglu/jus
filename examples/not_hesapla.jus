@@ -1,0 +1,23 @@
+# Kullanıcıdan vize ve final notunu alır, ortalamayı ve harf notunu yazar.
+fonksiyon harf_notu(ortalama):
+    eğer ortalama >= 90:
+        dön "AA"
+    değilse eğer ortalama >= 80:
+        dön "BA"
+    değilse eğer ortalama >= 70:
+        dön "BB"
+    değilse eğer ortalama >= 60:
+        dön "CB"
+    değilse eğer ortalama >= 50:
+        dön "CC"
+    dön "FF"
+
+değişken vize = oku("Vize notu: ")
+değişken final = oku("Final notu: ")
+
+eğer vize == boş veya final == boş:
+    yaz("Girdi alınamadı.")
+değilse:
+    değişken ortalama = sayı(vize) * 0.4 + sayı(final) * 0.6
+    yaz("Ortalama:", ortalama)
+    yaz("Harf notu:", harf_notu(ortalama))

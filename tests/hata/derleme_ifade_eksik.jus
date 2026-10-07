@@ -1,0 +1,4 @@
+# kod: 65
+# hata: 3:13: sözdizimi hatası: İfade bekleniyor.
+değişken x =
+yaz("bu satır çalışmamalı")

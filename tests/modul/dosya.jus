@@ -1,0 +1,16 @@
+# dosya modülü
+kullan dosya
+
+değişken yol = "jus_test_gecici.txt"
+dosya.yaz(yol, "birinci satır\nikinci satır\n")
+dosya.ekle(yol, "üçüncü satır")
+yaz(dosya.var_mı(yol))                     # bekle: doğru
+yaz(dosya.satırlar(yol))                   # bekle: ["birinci satır", "ikinci satır", "üçüncü satır"]
+yaz(uzunluk(dosya.oku(yol)))               # bekle: 39
+dosya.sil(yol)
+yaz(dosya.var_mı(yol))                     # bekle: yanlış
+
+dene:
+    dosya.oku(yol)
+yakala hata:
+    yaz(hata)                              # bekle: 'jus_test_gecici.txt' okunamadı: dosya açılamadı.

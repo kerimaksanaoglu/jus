@@ -1,0 +1,6 @@
+# kod: 70
+# hata: çalışma zamanı hatası: stok yetersiz
+# hata: satır 5, 'sat' fonksiyonu
+fonksiyon sat(adet):
+    fırlat "stok yetersiz"
+sat(3)

@@ -1,0 +1,26 @@
+# 'jus test' komutunun sınaması için örnek test dosyası (tests/araclar.sh kullanır).
+fonksiyon topla(a, b):
+    dön a + b
+
+fonksiyon test_toplama():
+    eşit_olmalı(topla(2, 3), 5)
+    doğrula(topla(0, 0) == 0)
+
+fonksiyon test_liste():
+    eşit_olmalı(sırala([3, 1, 2]), [1, 2, 3])
+
+fonksiyon test_yanlış_beklenti():
+    eşit_olmalı(topla(2, 2), 5)
+
+fonksiyon test_doğrulama_iletisi():
+    doğrula(1 > 2, "bir ikiden büyük değil")
+
+fonksiyon test_çalışma_hatası():
+    yaz(1 / 0)
+
+# Parametreli ya da adı test_ ile başlamayan fonksiyonlar test sayılmaz.
+fonksiyon test_parametreli(x):
+    dön x
+
+fonksiyon yardımcı():
+    fırlat "çağrılmamalı"

@@ -1,0 +1,36 @@
+# Koşullu deyimler ve blok sınırları
+değişken x = 5
+
+eğer x > 10:
+    yaz("büyük")
+yaz("eğer bloğunun dışı")      # bekle: eğer bloğunun dışı
+
+eğer x > 10:
+    yaz("büyük")
+değilse:
+    yaz("küçük")               # bekle: küçük
+    yaz("değilse ikinci satır")  # bekle: değilse ikinci satır
+yaz("sonra")                   # bekle: sonra
+
+fonksiyon harf(puan):
+    eğer puan >= 90:
+        dön "AA"
+    değilse eğer puan >= 80:
+        dön "BA"
+    değilse eğer puan >= 70:
+        dön "BB"
+    değilse:
+        dön "FF"
+
+yaz(harf(95), harf(85), harf(75), harf(10))   # bekle: AA BA BB FF
+
+# İç içe bloklar ve aralarda boş satır / yorum
+eğer x == 5:
+
+    # yorum satırı girintiyi etkilemez
+  # farklı girintideki yorum da etkilemez
+    eğer x > 3:
+        yaz("iç")              # bekle: iç
+
+    yaz("orta")                # bekle: orta
+yaz("son")                     # bekle: son

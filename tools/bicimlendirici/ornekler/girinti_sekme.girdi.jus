@@ -1,0 +1,4 @@
+fonksiyon f(x):
+	eğer x:
+		yaz(x)
+	yaz("son")

@@ -1,0 +1,5 @@
+# kod: 65
+# hata: 'dene' bloğundan sonra 'yakala' bekleniyor.
+dene:
+    yaz(1)
+yaz(2)

@@ -1,0 +1,23 @@
+# tr modülü
+kullan tr
+
+yaz(tr.kimlik_no_geçerli_mi("10000000146"), tr.kimlik_no_geçerli_mi(10000000146))   # bekle: doğru doğru
+yaz(tr.kimlik_no_geçerli_mi("10000000147"), tr.kimlik_no_geçerli_mi("12345678901"))   # bekle: yanlış yanlış
+yaz(tr.kimlik_no_geçerli_mi("00000000000"), tr.kimlik_no_geçerli_mi("1234"), tr.kimlik_no_geçerli_mi("1000000014a"))   # bekle: yanlış yanlış yanlış
+
+yaz(tr.iban_geçerli_mi("TR33 0006 1005 1978 6457 8413 26"), tr.iban_geçerli_mi("tr330006100519786457841326"))   # bekle: doğru doğru
+yaz(tr.iban_geçerli_mi("TR33 0006 1005 1978 6457 8413 27"), tr.iban_geçerli_mi("DE89370400440532013000"), tr.iban_geçerli_mi(""))   # bekle: yanlış yanlış yanlış
+
+yaz(tr.telefon_geçerli_mi("0532 123 45 67"), tr.telefon_geçerli_mi("+90 (212) 555-12-34"), tr.telefon_geçerli_mi("5321234567"))   # bekle: doğru doğru doğru
+yaz(tr.telefon_geçerli_mi("0832 123 45 67"), tr.telefon_geçerli_mi("123"), tr.telefon_geçerli_mi("0532 123 45 6a"))   # bekle: yanlış yanlış yanlış
+
+yaz(tr.para(1234.5))            # bekle: 1.234,50 ₺
+yaz(tr.para(0), tr.para(999.999), tr.para(-1500000))   # bekle: 0,00 ₺ 1.000,00 ₺ -1.500.000,00 ₺
+yaz(tr.para(12), tr.para(123456789.01))   # bekle: 12,00 ₺ 123.456.789,01 ₺
+
+yaz(tr.plaka_ili(6), tr.plaka_ili(34), tr.plaka_ili(35), tr.plaka_ili(81))   # bekle: Ankara İstanbul İzmir Düzce
+yaz(uzunluk(tr.iller), tr.iller[0], "İzmir" içinde tr.iller)   # bekle: 81 Adana doğru
+dene:
+    tr.plaka_ili(82)
+yakala hata:
+    yaz(hata)                   # bekle: Plaka kodu 1 ile 81 arasında bir tam sayı olmalı.

@@ -1,0 +1,3 @@
+# kod: 70
+# hata: tüm öğeleri sayı ya da tüm öğeleri metin olmalı
+sırala([1, "a"])

@@ -1,0 +1,108 @@
+name: Sürüm
+
+# v ile başlayan bir etiket gönderildiğinde her platform için paket üretir ve
+# GitHub sürüm sayfasını oluşturur. Elle çalıştırıldığında yalnızca paketleri
+# üretir (sürüm sayfası oluşturmaz); paketlemeyi sınamak içindir.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  paket:
+    name: Paket (${{ matrix.ad }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            ad: linux-x64
+          - os: macos-latest
+            ad: macos-arm64
+          - os: windows-latest
+            ad: windows-x64
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Derle
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            # Çalıştırılabilir dosya ek DLL gerektirmesin.
+            make EXTRA=-static
+          else
+            make
+          fi
+      - name: Test
+        run: make test
+      - name: Paketle
+        run: |
+          surum="$(./jus --surum | cut -d' ' -f2)"
+          klasor="jus-$surum-${{ matrix.ad }}"
+          mkdir -p "$klasor"
+          if [ "$RUNNER_OS" = "Windows" ]; then cp jus.exe "$klasor/"; else cp jus "$klasor/"; fi
+          cp README.md LICENSE CHANGELOG.md "$klasor/"
+          cp -r docs examples "$klasor/"
+          mkdir -p "$klasor/editors" && cp -r editors/vscode "$klasor/editors/"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            7z a -tzip "$klasor.zip" "$klasor" > /dev/null
+          else
+            tar -czf "$klasor.tar.gz" "$klasor"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paket-${{ matrix.ad }}
+          path: |
+            jus-*.zip
+            jus-*.tar.gz
+
+  deneme-alani:
+    name: Deneme alanı paketi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+      - name: Derle ve sına
+        run: |
+          bash playground/derle.sh
+          node playground/dene.cjs
+      - name: Paketle
+        run: |
+          mkdir jus-deneme-alani
+          cp playground/index.html playground/calisan.js playground/sun.py playground/jus.js playground/jus.wasm playground/README.md jus-deneme-alani/
+          zip -qr jus-deneme-alani.zip jus-deneme-alani
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paket-deneme-alani
+          path: jus-deneme-alani.zip
+
+  yayinla:
+    name: Sürüm sayfası
+    needs: [paket, deneme-alani]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: paket-*
+          path: paketler
+          merge-multiple: true
+      - name: Sürüm notlarını çıkar
+        run: |
+          surum="${GITHUB_REF_NAME#v}"
+          # Değişiklik günlüğünde bu sürüme ait bölümü al.
+          awk -v s="## [$surum]" 'index($0, s) == 1 { yaz = 1; next } /^## \[/ { yaz = 0 } yaz' CHANGELOG.md > notlar.md
+          test -s notlar.md
+      - name: Sürümü yayımla
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" paketler/* \
+            --title "JUS ${GITHUB_REF_NAME#v}" \
+            --notes-file notlar.md

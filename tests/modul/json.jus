@@ -1,0 +1,58 @@
+# json modülü
+kullan json
+
+değişken veri = json.çöz("{\"ad\": \"Ayşe\", \"yaş\": 30, \"notlar\": [85, 92.5, -1e2], \"aktif\": true, \"eş\": null}")
+yaz(veri)                       # bekle: {"ad": "Ayşe", "yaş": 30, "notlar": [85, 92.5, -100], "aktif": doğru, "eş": boş}
+yaz(veri["notlar"][1] + 1)      # bekle: 93.5
+yaz(json.çöz("  [ ]  "), json.çöz("{}"), json.çöz("\"tek\""), json.çöz("42"))   # bekle: [] {} tek 42
+yaz(json.çöz("\"sat\\u0131r\\n\\ttab \\u00e7 \\ud83d\\ude00\""))
+# bekle: satır
+# bekle: 	tab ç 😀
+
+yaz(json.yaz(veri))             # bekle: {"ad":"Ayşe","yaş":30,"notlar":[85,92.5,-100],"aktif":true,"eş":null}
+yaz(json.yaz({"liste": [1, [2, {}]], "boş": [], "metin": "tırnak \" ve\nsatır"}, 2))
+# bekle: {
+# bekle:   "liste": [
+# bekle:     1,
+# bekle:     [
+# bekle:       2,
+# bekle:       {}
+# bekle:     ]
+# bekle:   ],
+# bekle:   "boş": [],
+# bekle:   "metin": "tırnak \" ve\nsatır"
+# bekle: }
+
+yaz(json.yaz([1 / 3, 0.1, 2.5, 123456.789]))   # bekle: [0.3333333333333333,0.1,2.5,123456.789]
+
+# Gidiş-dönüş
+değişken özgün = {"a": [1, 2, {"b": "ç"}], "c": 0.1, "d": yanlış}
+yaz(json.çöz(json.yaz(özgün)) == özgün, json.çöz(json.yaz(özgün, 4)) == özgün)   # bekle: doğru doğru
+
+fonksiyon dene_çöz(metin_):
+    dene:
+        json.çöz(metin_)
+        dön "geçerli"
+    yakala hata:
+        dön hata
+
+yaz(dene_çöz("[1, 2"))          # bekle: Geçersiz JSON (6. karakter): ',' ya da ']' bekleniyor.
+yaz(dene_çöz("{\"a\" 1}"))      # bekle: Geçersiz JSON (6. karakter): anahtardan sonra ':' bekleniyor.
+yaz(dene_çöz("[1] x"))          # bekle: Geçersiz JSON (5. karakter): değerden sonra fazladan içerik var.
+yaz(dene_çöz("doğru"))          # bekle: Geçersiz JSON (1. karakter): beklenmeyen karakter.
+yaz(dene_çöz(""))               # bekle: Geçersiz JSON (1. karakter): değer bekleniyor.
+
+dene:
+    json.yaz({1: "a"})
+yakala hata:
+    yaz(hata)                   # bekle: JSON'a çevrilecek sözlüklerde anahtarlar metin olmalı; sayı bulundu.
+dene:
+    json.yaz([yaz])
+yakala hata:
+    yaz(hata)                   # bekle: fonksiyon türündeki değerler JSON'a çevrilemez.
+değişken döngü = []
+ekle(döngü, döngü)
+dene:
+    json.yaz(döngü)
+yakala hata:
+    yaz(hata)                   # bekle: JSON'a çevrilecek yapı çok derin; kendi kendini içeriyor olabilir.

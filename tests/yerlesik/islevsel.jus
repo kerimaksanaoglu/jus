@@ -1,0 +1,94 @@
+# Fonksiyon alan yerleşikler: sırala (anahtarla), eşle, süz; biçimlendirme
+değişken öğrenciler = [
+    {"ad": "Zeynep", "not": 70},
+    {"ad": "Çağan", "not": 95},
+    {"ad": "Ilgaz", "not": 70},
+    {"ad": "İpek", "not": 85},
+    {"ad": "Ali", "not": 95},
+]
+
+fonksiyon ad_ver(ö):
+    dön ö["ad"]
+fonksiyon not_ver(ö):
+    dön ö["not"]
+fonksiyon eksi_not(ö):
+    dön -ö["not"]
+
+yaz(eşle(sırala(öğrenciler, ad_ver), ad_ver))    # bekle: ["Ali", "Çağan", "Ilgaz", "İpek", "Zeynep"]
+# Eşit anahtarlar özgün sırayı korur (kararlı sıralama)
+yaz(eşle(sırala(öğrenciler, not_ver), ad_ver))   # bekle: ["Zeynep", "Ilgaz", "İpek", "Çağan", "Ali"]
+yaz(eşle(sırala(öğrenciler, eksi_not), ad_ver))  # bekle: ["Çağan", "Ali", "İpek", "Zeynep", "Ilgaz"]
+yaz(uzunluk(öğrenciler), öğrenciler[0]["ad"])    # bekle: 5 Zeynep
+yaz(sırala([3, 1, 2]), sırala([]), sırala(["b", "a"], büyük_harf))   # bekle: [1, 2, 3] [] ["a", "b"]
+
+fonksiyon kare(x):
+    dön x * x
+fonksiyon çift_mi(x):
+    dön x % 2 == 0
+yaz(eşle([1, 2, 3], kare), eşle([], kare), eşle(["a", "ı"], büyük_harf))   # bekle: [1, 4, 9] [] ["A", "I"]
+yaz(süz(aralık(10), çift_mi), süz([], çift_mi))  # bekle: [0, 2, 4, 6, 8] []
+
+# Kapanımlar ve yöntemler de verilebilir
+fonksiyon büyük_mü_yap(sınır):
+    fonksiyon denetle(x):
+        dön x > sınır
+    dön denetle
+yaz(süz([1, 5, 10, 15], büyük_mü_yap(6)))        # bekle: [10, 15]
+
+sınıf Çarpan:
+    fonksiyon kur(k):
+        bu.k = k
+    fonksiyon uygula(x):
+        dön x * bu.k
+yaz(eşle([1, 2, 3], Çarpan(10).uygula))          # bekle: [10, 20, 30]
+
+# Verilen fonksiyondaki hata yakalanabilir ve çağrı zinciri bozulmaz
+fonksiyon bozuk(x):
+    eğer x == 2:
+        fırlat "iki olmaz"
+    dön x
+dene:
+    eşle([1, 2, 3], bozuk)
+yakala hata:
+    yaz("yakalandı:", hata)                      # bekle: yakalandı: iki olmaz
+dene:
+    sırala([1, 2], yaz_olmayan)
+yakala hata:
+    yaz(hata)                                    # bekle: 'yaz_olmayan' adında bir değişken ya da fonksiyon tanımlı değil.
+dene:
+    süz([1], kare)
+yakala hata:
+    yaz(hata)                                    # bekle: 'süz' için verilen fonksiyon doğru ya da yanlış döndürmeli; sayı döndürdü.
+dene:
+    sırala(öğrenciler)
+yakala hata:
+    yaz(başlar_mı(hata, "'sırala' için listenin tüm öğeleri"))   # bekle: doğru
+dene:
+    eşle([1], kare, 3)
+yakala hata:
+    yaz(hata)                                    # bekle: 'eşle' fonksiyonu 2 argüman bekliyor, 3 verildi.
+
+# İç içe: anahtar fonksiyonu kendi içinde sırala/eşle çağırır
+fonksiyon en_küçüğü(liste):
+    dön sırala(liste)[0]
+yaz(sırala([[5, 9], [3, 8], [4, 1]], en_küçüğü))  # bekle: [[4, 1], [3, 8], [5, 9]]
+
+# dene içinden, fonksiyon alan yerleşiğin içinden hata sonrası program sürer
+değişken toplam = 0
+her i içinde aralık(50):
+    dene:
+        eşle([i, 2], bozuk)
+        toplam += 1
+    yakala:
+        toplam += 100
+yaz(toplam)                                      # bekle: 5000
+
+# Sayı ve metin biçimlendirme
+yaz(yuvarla(3.14159, 2), yuvarla(2.5), yuvarla(1.005, 2), yuvarla(-0.4))   # bekle: 3.14 3 1 0
+yaz(biçimle(3.14159, 2), biçimle(2, 2), biçimle(0.5, 0), biçimle(-1.5, 1))   # bekle: 3.14 2.00 1 -1.5
+# Tam ortadaki değerler her yerde sıfırdan uzağa yuvarlanır
+yaz(yuvarla(0.125, 2), yuvarla(-0.125, 2), yuvarla(2.5, 0), biçimle(0.125, 2), biçimle(2.5, 0), biçimle(-0.001, 2))   # bekle: 0.13 -0.13 3 0.13 3 0.00
+yaz(yuvarla(123456789.987654, 3), biçimle(1234567.891, 1), yuvarla(100000000000000000000, 2))   # bekle: 123456789.988 1234567.9 1e+20
+yaz("[" + sola_doldur("ş", 3) + "]", "[" + sağa_doldur("ş", 3) + "]")   # bekle: [  ş] [ş  ]
+yaz(sola_doldur("7", 3, "0"), sağa_doldur("ad", 6, "."), sola_doldur("uzun metin", 3))   # bekle: 007 ad.... uzun metin
+yaz(tekrarla("-", 10), tekrarla("çğ", 2), "[" + tekrarla("x", 0) + "]")   # bekle: ---------- çğçğ []

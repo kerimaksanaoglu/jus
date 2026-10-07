@@ -1,0 +1,66 @@
+# Komut satırı yapılacaklar listesi aracı.
+#
+# Kullanım: jus yapilacaklar.jus [--dosya yol] <komut> [argümanlar]
+# Ayrıntı için: jus yapilacaklar.jus yardım
+
+kullan sistem
+kullan depolama
+kullan komutlar
+
+değişken VARSAYILAN_DOSYA = "yapilacaklar.json"
+
+# Argümanlardan '--dosya yol' çiftini ayırır.
+# {"dosya": yol, "kalan": kalan argümanlar} sözlüğü verir.
+fonksiyon seçenekleri_ayır(argümanlar):
+    değişken dosya = VARSAYILAN_DOSYA
+    değişken kalan = []
+    değişken i = 0
+    iken i < uzunluk(argümanlar):
+        değişken a = argümanlar[i]
+        eğer a == "--dosya":
+            eğer i + 1 >= uzunluk(argümanlar):
+                fırlat {"ileti": "'--dosya' seçeneği bir dosya yolu ister.", "kod": 2}
+            dosya = argümanlar[i + 1]
+            i += 2
+        değilse eğer başlar_mı(a, "--dosya="):
+            dosya = a[8:]
+            i += 1
+        değilse:
+            ekle(kalan, a)
+            i += 1
+    dön {"dosya": dosya, "kalan": kalan}
+
+fonksiyon çalıştır(argümanlar):
+    değişken seçenek = seçenekleri_ayır(argümanlar)
+    değişken kalan = seçenek["kalan"]
+    eğer uzunluk(kalan) == 0:
+        komutlar.yardım_komutu()
+        fırlat {"ileti": "", "kod": 2}
+    değişken komut = kalan[0]
+    değişken bağımsız = kalan[1:]
+    eğer komut == "yardım" veya komut == "yardim" veya komut == "--yardım" veya komut == "--yardim" veya komut == "-h":
+        komutlar.yardım_komutu()
+        dön
+    değişken depo = depolama.Depo(seçenek["dosya"])
+    eğer komut == "ekle":
+        komutlar.ekle_komutu(depo, bağımsız)
+    değilse eğer komut == "listele":
+        komutlar.listele_komutu(depo, bağımsız)
+    değilse eğer komut == "tamamla":
+        komutlar.tamamla_komutu(depo, bağımsız)
+    değilse eğer komut == "sil":
+        komutlar.sil_komutu(depo, bağımsız)
+    değilse eğer komut == "ara":
+        komutlar.ara_komutu(depo, bağımsız)
+    değilse:
+        fırlat {"ileti": "Bilinmeyen komut: '" + komut + "'. Komutlar için 'yardım' yazın.", "kod": 2}
+
+dene:
+    çalıştır(sistem.argümanlar)
+yakala hata:
+    eğer tür(hata) == "sözlük":
+        eğer hata["ileti"] != "":
+            yaz("Hata: " + hata["ileti"])
+        sistem.çık(hata["kod"])
+    yaz("Hata: " + metin(hata))
+    sistem.çık(1)

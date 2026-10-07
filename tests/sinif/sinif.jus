@@ -1,0 +1,119 @@
+# Sınıflar, nesneler ve kalıtım
+sınıf Sayaç:
+    fonksiyon kur(başlangıç):
+        bu.değer = başlangıç
+        bu.adım = 1
+
+    fonksiyon artır():
+        bu.değer += bu.adım
+        dön bu
+
+    fonksiyon oku():
+        dön bu.değer
+
+değişken s = Sayaç(10)
+yaz(s, Sayaç, tür(s), tür(Sayaç))   # bekle: <Sayaç nesnesi> <sınıf Sayaç> Sayaç sınıf
+s.artır()
+s.artır().artır()
+yaz(s.oku(), s.değer)               # bekle: 13 13
+
+# Alanlar dışarıdan okunabilir, değiştirilebilir ve eklenebilir
+s.değer = 100
+s.etiket = "sipariş"
+s.adım *= 5
+yaz(s.artır().oku(), s.etiket)      # bekle: 105 sipariş
+
+# Her nesnenin alanları ayrıdır
+değişken t = Sayaç(0)
+t.artır()
+yaz(s.değer, t.değer, s == t, s == s)   # bekle: 105 1 yanlış doğru
+
+# Yöntem bir değer olarak alınabilir; nesnesine bağlı kalır
+değişken artır = t.artır
+artır()
+artır()
+yaz(t.oku())                        # bekle: 3
+
+# 'kur' olmayan sınıf
+sınıf Boş:
+    fonksiyon selam():
+        dön "merhaba"
+yaz(Boş().selam())                  # bekle: merhaba
+
+# Kalıtım
+sınıf Hayvan:
+    fonksiyon kur(ad):
+        bu.ad = ad
+
+    fonksiyon ses():
+        dön "..."
+
+    fonksiyon tanıt():
+        dön bu.ad + ": " + bu.ses()
+
+sınıf Köpek(Hayvan):
+    fonksiyon ses():
+        dön "Hav"
+
+sınıf Yavru(Köpek):
+    fonksiyon kur(ad, yaş):
+        üst.kur(ad)
+        bu.yaş = yaş
+
+    fonksiyon ses():
+        dön üst.ses() + " hav"
+
+    fonksiyon tanıt():
+        değişken temel = üst.tanıt
+        dön temel() + " (" + metin(bu.yaş) + " aylık)"
+
+yaz(Hayvan("Kedi").tanıt())         # bekle: Kedi: ...
+yaz(Köpek("Karabaş").tanıt())       # bekle: Karabaş: Hav
+değişken y = Yavru("Pamuk", 3)
+yaz(y.tanıt())                      # bekle: Pamuk: Hav hav (3 aylık)
+
+yaz(örneği_mi(y, Yavru), örneği_mi(y, Hayvan), örneği_mi(y, Sayaç), örneği_mi(5, Hayvan))   # bekle: doğru doğru yanlış yanlış
+
+# Yöntem içindeki iç fonksiyon 'bu' nesnesini yakalar
+sınıf Düğme:
+    fonksiyon kur(ad):
+        bu.ad = ad
+
+    fonksiyon tıklanınca():
+        fonksiyon işle():
+            dön bu.ad + " tıklandı"
+        dön işle
+
+yaz(Düğme("Kaydet").tıklanınca()())   # bekle: Kaydet tıklandı
+
+# Alanda tutulan fonksiyon yöntem gibi çağrılabilir
+fonksiyon iki_katı(x):
+    dön x * 2
+s.işlem = iki_katı
+yaz(s.işlem(21))                    # bekle: 42
+
+# Nesneler liste ve sözlüklerde
+değişken hayvanlar = [Köpek("A"), Hayvan("B"), Yavru("C", 1)]
+her h içinde hayvanlar:
+    yaz(h.ses())
+# bekle: Hav
+# bekle: ...
+# bekle: Hav hav
+
+# Sınıf fonksiyon içinde tanımlanabilir
+fonksiyon nokta_yap(x, y):
+    sınıf Nokta:
+        fonksiyon kur(x, y):
+            bu.x = x
+            bu.y = y
+        fonksiyon toplam():
+            dön bu.x + bu.y
+    dön Nokta(x, y)
+yaz(nokta_yap(3, 4).toplam())       # bekle: 7
+
+# Çok sayıda nesne (çöp toplayıcı)
+değişken toplam = 0
+her i içinde aralık(2000):
+    değişken geçici = Sayaç(i)
+    toplam += geçici.artır().oku()
+yaz(toplam)                         # bekle: 2001000
