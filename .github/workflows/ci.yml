@@ -21,6 +21,8 @@ jobs:
         run: make
       - name: Test
         run: make test
+      - name: Örnek programlar
+        run: make examples
 
   sanitize:
     name: Bellek denetimi

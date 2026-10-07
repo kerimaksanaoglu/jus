@@ -2,6 +2,7 @@
 #
 #   make          yorumlayıcıyı derler
 #   make test     test paketini çalıştırır
+#   make examples örnek programların sınamalarını çalıştırır
 #   make clean    derleme çıktılarını siler
 #
 # Ek derleyici bayrakları EXTRA ile verilir, örneğin:
@@ -40,7 +41,11 @@ test: $(TARGET)
 	bash tests/calistir.sh ./$(TARGET)
 	bash tests/araclar.sh ./$(TARGET)
 
+# Örnek programların uçtan uca sınamaları
+examples: $(TARGET)
+	for betik in examples/programlar/*/dene.sh; do bash $$betik ./$(TARGET) || exit 1; done
+
 clean:
 	rm -rf build $(TARGET)
 
-.PHONY: all test clean
+.PHONY: all test examples clean

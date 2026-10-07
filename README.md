@@ -78,9 +78,10 @@ diğerleri) için
 - [Hız ölçümleri](bench/): CPython ile karşılaştırma
 - [Yol haritası](docs/yol-haritasi.md): planlanan sürümler ve 1.0 ölçütleri
 - [Değişiklik günlüğü](CHANGELOG.md)
-- [Örnekler](examples/); daha büyük iki program:
-  [yapılacaklar listesi](examples/programlar/yapilacaklar/) ve
-  [not raporu](examples/programlar/not_raporu/)
+- [Örnekler](examples/); daha büyük üç program:
+  [yapılacaklar listesi](examples/programlar/yapilacaklar/),
+  [not raporu](examples/programlar/not_raporu/) ve
+  [not sunucusu](examples/programlar/not_sunucusu/)
 
 ## Depo düzeni
 

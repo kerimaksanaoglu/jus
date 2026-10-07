@@ -1,0 +1,112 @@
+# Not sunucusu: notları bellekte tutan küçük bir HTTP sunucusu.
+#
+# Kullanım: jus sunucu.jus [port]
+#
+#   GET    /            tanıtım sayfası (HTML)
+#   GET    /notlar      tüm notlar (JSON); ?ara=metin ile süzülebilir
+#   POST   /notlar      gövdedeki metni yeni not olarak ekler
+#   GET    /notlar/3    3 numaralı not
+#   DELETE /notlar/3    3 numaralı notu siler
+#   POST   /kapat       sunucuyu durdurur
+kullan http
+kullan json
+kullan sistem
+
+değişken notlar = []
+değişken sıradaki_no = 1
+
+fonksiyon json_yanıtı(durum, veri):
+    dön {
+        "durum": durum,
+        "gövde": json.yaz(veri),
+        "başlıklar": {"Content-Type": "application/json; charset=utf-8"},
+    }
+
+fonksiyon hata_yanıtı(durum, ileti):
+    dön json_yanıtı(durum, {"hata": ileti})
+
+fonksiyon notu_bul(no):
+    her n içinde notlar:
+        eğer n["no"] == no:
+            dön n
+    dön boş
+
+fonksiyon ana_sayfa():
+    değişken satırlar = [
+        "<!doctype html>",
+        "<meta charset=\"utf-8\">",
+        "<title>Not sunucusu</title>",
+        "<h1>Not sunucusu</h1>",
+        "<p>Kayıtlı not sayısı: " + metin(uzunluk(notlar)) + "</p>",
+    ]
+    dön {
+        "gövde": birleştir(satırlar, "\n"),
+        "başlıklar": {"Content-Type": "text/html; charset=utf-8"},
+    }
+
+fonksiyon notları_listele(istek):
+    değişken aranan = küçük_harf(al(istek["sorgu"], "ara", ""))
+    fonksiyon uyuyor_mu(n):
+        dön aranan içinde küçük_harf(n["metin"])
+    dön json_yanıtı(200, süz(notlar, uyuyor_mu))
+
+fonksiyon not_ekle(istek):
+    değişken içerik = kırp(istek["gövde"])
+    eğer içerik == "":
+        dön hata_yanıtı(400, "Not metni boş olamaz.")
+    değişken yeni = {"no": sıradaki_no, "metin": içerik}
+    sıradaki_no += 1
+    ekle(notlar, yeni)
+    dön json_yanıtı(201, yeni)
+
+# "/notlar/3" yolundaki numarayı verir; yol bu biçimde değilse boş.
+fonksiyon yoldaki_no(yol):
+    eğer değil başlar_mı(yol, "/notlar/"):
+        dön boş
+    dene:
+        dön sayı(yol[8:])
+    yakala:
+        dön boş
+
+fonksiyon tek_not(istek, no):
+    değişken bulunan = notu_bul(no)
+    eğer bulunan == boş:
+        dön hata_yanıtı(404, metin(no) + " numaralı not yok.")
+
+    eğer istek["yöntem"] == "GET":
+        dön json_yanıtı(200, bulunan)
+    eğer istek["yöntem"] == "DELETE":
+        sil(notlar, bul(notlar, bulunan))
+        dön json_yanıtı(200, {"silindi": no})
+    dön hata_yanıtı(405, "Bu adres yalnızca GET ve DELETE kabul eder.")
+
+fonksiyon işle(istek):
+    değişken yöntem = istek["yöntem"]
+    değişken yol = istek["yol"]
+    yaz(yöntem, yol)
+
+    eğer yol == "/":
+        dön ana_sayfa()
+    eğer yol == "/notlar":
+        eğer yöntem == "GET":
+            dön notları_listele(istek)
+        eğer yöntem == "POST":
+            dön not_ekle(istek)
+        dön hata_yanıtı(405, "Bu adres yalnızca GET ve POST kabul eder.")
+    eğer yol == "/kapat" ve yöntem == "POST":
+        değişken yanıt = json_yanıtı(200, {"durum": "kapanıyor"})
+        yanıt["durdur"] = doğru
+        dön yanıt
+
+    değişken no = yoldaki_no(yol)
+    eğer no != boş:
+        dön tek_not(istek, no)
+    dön hata_yanıtı(404, "Böyle bir adres yok: " + yol)
+
+değişken port = 8080
+eğer uzunluk(sistem.argümanlar) > 0:
+    port = sayı(sistem.argümanlar[0])
+
+yaz("Not sunucusu http://127.0.0.1:" + metin(port) + "/ adresinde çalışıyor.")
+http.sun(port, işle)
+yaz("Sunucu durdu.")

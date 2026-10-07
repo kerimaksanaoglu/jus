@@ -85,7 +85,7 @@ Sonraki sürümlere bırakılanlar: klasör listeleme ve oluşturma, süreç
 
 - Paket yöneticisi
 - Belgelerin tamamlanması
-- 1.0 ölçütlerindeki üç programın yazılması
+- 1.0 ölçütlerindeki üç programın yazılması (tamamlandı; `examples/programlar`)
 - Dil tanımının dondurulması
 
 ## Bilinen sınırlar

@@ -1,0 +1,71 @@
+# Not sunucusunu uçtan uca sınar. Sunucunun çalışıyor olması gerekir; dene.sh
+# sunucuyu başlatır ve bu dosyayı 'jus test' ile çalıştırır.
+#
+# Port, JUS_NOT_PORT ortam değişkeninden okunur (varsayılan 8080).
+kullan http
+kullan json
+kullan sistem
+kullan zaman
+
+değişken port = sistem.ortam("JUS_NOT_PORT")
+eğer port == boş:
+    port = "8080"
+değişken kök = "http://127.0.0.1:" + port
+
+# Sunucu açılana kadar bekle (en çok 5 saniye).
+değişken hazır = yanlış
+her deneme içinde aralık(50):
+    dene:
+        http.getir(kök + "/")
+        hazır = doğru
+    yakala:
+        zaman.bekle(0.1)
+    eğer hazır:
+        kır
+doğrula(hazır, "Sunucuya bağlanılamadı: " + kök)
+
+fonksiyon test_1_ana_sayfa():
+    değişken yanıt = http.getir(kök + "/")
+    eşit_olmalı(yanıt["durum"], 200)
+    eşit_olmalı(yanıt["başlıklar"]["content-type"], "text/html; charset=utf-8")
+    doğrula("<h1>Not sunucusu</h1>" içinde yanıt["gövde"])
+
+fonksiyon test_2_not_ekleme():
+    değişken yanıt = http.gönder(kök + "/notlar", "Süt ve ekmek al")
+    eşit_olmalı(yanıt["durum"], 201)
+    eşit_olmalı(json.çöz(yanıt["gövde"]), {"no": 1, "metin": "Süt ve ekmek al"})
+    http.gönder(kök + "/notlar", "  Çiçekleri sula  ")
+    http.gönder(kök + "/notlar", "IŞIKLARI kapat")
+
+    yanıt = http.gönder(kök + "/notlar", "   ")
+    eşit_olmalı(yanıt["durum"], 400)
+    eşit_olmalı(json.çöz(yanıt["gövde"])["hata"], "Not metni boş olamaz.")
+
+fonksiyon test_3_listeleme_ve_arama():
+    değişken hepsi = json.çöz(http.getir(kök + "/notlar")["gövde"])
+    eşit_olmalı(uzunluk(hepsi), 3)
+    eşit_olmalı(hepsi[1], {"no": 2, "metin": "Çiçekleri sula"})
+
+    # Arama Türkçe harflerde büyük/küçük ayrımı yapmaz; sorgu adres için kodlanır.
+    değişken bulunan = json.çöz(http.getir(kök + "/notlar?ara=%C4%B1%C5%9F%C4%B1k")["gövde"])
+    eşit_olmalı(bulunan, [{"no": 3, "metin": "IŞIKLARI kapat"}])
+    eşit_olmalı(json.çöz(http.getir(kök + "/notlar?ara=yok")["gövde"]), [])
+
+fonksiyon test_4_tek_not_ve_silme():
+    değişken yanıt = http.getir(kök + "/notlar/2")
+    eşit_olmalı(json.çöz(yanıt["gövde"])["metin"], "Çiçekleri sula")
+
+    yanıt = http.iste("DELETE", kök + "/notlar/2", {}, "")
+    eşit_olmalı(json.çöz(yanıt["gövde"]), {"silindi": 2})
+    eşit_olmalı(http.getir(kök + "/notlar/2")["durum"], 404)
+    eşit_olmalı(uzunluk(json.çöz(http.getir(kök + "/notlar")["gövde"])), 2)
+
+fonksiyon test_5_hatalı_istekler():
+    eşit_olmalı(http.getir(kök + "/olmayan")["durum"], 404)
+    eşit_olmalı(http.getir(kök + "/notlar/abc")["durum"], 404)
+    eşit_olmalı(http.iste("PUT", kök + "/notlar", {}, "x")["durum"], 405)
+    eşit_olmalı(http.iste("PUT", kök + "/notlar/1", {}, "x")["durum"], 405)
+
+fonksiyon test_9_kapatma():
+    değişken yanıt = http.gönder(kök + "/kapat", "")
+    eşit_olmalı(json.çöz(yanıt["gövde"]), {"durum": "kapanıyor"})
