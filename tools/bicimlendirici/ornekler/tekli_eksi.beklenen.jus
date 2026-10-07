@@ -1,0 +1,11 @@
+değişken a = -1
+değişken b = a - -1
+değişken c = a - -1
+değişken d = [-1, -2, -x]
+yaz(-a)
+yaz(a - 1, f(-1), (-1))
+dön -a
+değişken e = değil -a
+değişken f = 3 - 1
+değişken g = x[-1] - -x[-2]
+değişken h = doğru - 1

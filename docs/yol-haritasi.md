@@ -68,7 +68,7 @@ Sonraki sürümlere bırakılanlar: klasör listeleme ve oluşturma, süreç
 
 ### 0.6 Araçlar
 
-- Biçimlendirici (`jus bicimle`)
+- Biçimlendirici (`jus bicimle`) (tamamlandı)
 - Test çalıştırıcı (`jus test`) (tamamlandı)
 - VS Code eklentisi: renklendirme (tamamlandı), hata gösterimi, tamamlama
 - Tarayıcıda deneme alanı (WebAssembly)
@@ -83,7 +83,8 @@ Sonraki sürümlere bırakılanlar: klasör listeleme ve oluşturma, süreç
 
 ### 0.8 - 0.9 Kararlılık
 
-- Paket yöneticisi
+- Paket yöneticisi (ilk sürüm tamamlandı: git depolarından kurma; sürüm seçimi
+  ve bağımlılık çözümü yok)
 - Belgelerin tamamlanması
 - 1.0 ölçütlerindeki üç programın yazılması (tamamlandı; `examples/programlar`)
 - Dil tanımının dondurulması

@@ -1,0 +1,8 @@
+fonksiyon g():
+    eğer doğru:
+        yaz("a",
+            "b",
+            topla(1,
+                2)
+        )
+    yaz(1)

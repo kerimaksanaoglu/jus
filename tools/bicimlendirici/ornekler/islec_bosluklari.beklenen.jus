@@ -1,0 +1,9 @@
+değişken a = 1 + 2 * 3 - 4 / 5 % 6
+a += 1
+a -= 2
+a *= 3
+a /= 4
+eğer a == 1 ve a != 2 veya a < 3 ve a <= 4 ve a > 5 ve a >= 6:
+    yaz(1)
+her x içinde [1, 2]:
+    yaz(x + 1)

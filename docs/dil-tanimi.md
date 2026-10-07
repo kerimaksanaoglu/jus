@@ -1,6 +1,6 @@
 # JUS Dil Tanımı
 
-Sürüm 0.5.0
+Sürüm 0.6.0
 
 Bu belge JUS'un sözdizimini ve davranışını tanımlar. Yorumlayıcı bu belgeye
 uymak zorundadır; ikisi arasındaki her fark bir hatadır. Burada yazmayan bir
@@ -323,6 +323,9 @@ yaz(matematik.pi, m.üs(2, 10), geometri.alan(3))
   yapılamaz.
 - Her dosyanın genel değişkenleri kendisine aittir; iki dosyadaki aynı adlı
   değişkenler birbirini etkilemez. Yerleşik fonksiyonlar her dosyadan görülür.
+- Modül ne standart kütüphanede ne de dosyanın klasöründe bulunursa, kurulu
+  paketlerde aranır (bkz. 8C): `kullan ad` için `jus_paketleri/ad/ad.jus`,
+  `kullan "ad/modül"` için `jus_paketleri/ad/modül.jus`.
 - Bir modül, kaç kez `kullan` ile istenirse istensin yalnızca bir kez yüklenir
   ve üst düzey kodu bir kez çalışır.
 - `kullan` bir deyimdir; fonksiyon ya da blok içinde de yazılabilir.
@@ -684,6 +687,45 @@ hesap_test.jus
 ```
 
 Tüm testler geçerse çıkış kodu 0, en az biri kalırsa 1 olur.
+
+## 8B. Biçimlendirici
+
+`jus bicimle dosya.jus ...` komutu, verilen dosyaları standart biçime getirir
+ve değişen dosyaların üzerine yazar. `jus bicimle --denetle dosya.jus ...`
+dosyaları değiştirmez; biçimi standart olmayan dosya varsa adlarını yazar ve 1
+koduyla çıkar.
+
+Standart biçim:
+
+- Her blok düzeyi 4 boşluk girintilidir.
+- İkili işleçlerin iki yanında birer boşluk, virgülden sonra bir boşluk bulunur;
+  parantezlerin iç kenarında boşluk bulunmaz.
+- Satır sonu yorumundan önce iki boşluk, `#` işaretinden sonra bir boşluk bulunur.
+- Art arda en çok iki boş satır bulunur; satır sonlarında boşluk kalmaz; dosya
+  tek bir satır sonuyla biter.
+
+Biçimlendirici satırları bölmez ya da birleştirmez; metinlerin ve yorumların
+içeriğine dokunmaz. Programın davranışı değişmez. Sözcük düzeyinde hata içeren
+(ör. kapanmamış metin) dosyalar biçimlendirilmez.
+
+## 8C. Paketler
+
+Paketler git depolarıdır ve komutun çalıştırıldığı klasördeki `jus_paketleri/`
+klasörüne indirilir. Bu işlem için bilgisayarda `git` kurulu olmalıdır.
+
+| Komut                             | Açıklama                                   |
+|-----------------------------------|--------------------------------------------|
+| `jus paket kur <git-adresi> [ad]` | Depoyu `jus_paketleri/<ad>/` altına indirir. Ad verilmezse adresin son parçası kullanılır; baştaki `jus-` atılır. |
+| `jus paket listele`               | Kurulu paketleri listeler.                 |
+| `jus paket kaldır <ad>`           | Paketi siler.                              |
+
+Bir paketin ana modülü, paketin adını taşıyan dosyadır: `renkler` paketi için
+`renkler.jus`. Program bu modülü `kullan renkler` ile, paketin diğer
+modüllerini `kullan "renkler/modül"` ile kullanır. Paketler, ana programın
+bulunduğu klasördeki `jus_paketleri/` klasöründe aranır.
+
+Paket yöneticisi sürüm seçmez ve paketlerin birbirine bağımlılıklarını
+çözmez; her paket deponun en son hâliyle kurulur.
 
 ## 9. Dilbilgisi
 

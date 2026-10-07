@@ -595,10 +595,65 @@ static bool forNext(bool *done) {
     return true;
 }
 
+static int directoryLength(ObjString *path) {
+    int length = 0;
+    for (int i = 0; i < path->length; i++) {
+        if (path->chars[i] == '/' || path->chars[i] == '\\') length = i + 1;
+    }
+    return length;
+}
+
+/* Modülün, içe aktaran dosyanın klasöründeki yolu: <klasör>/<ad>.jus */
+static ObjString *localModulePath(ObjModule *importer, ObjString *name) {
+    int prefix = directoryLength(importer->path);
+    int length = prefix + name->length + 4;
+    char *path = (char *)malloc((size_t)length + 1);
+    if (path == NULL) {
+        fprintf(stderr, "jus: bellek yetersiz.\n");
+        exit(JUS_EXIT_OUT_OF_MEMORY);
+    }
+    memcpy(path, importer->path->chars, (size_t)prefix);
+    memcpy(path + prefix, name->chars, (size_t)name->length);
+    memcpy(path + prefix + name->length, ".jus", 5);
+
+    ObjString *result = copyString(path, length);
+    free(path);
+    return result;
+}
+
 /*
- * Modül adını çözer: önce yerleşik modüllere bakar, sonra içe aktaran dosyanın
- * klasöründe '<ad>.jus' dosyasını arar. Anahtar (ad ya da dosya yolu) yığına
- * konur; modül zaten yüklüyse *module doldurulur.
+ * Modülün paket klasöründeki yolu. Paketler ana programın klasöründeki
+ * jus_paketleri/ altında durur: 'kullan ad' -> jus_paketleri/ad/ad.jus,
+ * 'kullan "ad/modül"' -> jus_paketleri/ad/modül.jus
+ */
+static ObjString *packageModulePath(ObjString *name) {
+    int prefix = vm.mainModule == NULL ? 0 : directoryLength(vm.mainModule->path);
+    bool nested = memchr(name->chars, '/', (size_t)name->length) != NULL;
+    size_t size = (size_t)prefix + (size_t)name->length * 2 + 32;
+    char *path = (char *)malloc(size);
+    if (path == NULL) {
+        fprintf(stderr, "jus: bellek yetersiz.\n");
+        exit(JUS_EXIT_OUT_OF_MEMORY);
+    }
+    int length;
+    if (nested) {
+        length = snprintf(path, size, "%.*sjus_paketleri/%s.jus", prefix,
+                          prefix == 0 ? "" : vm.mainModule->path->chars, name->chars);
+    } else {
+        length = snprintf(path, size, "%.*sjus_paketleri/%s/%s.jus", prefix,
+                          prefix == 0 ? "" : vm.mainModule->path->chars, name->chars, name->chars);
+    }
+
+    ObjString *result = copyString(path, length);
+    free(path);
+    return result;
+}
+
+/*
+ * Modül adını çözer. Sırasıyla yerleşik modüllere, içe aktaran dosyanın
+ * klasörüne ve paket klasörüne bakar. Modülün anahtarı (ad ya da dosya yolu)
+ * yığına konur; modül zaten yüklüyse *module doldurulur. Yüklü değilse yığında
+ * yerel dosya yolu kalır.
  */
 static void resolveModule(ObjModule *importer, ObjString *name, Value *module, bool *found) {
     *found = tableGet(&vm.modules, name, module);
@@ -607,26 +662,16 @@ static void resolveModule(ObjModule *importer, ObjString *name, Value *module, b
         return;
     }
 
-    const char *importerPath = importer->path->chars;
-    int directoryLength = 0;
-    for (int i = 0; i < importer->path->length; i++) {
-        if (importerPath[i] == '/' || importerPath[i] == '\\') directoryLength = i + 1;
-    }
+    ObjString *local = localModulePath(importer, name);
+    push(OBJ_VAL(local));
+    *found = tableGet(&vm.modules, local, module);
+    if (*found) return;
 
-    int length = directoryLength + name->length + 4;
-    char *path = (char *)malloc((size_t)length + 1);
-    if (path == NULL) {
-        fprintf(stderr, "jus: bellek yetersiz.\n");
-        exit(JUS_EXIT_OUT_OF_MEMORY);
+    ObjString *package = packageModulePath(name);
+    if (tableGet(&vm.modules, package, module)) {
+        *found = true;
+        vm.stackTop[-1] = OBJ_VAL(package);
     }
-    memcpy(path, importerPath, (size_t)directoryLength);
-    memcpy(path + directoryLength, name->chars, (size_t)name->length);
-    memcpy(path + directoryLength + name->length, ".jus", 5);
-
-    ObjString *key = copyString(path, length);
-    free(path);
-    push(OBJ_VAL(key));
-    *found = tableGet(&vm.modules, key, module);
 }
 
 /*
@@ -656,8 +701,19 @@ static bool importModule(ObjModule *importer, ObjString *name) {
         const char *problem = NULL;
         source = readSource(path->chars, &problem);
         if (source == NULL) {
-            runtimeError("'%s' modülü yüklenemedi: '%s' için %s.", name->chars, path->chars, problem);
-            return false;
+            /* Dosyanın klasöründe yok; kurulu paketlere bak. */
+            ObjString *package = packageModulePath(name);
+            push(OBJ_VAL(package));
+            const char *packageProblem = NULL;
+            source = readSource(package->chars, &packageProblem);
+            if (source == NULL) {
+                runtimeError("'%s' modülü yüklenemedi: '%s' için %s. Kurulu paketlerde de yok ('%s').",
+                             name->chars, path->chars, problem, package->chars);
+                return false;
+            }
+            vm.stackTop[-2] = OBJ_VAL(package);
+            pop();
+            path = package;
         }
     }
 

@@ -9,7 +9,9 @@
 #endif
 
 #include "common.h"
+#include "format.h"
 #include "io.h"
+#include "package.h"
 #include "stdlib_modules.h"
 #include "vm.h"
 
@@ -19,6 +21,9 @@ static void printUsage(FILE *out) {
           "  jus                  Etkileşimli kipi başlatır.\n"
           "  jus dosya.jus [...]  Dosyadaki programı çalıştırır; kalan argümanlar programa verilir.\n"
           "  jus test [yol]       Adı _test.jus ile biten dosyalardaki testleri çalıştırır.\n"
+          "  jus bicimle [--denetle] <dosya>...\n"
+          "                       Dosyaları standart biçime getirir; --denetle yalnızca bildirir.\n"
+          "  jus paket <komut>    Paketleri kurar, listeler, kaldırır (jus paket: ayrıntı).\n"
           "  jus --surum          Sürüm numarasını yazar.\n"
           "  jus --yardim         Bu yardım metnini yazar.\n",
           out);
@@ -42,6 +47,54 @@ static int runFile(const char *path, int argumentCount, char **arguments) {
     if (result == INTERPRET_COMPILE_ERROR) return JUS_EXIT_COMPILE_ERROR;
     if (result == INTERPRET_RUNTIME_ERROR) return JUS_EXIT_RUNTIME_ERROR;
     return 0;
+}
+
+/*
+ * Dosyaları standart biçime getirir. check doğruysa dosyalar değiştirilmez;
+ * biçimi bozuk dosya varsa 1 döner.
+ */
+static int formatFiles(int count, char **paths, bool check) {
+    int changed = 0;
+    int failed = 0;
+    for (int i = 0; i < count; i++) {
+        const char *problem = NULL;
+        char *source = readSource(paths[i], &problem);
+        if (source == NULL) {
+            fprintf(stderr, "jus: '%s': %s.\n", paths[i], problem);
+            failed++;
+            continue;
+        }
+
+        int line = 0;
+        char *formatted = formatSource(source, &problem, &line);
+        if (formatted == NULL) {
+            fprintf(stderr, "%s:%d: biçimlendirilemedi: %s\n", paths[i], line, problem);
+            failed++;
+            free(source);
+            continue;
+        }
+
+        if (strcmp(source, formatted) != 0) {
+            changed++;
+            if (check) {
+                printf("biçimlendirilmeli: %s\n", paths[i]);
+            } else {
+                FILE *file = openFile(paths[i], "wb");
+                if (file == NULL || fwrite(formatted, 1, strlen(formatted), file) != strlen(formatted)) {
+                    fprintf(stderr, "jus: '%s' dosyasına yazılamadı.\n", paths[i]);
+                    failed++;
+                } else {
+                    printf("biçimlendirildi: %s\n", paths[i]);
+                }
+                if (file != NULL) fclose(file);
+            }
+        }
+        free(formatted);
+        free(source);
+    }
+
+    if (failed > 0) return JUS_EXIT_COMPILE_ERROR;
+    return check && changed > 0 ? 1 : 0;
 }
 
 static bool endsWith(const char *text, const char *suffix) {
@@ -221,6 +274,18 @@ int main(int argc, char *argv[]) {
     if (strcmp(argv[1], "--yardim") == 0) {
         printUsage(stdout);
         return 0;
+    }
+    if (strcmp(argv[1], "bicimle") == 0) {
+        bool check = argc > 2 && strcmp(argv[2], "--denetle") == 0;
+        int first = check ? 3 : 2;
+        if (argc <= first) {
+            printUsage(stderr);
+            return JUS_EXIT_USAGE;
+        }
+        return formatFiles(argc - first, argv + first, check);
+    }
+    if (strcmp(argv[1], "paket") == 0) {
+        return runPackageCommand(argc - 2, argv + 2);
     }
     if (strcmp(argv[1], "test") == 0) {
         if (argc > 3) {

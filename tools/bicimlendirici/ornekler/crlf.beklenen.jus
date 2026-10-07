@@ -1,0 +1,6 @@
+değişken a = 1
+eğer a:
+    yaz(a)  # x
+
+
+yaz(2)

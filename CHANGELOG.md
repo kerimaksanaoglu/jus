@@ -6,7 +6,14 @@ uyar.
 
 ## [Yayımlanmadı]
 
+## [0.6.0]
+
 ### Eklendi
+
+- Biçimlendirici: `jus bicimle [--denetle] dosya...`
+- Paket yöneticisi: `jus paket kur / listele / kaldır`; `kullan`, modülleri
+  `jus_paketleri/` klasöründe de arar
+- Üçüncü örnek program: HTTP not sunucusu (`examples/programlar/not_sunucusu`)
 
 - Test çalıştırıcı: `jus test [yol]`; `doğrula` ve `eşit_olmalı` yerleşik fonksiyonları
 - Rastgele girdiyle sınama aracı (`tools/fuzz`)

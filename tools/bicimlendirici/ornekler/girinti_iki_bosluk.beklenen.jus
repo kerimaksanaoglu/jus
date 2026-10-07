@@ -1,0 +1,5 @@
+fonksiyon f(x):
+    eğer x > 0:
+        dön 1
+    değilse:
+        dön 2

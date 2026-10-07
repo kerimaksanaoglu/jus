@@ -1,0 +1,10 @@
+fonksiyon f():
+  değişken s = {
+  "ad": "x",
+    "ic": {
+  "a":1,
+      "b":2
+  },
+  "son":  3
+  }
+  dön s

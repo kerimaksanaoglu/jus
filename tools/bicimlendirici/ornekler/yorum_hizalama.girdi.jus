@@ -1,0 +1,10 @@
+#üst yorum
+fonksiyon f():
+      # gövde yorumu
+      yaz(1)#satır sonu
+      yaz(2)    #   fazladan boşluk korunur
+# bloktan çıkışta yorum
+yaz(3)
+  #! özel
+  #
+  ##çift

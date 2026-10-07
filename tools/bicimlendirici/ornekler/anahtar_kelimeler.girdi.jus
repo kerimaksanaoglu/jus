@@ -1,0 +1,8 @@
+eğer değil(a) ve (b veya c):
+    dön(1)
+iken(x<3):
+    x+=1
+    eğer x==2:
+        devam
+    kır
+kullan   matematik   olarak   m

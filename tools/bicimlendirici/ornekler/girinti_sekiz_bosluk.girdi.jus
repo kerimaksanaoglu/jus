@@ -1,0 +1,4 @@
+her i içinde [1, 2]:
+        eğer i == 1:
+                yaz("bir")
+        yaz(i)

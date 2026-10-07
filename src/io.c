@@ -52,6 +52,11 @@ FILE *openFile(const char *path, const char *mode) {
 bool removeFile(const char *path) {
     wchar_t *wide = toWide(path);
     bool removed = wide != NULL && DeleteFileW(wide) != 0;
+    if (wide != NULL && !removed) {
+        /* Salt okunur dosyalar silinemez; özniteliği kaldırıp yeniden dene. */
+        SetFileAttributesW(wide, FILE_ATTRIBUTE_NORMAL);
+        removed = DeleteFileW(wide) != 0;
+    }
     free(wide);
     return removed;
 }

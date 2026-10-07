@@ -1,0 +1,8 @@
+eğer doğru:
+    yaz(1)
+        # iç sonrası yorum
+    # blok sonu yorumu
+yaz(2)
+eğer doğru:
+    yaz(3)
+    # dosya sonu, kod yok

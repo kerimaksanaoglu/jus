@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define JUS_VERSION "0.5.0"
+#define JUS_VERSION "0.6.0"
 
 #define UINT8_COUNT (UINT8_MAX + 1)
 
