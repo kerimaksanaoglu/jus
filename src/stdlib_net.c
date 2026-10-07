@@ -200,7 +200,12 @@ static bool dinleNative(int argCount, Value *args, Value *result) {
     Socket listener = socket(AF_INET, SOCK_STREAM, 0);
     if (listener == INVALID_SOCKET) return nativeFail("Dinleyici oluşturulamadı.");
     int on = 1;
+#ifdef _WIN32
+    /* Windows'ta SO_REUSEADDR, kullanımdaki bir portun ikinci kez dinlenmesine izin verir. */
+    setsockopt(listener, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (const char *)&on, sizeof(on));
+#else
     setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, (const char *)&on, sizeof(on));
+#endif
 
     if (bind(listener, (struct sockaddr *)&address, sizeof(address)) != 0 ||
         listen(listener, 16) != 0) {

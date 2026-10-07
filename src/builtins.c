@@ -317,6 +317,18 @@ static bool toDigits(const char *name, Value value, int *digits) {
     return true;
 }
 
+/*
+ * Sayıyı verilen ondalık basamağa yuvarlar; tam ortadaki değerler, yuvarla(x)
+ * ile tutarlı olarak sıfırdan uzağa gider. Ölçeklenince kesinliğini yitirecek
+ * kadar büyük sayılar olduğu gibi döner.
+ */
+static double roundToDigits(double number, int digits) {
+    double scale = pow(10.0, digits);
+    double scaled = number * scale;
+    if (fabs(scaled) >= 9007199254740992.0 || scaled != scaled) return number;
+    return round(scaled) / scale;
+}
+
 /* yuvarla(x) / yuvarla(x, basamak): en yakın tam sayıya ya da verilen ondalık basamağa yuvarlar. */
 static bool yuvarlaNative(int argCount, Value *args, Value *result) {
     if (argCount < 1 || argCount > 2) {
@@ -330,10 +342,7 @@ static bool yuvarlaNative(int argCount, Value *args, Value *result) {
 
     int digits = 0;
     if (!toDigits("yuvarla", args[1], &digits)) return false;
-    /* Onluk yazım üzerinden yuvarla; ikili kesirlerin yol açtığı sapmaları önler. */
-    char text[64];
-    snprintf(text, sizeof(text), "%.*f", digits, AS_NUMBER(args[0]));
-    *result = NUMBER_VAL(strtod(text, NULL));
+    *result = NUMBER_VAL(roundToDigits(AS_NUMBER(args[0]), digits));
     return true;
 }
 
@@ -347,7 +356,9 @@ static bool bicimleNative(int argCount, Value *args, Value *result) {
         return nativeFail("'biçimle' bu büyüklükteki bir sayıyı biçimlendiremez.");
     }
     char text[80];
-    int length = snprintf(text, sizeof(text), "%.*f", digits, AS_NUMBER(args[0]));
+    double rounded = roundToDigits(AS_NUMBER(args[0]), digits);
+    if (rounded == 0) rounded = 0; /* "-0.00" yerine "0.00" */
+    int length = snprintf(text, sizeof(text), "%.*f", digits, rounded);
     *result = OBJ_VAL(copyString(text, length));
     return true;
 }

@@ -10,6 +10,7 @@ yaz("_destek" içinde dosya.listele(sistem.betik_klasörü))   # bekle: doğru
 
 değişken klasör = sistem.betik_klasörü + "/jus_geçici_klasör"
 dosya.klasör_oluştur(klasör)
+yaz(dosya.var_mı(klasör), dosya.klasör_mü(klasör), dosya.klasör_mü(sistem.betik), dosya.klasör_mü(klasör + "/yok"))   # bekle: doğru doğru yanlış yanlış
 dosya.yaz(klasör + "/öğe.txt", "içerik")
 dosya.yaz(klasör + "/b.txt", "")
 yaz(sırala(dosya.listele(klasör)))              # bekle: ["b.txt", "öğe.txt"]

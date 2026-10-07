@@ -169,6 +169,74 @@ yaz(ters(sırala(sayılar)))
 
 `sırala` için listenin tüm öğeleri sayı ya da tüm öğeleri metin olmalıdır. Türk alfabesinde `ı` harfi `i`'den önce geldiği için `ılık` kelimesi `iğde`'den önce sıralandı.
 
+## Ölçüte göre sıralama: `sırala(liste, anahtar)`
+
+Bazen öğeleri kendi değerlerine göre değil, onlardan hesaplanan bir ölçüte göre sıralamak istersiniz: kelimeleri uzunluğuna göre, sayıları büyükten küçüğe... `sırala`'ya ikinci argüman olarak bir **fonksiyon** verirseniz, `sırala` her öğe için o fonksiyonu çağırır ve öğeleri dönen değere göre dizer. Fonksiyonun adı parantezsiz yazılır; çünkü onu çağırmıyor, `sırala`'ya değer olarak veriyorsunuz (beşinci bölümde gördüğünüz gibi).
+
+```jus
+değişken kelimeler = ["muz", "elma", "kayısı", "çilek", "incir"]
+
+fonksiyon harfSayısı(m):
+    dön uzunluk(m)
+
+yaz(sırala(kelimeler, harfSayısı))
+yaz(sırala(kelimeler, uzunluk))
+yaz(ters(sırala(kelimeler, uzunluk)))
+
+fonksiyon eksisi(n):
+    dön -n
+
+yaz(sırala([5, 2, 9, 1, 7], eksisi))
+```
+
+```
+["muz", "elma", "çilek", "incir", "kayısı"]
+["muz", "elma", "çilek", "incir", "kayısı"]
+["kayısı", "incir", "çilek", "elma", "muz"]
+[9, 7, 5, 2, 1]
+```
+
+Gözlemler:
+
+- Yerleşik fonksiyonlar da değerdir; ikinci satırda `uzunluk` doğrudan anahtar olarak verildi.
+- Anahtarı eşit olan öğeler özgün sıralarını korur: `çilek` ve `incir` ikisi de 5 harflidir; listede `çilek` önce olduğu için sonuçta da önce gelir.
+- Sayıları büyükten küçüğe dizmek için anahtar olarak sayının eksisini verdik.
+- Sonuç yine yeni bir listedir; asıl liste değişmez.
+
+Sözlük ve nesne listelerini sıralamak için de aynı yol izlenir; sekizinci bölümde göreceksiniz.
+
+## `eşle` ve `süz`
+
+Listelerle en sık yapılan iki iş, her öğeyi dönüştürmek ve bazı öğeleri seçmektir. İkisi için de elle döngü yazabilirsiniz, ama yerleşik fonksiyonlar daha kısadır:
+
+- `eşle(liste, f)`, her öğe için `f(öğe)` sonucunu içeren yeni bir liste verir.
+- `süz(liste, f)`, `f(öğe)` sonucu `doğru` olan öğelerden oluşan yeni bir liste verir. `f` mantıksal değer döndürmelidir.
+
+```jus
+fonksiyon kare(n):
+    dön n * n
+
+fonksiyon çift_mi(n):
+    dön n % 2 == 0
+
+değişken sayılar = [1, 2, 3, 4, 5, 6]
+yaz(eşle(sayılar, kare))
+yaz(süz(sayılar, çift_mi))
+yaz(eşle(süz(sayılar, çift_mi), kare))
+yaz(eşle(["ali", "ayşe"], büyük_harf))
+yaz(sayılar)
+```
+
+```
+[1, 4, 9, 16, 25, 36]
+[2, 4, 6]
+[4, 16, 36]
+["ALİ", "AYŞE"]
+[1, 2, 3, 4, 5, 6]
+```
+
+İkisi de asıl listeyi değiştirmez. Çağrıları iç içe yazabilirsiniz: üçüncü satır önce çift sayıları seçti, sonra karelerini aldı.
+
 ## Listeyi gezmek
 
 `her ... içinde` ile öğeleri tek tek dolaşırsınız. Dizine de ihtiyacınız varsa `aralık(uzunluk(liste))` ile dizinleri dolaşın.
@@ -296,8 +364,29 @@ yaz(sırala([3, "iki", 1]))
 ```
 
 ```
-ornek.jus:1: çalışma zamanı hatası: 'sırala' için listenin tüm öğeleri sayı ya da tüm öğeleri metin olmalı.
+ornek.jus:1: çalışma zamanı hatası: 'sırala' için listenin tüm öğeleri sayı ya da tüm öğeleri metin olmalı. Başka türde öğeler için ikinci argüman olarak bir anahtar fonksiyonu verin.
 ```
+
+**`süz` fonksiyonundan mantıksal olmayan değer döndürmek.** `süz`, verdiğiniz fonksiyonun `doğru` ya da `yanlış` döndürmesini bekler:
+
+```jus
+fonksiyon bir(n):
+    dön 1
+
+yaz(süz([1, 2], bir))
+```
+
+```
+ornek.jus:4: çalışma zamanı hatası: 'süz' için verilen fonksiyon doğru ya da yanlış döndürmeli; sayı döndürdü.
+```
+
+**Fonksiyonu çağırarak vermek.** `eşle([1, 2], kare(2))` yazarsanız `kare(2)` önce çalışır ve `eşle`'ye fonksiyon değil `4` gider:
+
+```
+ornek.jus:3: çalışma zamanı hatası: Yalnızca fonksiyonlar çağrılabilir; bu değerin türü sayı.
+```
+
+Fonksiyonu parantezsiz, adıyla verin: `eşle([1, 2], kare)`.
 
 **Boş listeden öğe çıkarmak.**
 
@@ -328,6 +417,8 @@ ornek.jus:2: çalışma zamanı hatası: '+' işleci iki sayı, iki metin ya da 
 3. `[18, 24, 9, 31, 15]` listesindeki en küçük sayıyı ve bu sayının listedeki dizinini yazdırın.
 4. Bir listeyi `ters` fonksiyonunu kullanmadan, bir döngüyle ters çevirin. (İpucu: `araya_ekle` ile hep başa ekleyin.) Asıl liste değişmesin.
 5. `[1, 2, 3, 4]` ile `[3, 4, 5, 6]` listelerini birleştirin ve tekrar eden öğeleri atarak yeni bir liste yapın.
+6. `[3, 8, 12, 7, 20, 5, 6]` listesindeki sayıların iki katlarını `eşle` ile, 5'ten büyük olanları `süz` ile bulun.
+7. `["armut", "kiraz", "ayva", "karpuz", "üzüm"]` listesini son harfine göre sıralayın.
 
 ## Çözümler
 
@@ -415,6 +506,41 @@ yaz(tekrarsız)
 [1, 2, 3, 4, 3, 4, 5, 6]
 [1, 2, 3, 4, 5, 6]
 ```
+
+**6.**
+
+```jus
+fonksiyon ikiKat(n):
+    dön n * 2
+
+fonksiyon beşten_büyük(n):
+    dön n > 5
+
+yaz(eşle([3, 8, 12, 7, 20, 5, 6], ikiKat))
+yaz(süz([3, 8, 12, 7, 20, 5, 6], beşten_büyük))
+```
+
+```
+[6, 16, 24, 14, 40, 10, 12]
+[8, 12, 7, 20, 6]
+```
+
+**7.**
+
+```jus
+değişken kelimeler = ["armut", "kiraz", "ayva", "karpuz", "üzüm"]
+
+fonksiyon sonHarf(m):
+    dön m[uzunluk(m) - 1]
+
+yaz(sırala(kelimeler, sonHarf))
+```
+
+```
+["ayva", "üzüm", "armut", "kiraz", "karpuz"]
+```
+
+`kiraz` ve `karpuz` aynı harfle (`z`) bittiği için özgün sıralarını korudu.
 
 ---
 

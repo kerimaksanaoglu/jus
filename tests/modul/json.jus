@@ -23,6 +23,8 @@ yaz(json.yaz({"liste": [1, [2, {}]], "boş": [], "metin": "tırnak \" ve\nsatır
 # bekle:   "metin": "tırnak \" ve\nsatır"
 # bekle: }
 
+yaz(json.yaz([1 / 3, 0.1, 2.5, 123456.789]))   # bekle: [0.3333333333333333,0.1,2.5,123456.789]
+
 # Gidiş-dönüş
 değişken özgün = {"a": [1, 2, {"b": "ç"}], "c": 0.1, "d": yanlış}
 yaz(json.çöz(json.yaz(özgün)) == özgün, json.çöz(json.yaz(özgün, 4)) == özgün)   # bekle: doğru doğru

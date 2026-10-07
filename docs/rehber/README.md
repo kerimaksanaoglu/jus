@@ -2,7 +2,7 @@
 
 Bu rehber, JUS programlama dilini hiç programlama bilmeden öğrenmek isteyenler için yazıldı. JUS, Türkçe sözdizimli bir programlama dilidir. Anahtar kelimeleri Türkçedir: `eğer`, `iken`, `fonksiyon`, `yaz` gibi.
 
-Rehberi bitirdiğinizde değişkenleri, kararları, döngüleri, fonksiyonları, listeleri, sözlükleri, hata yakalamayı, modülleri ve sınıfları kullanabilir; küçük programlar yazabilirsiniz.
+Rehberi bitirdiğinizde değişkenleri, kararları, döngüleri, fonksiyonları, listeleri, sözlükleri, hata yakalamayı, modülleri ve sınıfları kullanabilir; küçük programlar yazabilirsiniz. Son üç bölüm JSON ile veri saklamayı, HTTP ile ağda konuşmayı, test yazmayı, kodu biçimlendirmeyi ve paket kullanmayı anlatır.
 
 ## Kimin için?
 
@@ -25,17 +25,20 @@ Rehberdeki her kod örneği çalıştırılmış, gösterilen çıktılar gerçe
 | Bölüm | Konu |
 |-------|------|
 | [01 - İlk program](01-ilk-program.md) | `yaz`, yorumlar, programı çalıştırma, hata iletisi okuma |
-| [02 - Değişkenler ve değerler](02-degiskenler-ve-degerler.md) | sayı, metin, mantıksal, boş; aritmetik; `oku` ile girdi |
+| [02 - Değişkenler ve değerler](02-degiskenler-ve-degerler.md) | sayı, metin, mantıksal, boş; aritmetik; `yuvarla` ve `biçimle`; `oku` ile girdi |
 | [03 - Kararlar](03-kararlar.md) | karşılaştırma, `ve` / `veya` / `değil`, `eğer` |
-| [04 - Döngüler](04-donguler.md) | `iken`, `her ... içinde`, `aralık`, `kır`, `devam` |
+| [04 - Döngüler](04-donguler.md) | `iken`, `her ... içinde`, `aralık`, `kır`, `devam`, `geç` |
 | [05 - Fonksiyonlar](05-fonksiyonlar.md) | tanım, parametre, `dön`, kapsam, özyineleme |
-| [06 - Listeler](06-listeler.md) | dizin, dilim, ekleme, silme, sıralama |
-| [07 - Metinler](07-metinler.md) | dilim, bölme, bulma, Türkçe harf kuralları |
+| [06 - Listeler](06-listeler.md) | dizin, dilim, ekleme, silme, sıralama, `eşle`, `süz` |
+| [07 - Metinler](07-metinler.md) | dilim, bölme, bulma, Türkçe harf kuralları, hizalama |
 | [08 - Sözlükler](08-sozlukler.md) | anahtar-değer eşlemeleri, kelime sayma |
 | [09 - Hatalar](09-hatalar.md) | `dene` / `yakala`, `fırlat` |
-| [10 - Modüller](10-moduller.md) | `kullan`, standart kütüphane, kendi modülünüz |
+| [10 - Modüller](10-moduller.md) | `kullan`, standart kütüphane (`dosya` klasörleri, `sistem`), kendi modülünüz |
 | [11 - Sınıflar](11-siniflar.md) | sınıf, yöntem, kalıtım |
 | [12 - Küçük projeler](12-kucuk-projeler.md) | üç tam program |
+| [13 - JSON ve veri](13-json-ve-veri.md) | `json.çöz`, `json.yaz`, dosyaya kaydetme, `tr` modülü |
+| [14 - Ağ ve HTTP](14-ag-ve-http.md) | `http.getir`, `http.gönder`, `http.sun`, `ağ` modülü |
+| [15 - Test, biçim ve paket](15-test-bicim-paket.md) | `doğrula`, `jus test`, `jus bicimle`, `jus paket` |
 
 ## Kurulum
 
@@ -61,7 +64,7 @@ jus --surum
 ```
 
 ```
-JUS 0.4.0
+JUS 1.0.0
 ```
 
 Komut bulunamazsa `jus` dosyasının bulunduğu klasörde olduğunuzdan emin olun. Linux ve macOS'ta `./jus`, Windows'ta `jus.exe` yazmanız gerekebilir. Rehberin geri kalanında kısalık için `jus` yazılmıştır.
@@ -114,7 +117,7 @@ Kısa denemeler için dosya yazmanız gerekmez. `jus` komutunu dosya adı vermed
 Aşağıda, `>>>` istemini izleyen satırlar sizin yazdıklarınızdır; altındaki satırlar JUS'un yanıtıdır:
 
 ```
-JUS 0.4.0 - çıkmak için 'çıkış' yazın.
+JUS 1.0.0 - çıkmak için 'çıkış' yazın.
 >>> 2 + 3
 5
 >>> değişken x = 10

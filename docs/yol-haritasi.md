@@ -22,80 +22,58 @@ ardından küçük otomasyon betikleri yazanlar.
    sürümün değişiklikleri kaydedilir. 1.0'dan sonra dil davranışını bozan
    değişiklik yalnızca ana sürümde yapılır.
 
-## 1.0 ölçütleri
+## 1.0 ölçütleri ve durumları
 
-Aşağıdakilerin tümü sağlanmadan 1.0 sürümü yayımlanmaz.
-
-| # | Ölçüt | Tanım |
+| # | Ölçüt | Durum |
 |---|-------|-------|
-| 1 | Yazılı dil tanımı | Sözdizimi ve davranış belgede tanımlıdır; yorumlayıcı belgeye uyar. |
-| 2 | Doğruluk | Her özelliğin testi vardır; testler Linux, macOS ve Windows'ta otomatik çalışır. Hatalı girdide çökme ve bellek sızıntısı yoktur. |
-| 3 | Hız | Standart ölçümlerde CPython ile aynı mertebededir. |
-| 4 | Yeterlilik | JUS ile yazılmış üç gerçek program vardır: bir komut satırı aracı, JSON işleyen bir betik, küçük bir HTTP sunucusu. |
-| 5 | Araçlar | Etkileşimli kip, biçimlendirici, VS Code eklentisi, tarayıcıda deneme alanı. |
-| 6 | Belgeler | Başlangıç rehberi, dil başvurusu, standart kütüphane başvurusu. |
+| 1 | **Yazılı dil tanımı.** Sözdizimi ve davranış belgede tanımlıdır; yorumlayıcı belgeye uyar. | Sağlandı: [dil tanımı](dil-tanimi.md). |
+| 2 | **Doğruluk.** Her özelliğin testi vardır; testler Linux, macOS ve Windows'ta otomatik çalışır. Hatalı girdide çökme ve bellek sızıntısı yoktur. | Sağlandı: test paketi üç platformda ve bellek denetimiyle (ASan, UBSan, zorlanmış çöp toplayıcı) çalışıyor; rastgele girdiyle sınamada bulunan iki hata düzeltildi. |
+| 3 | **Hız.** Standart ölçümlerde CPython ile aynı mertebededir. | Sağlandı: 11 ölçümün geometrik ortalaması CPython 3.11'in 0,92 katı ([ayrıntı](../bench/README.md)). Metin ve sözlük ağırlıklı işlerde CPython 1,7-3 kat hızlı. |
+| 4 | **Yeterlilik.** JUS ile yazılmış üç gerçek program vardır. | Sağlandı: [yapılacaklar listesi](../examples/programlar/yapilacaklar/) (komut satırı aracı), [not raporu](../examples/programlar/not_raporu/) (JSON işleme), [not sunucusu](../examples/programlar/not_sunucusu/) (HTTP sunucusu). |
+| 5 | **Araçlar.** Etkileşimli kip, biçimlendirici, VS Code eklentisi, tarayıcıda deneme alanı. | Sağlandı. Ayrıca test çalıştırıcı ve paket yöneticisinin ilk sürümü. |
+| 6 | **Belgeler.** Başlangıç rehberi, dil başvurusu, standart kütüphane başvurusu. | Sağlandı: [rehber](rehber/README.md); dil ve standart kütüphane başvurusu [dil tanımında](dil-tanimi.md). |
 
-## Sürümler
+## Sürüm geçmişi
 
-### 0.1 Çekirdek (tamamlandı)
+| Sürüm | İçerik |
+|-------|--------|
+| 0.1 | Çekirdek: değerler, değişkenler, işleçler, girintili bloklar, `eğer`, `iken`, fonksiyonlar ve kapanımlar, bayt kodu sanal makinesi, çöp toplayıcı, etkileşimli kip |
+| 0.2 | Liste ve sözlük, dizinleme ve dilimleme, `her ... içinde`, Türkçeye duyarlı metin işlemleri |
+| 0.3 | `dene` / `yakala` / `fırlat`, modüller, standart kütüphanenin ilk modülleri |
+| 0.4 | Sınıflar ve kalıtım |
+| 0.5 | `json`, `ağ`, `http`, `tr` modülleri; fonksiyon alan yerleşikler (`sırala`, `eşle`, `süz`); biçimlendirme fonksiyonları |
+| 0.6 | Test çalıştırıcı, biçimlendirici, paket yöneticisi, deneme alanı, rastgele girdiyle sınama |
+| 1.0 | Dil tanımının dondurulması |
 
-Sayı, metin, mantıksal ve boş değerler; değişkenler ve kapsam; işleçler;
-girintili bloklar; `eğer`, `iken`, `kır`, `devam`; fonksiyonlar ve kapanımlar;
-temel yerleşik fonksiyonlar; bayt kodu sanal makinesi ve çöp toplayıcı;
-etkileşimli kip; test paketi.
-
-### 0.2 Veri yapıları (tamamlandı)
-
-Liste ve sözlük; dizinleme ve dilimleme; `her ... içinde` döngüsü ve
-`aralık()`; `içinde` işleci; metin işlemleri; Türkçeye duyarlı büyük/küçük
-harf dönüşümü ve sıralama; bileşik atama.
-
-### 0.3 Hata yönetimi ve modüller (tamamlandı)
-
-`dene` / `yakala` / `fırlat`; `kullan` ile modüller; standart kütüphanenin ilk
-modülleri: matematik, rastgele, zaman, dosya, sistem.
-
-### 0.4 Nesneler (tamamlandı)
-
-Sınıflar, yöntemler, `kur`, `bu`, tekli kalıtım ve `üst`.
-
-### 0.5 Standart kütüphane (tamamlandı)
-
-`json`, `ağ`, `http` ve `tr` modülleri; komut satırı argümanları; `geç` deyimi.
-
-Sonraki sürümlere bırakılanlar: klasör listeleme ve oluşturma, süreç
-çalıştırma, şifreli (https) bağlantılar.
-
-### 0.6 Araçlar
-
-- Biçimlendirici (`jus bicimle`) (tamamlandı)
-- Test çalıştırıcı (`jus test`) (tamamlandı)
-- VS Code eklentisi: renklendirme (tamamlandı), hata gösterimi, tamamlama
-- Tarayıcıda deneme alanı (WebAssembly) (tamamlandı; `playground/`)
-
-### 0.7 Hız ve sağlamlık
-
-- Ölçüm paketi ve CPython ile karşılaştırma (tamamlandı; sonuçlar `bench/README.md`)
-- Döngüde metin birleştirmenin (`m += parça`) hızlandırılması (kısmen
-  tamamlandı: CPython'a göre 17 kat yavaşken 3 kat yavaşa indi)
-- Sanal makine iyileştirmeleri
-- Rastgele girdiyle sınama (tamamlandı; `tools/fuzz`)
-
-### 0.8 - 0.9 Kararlılık
-
-- Paket yöneticisi (ilk sürüm tamamlandı: git depolarından kurma; sürüm seçimi
-  ve bağımlılık çözümü yok)
-- Belgelerin tamamlanması
-- 1.0 ölçütlerindeki üç programın yazılması (tamamlandı; `examples/programlar`)
-- Dil tanımının dondurulması
+Ayrıntılar [değişiklik günlüğündedir](../CHANGELOG.md).
 
 ## Bilinen sınırlar
 
-- Windows konsolunda `oku()` ile Türkçe karakter girişi, konsolun kod sayfası
-  ayarına bağlıdır.
-- Windows'ta ASCII dışı karakter içeren dosya yolları açılamayabilir.
-- Etkileşimli kipte satır düzenleme ve geçmiş yoktur.
 - `http` modülü şifreli (`https://`) adreslere bağlanamaz.
-- Ağ işlemleri bekletir; aynı anda birden çok bağlantıya hizmet verilemez.
-- Uzun bir metni döngüde `+=` ile büyütmek yavaştır; parçaları listede toplayıp
-  `birleştir` ile birleştirmek hızlıdır.
+- Ağ işlemleri bekletir; bir sunucu aynı anda tek bir isteğe hizmet verir.
+- Sayılar 64 bit kayan noktalıdır; ayrı bir tam sayı türü yoktur. Tam sayılar
+  2^53'e kadar kesindir.
+- Fonksiyonların varsayılan parametre değerleri ve değişken sayıda parametresi
+  yoktur.
+- Paket yöneticisi sürüm seçmez ve bağımlılık çözmez.
+- Etkileşimli kipte satır düzenleme ve geçmiş yoktur.
+- Windows konsolunda `oku()` ile Türkçe karakter girişi, konsolun ayarlarına
+  bağlıdır; dosyadan ya da başka bir programdan yönlendirilen girdi sorunsuzdur.
+- Harf dönüşümü ve alfabetik sıralama yalnızca Türk ve İngiliz alfabelerini
+  kapsar.
+- Uzun bir metni döngüde `+=` ile büyütmek, parçaları listede toplayıp
+  `birleştir` ile birleştirmekten yavaştır.
+
+## 1.0 sonrası için düşünülenler
+
+Aşağıdakiler birer taahhüt değil, adaydır. Hepsi var olan programları bozmadan
+eklenebilecek niteliktedir.
+
+- Şifreli bağlantılar (`https`)
+- Varsayılan ve adlandırılmış parametreler
+- Metin içine değer yerleştirme (var olan metinleri etkilemeyen yeni bir yazımla)
+- Etkileşimli kipte satır düzenleme ve geçmiş
+- VS Code eklentisinde hata gösterimi ve tamamlama
+- Paketlerde sürüm ve bağımlılık yönetimi
+- Daha hızlı metin ve sözlük işlemleri
+- Aynı anda birden çok bağlantıya hizmet verebilen ağ işlemleri

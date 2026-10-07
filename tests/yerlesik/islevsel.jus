@@ -85,7 +85,10 @@ yaz(toplam)                                      # bekle: 5000
 
 # Sayı ve metin biçimlendirme
 yaz(yuvarla(3.14159, 2), yuvarla(2.5), yuvarla(1.005, 2), yuvarla(-0.4))   # bekle: 3.14 3 1 0
-yaz(biçimle(3.14159, 2), biçimle(2, 2), biçimle(0.5, 0), biçimle(-1.5, 1))   # bekle: 3.14 2.00 0 -1.5
+yaz(biçimle(3.14159, 2), biçimle(2, 2), biçimle(0.5, 0), biçimle(-1.5, 1))   # bekle: 3.14 2.00 1 -1.5
+# Tam ortadaki değerler her yerde sıfırdan uzağa yuvarlanır
+yaz(yuvarla(0.125, 2), yuvarla(-0.125, 2), yuvarla(2.5, 0), biçimle(0.125, 2), biçimle(2.5, 0), biçimle(-0.001, 2))   # bekle: 0.13 -0.13 3 0.13 3 0.00
+yaz(yuvarla(123456789.987654, 3), biçimle(1234567.891, 1), yuvarla(100000000000000000000, 2))   # bekle: 123456789.988 1234567.9 1e+20
 yaz("[" + sola_doldur("ş", 3) + "]", "[" + sağa_doldur("ş", 3) + "]")   # bekle: [  ş] [ş  ]
 yaz(sola_doldur("7", 3, "0"), sağa_doldur("ad", 6, "."), sola_doldur("uzun metin", 3))   # bekle: 007 ad.... uzun metin
 yaz(tekrarla("-", 10), tekrarla("çğ", 2), "[" + tekrarla("x", 0) + "]")   # bekle: ---------- çğçğ []

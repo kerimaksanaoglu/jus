@@ -346,11 +346,15 @@ static bool jsonWrite(Buffer *buffer, Value value, int indent, int depth) {
             return nativeFail("Sonsuz ya da tanımsız sayılar JSON'a çevrilemez.");
         }
         char text[40];
-        int length;
+        int length = 0;
         if (number == floor(number) && fabs(number) < 1e15) {
             length = snprintf(text, sizeof(text), "%.0f", number == 0 ? 0.0 : number);
         } else {
-            length = snprintf(text, sizeof(text), "%.17g", number);
+            /* Geri okunduğunda aynı sayıyı veren en kısa yazım. */
+            for (int precision = 15; precision <= 17; precision++) {
+                length = snprintf(text, sizeof(text), "%.*g", precision, number);
+                if (strtod(text, NULL) == number) break;
+            }
         }
         bufferAppend(buffer, text, (size_t)length);
     } else if (IS_STRING(value)) {

@@ -17,7 +17,7 @@ kullan matematik olarak m
 
 Modül, kaç kez `kullan` ile istenirse istensin yalnızca bir kez yüklenir.
 
-JUS ile birlikte gelen modüllere **standart kütüphane** denir. Aşağıda beş modülü sırayla tanıyacağız.
+JUS ile birlikte gelen modüllere **standart kütüphane** denir. Aşağıda beş modülü sırayla tanıyacağız: `matematik`, `rastgele`, `zaman`, `dosya` ve `sistem`. Standart kütüphanede ayrıca `json`, `http`, `ağ` ve `tr` modülleri vardır; bunlar 13. ve 14. bölümlerde anlatılıyor.
 
 ## `matematik`
 
@@ -224,10 +224,62 @@ Dosya adı olarak yazdığınız yol, programı çalıştırdığınız klasöre
 | `ekle(yol, içerik)` | İçeriği dosyanın sonuna ekler |
 | `var_mı(yol)` | Dosya varsa `doğru` |
 | `sil(yol)` | Dosyayı siler |
+| `listele(yol)` | Klasördeki dosya ve klasör adlarının listesi; sıra belirsizdir |
+| `klasör_oluştur(yol)` | Klasör oluşturur |
+| `klasör_sil(yol)` | **Boş** bir klasörü siler |
 
 İlk `yaz(dosya.oku(yol))` çıktısında dosyanın sonundaki satır sonu yüzünden bir boş satır görünür: dosya `İkinci satır\n` ile bitiyor ve `yaz` bir satır sonu daha ekliyor.
 
 `dosya.yaz` var olan bir dosyanın içeriğini siler. Önemli bir dosya üzerinde denemeden önce yedek alın.
+
+### Klasörlerle çalışmak
+
+`dosya.listele` bir klasördeki dosya ve alt klasör adlarını liste olarak verir. Sırası belirsiz olduğu için, her çalıştırmada aynı çıktıyı istiyorsanız `sırala` ile sıralayın. `dosya.klasör_oluştur` yeni klasör açar; `dosya.klasör_sil` yalnızca **boş** klasörü siler, içinde bir şey varsa önce içindekileri silmeniz gerekir.
+
+```jus
+kullan dosya
+
+değişken klasör = "deneme_klasör"
+dosya.klasör_oluştur(klasör)
+dosya.yaz(klasör + "/b.txt", "ikinci")
+dosya.yaz(klasör + "/a.txt", "birinci")
+dosya.klasör_oluştur(klasör + "/alt")
+
+değişken adlar = sırala(dosya.listele(klasör))
+yaz(adlar)
+yaz(uzunluk(adlar))
+
+her ad içinde adlar:
+    eğer ad == "alt":
+        dosya.klasör_sil(klasör + "/alt")
+    değilse:
+        dosya.sil(klasör + "/" + ad)
+
+yaz(dosya.listele(klasör))
+dosya.klasör_sil(klasör)
+```
+
+```
+["a.txt", "alt", "b.txt"]
+3
+[]
+```
+
+Listede dosya ile klasör adları karışık gelir; hangisinin klasör olduğunu bu fonksiyon söylemez. Yukarıda `alt` adını elle bildiğimiz için ayırabildik.
+
+Boş olmayan klasörü silmeye çalışırsanız hata alırsınız:
+
+```jus
+kullan dosya
+
+dosya.klasör_oluştur("dolu_klasör")
+dosya.yaz("dolu_klasör/a.txt", "x")
+dosya.klasör_sil("dolu_klasör")
+```
+
+```
+ornek.jus:5: çalışma zamanı hatası: 'dolu_klasör' klasörü silinemedi; klasör boş olmalıdır.
+```
 
 ## `sistem`
 
@@ -254,13 +306,13 @@ boş
 Argüman verilmedi, çıkılıyor.
 ```
 
-Dosya adından sonra argüman verince (`jus ornek.jus Ayse Ali`):
+Dosya adından sonra argüman verince (`jus ornek.jus Ayşe Ali`):
 
 ```
-Argümanlar: ["Ayse", "Ali"]
+Argümanlar: ["Ayşe", "Ali"]
 Platform: windows
 boş
-Merhaba, Ayse!
+Merhaba, Ayşe!
 ```
 
 | Üye | Açıklama |
@@ -269,8 +321,53 @@ Merhaba, Ayse!
 | `platform` | `"windows"`, `"linux"` ya da `"macos"` |
 | `ortam(ad)` | Ortam değişkeninin değeri; tanımlı değilse `boş` |
 | `çık(kod)` | Programı verilen çıkış koduyla sonlandırır |
+| `hata_yaz(...)` | `yaz` gibi çalışır, ancak standart hata çıktısına yazar |
+| `betik` | Çalıştırılan dosyanın yolu |
+| `betik_klasörü` | Çalıştırılan dosyanın bulunduğu klasör |
 
-`argümanlar` ve `platform`'un parantezsiz yazıldığına dikkat edin: bunlar fonksiyon değil, değerdir. `ortam` ve `çık` ise fonksiyondur. Platform çıktısı sizin bilgisayarınıza göre değişir. İlk çalıştırmada `sistem.çık(3)` programı 3 çıkış koduyla bitirdi.
+`argümanlar`, `platform`, `betik` ve `betik_klasörü`'nün parantezsiz yazıldığına dikkat edin: bunlar fonksiyon değil, değerdir. `ortam`, `çık` ve `hata_yaz` ise fonksiyondur. Platform çıktısı sizin bilgisayarınıza göre değişir. İlk çalıştırmada `sistem.çık(3)` programı 3 çıkış koduyla bitirdi.
+
+Argümanlar ve dosya adları Türkçe harf içerebilir; `jus ornek.jus Şükrü Çağlar` ya da `çıktı_ığ.txt` gibi bir dosya adı sorunsuz çalışır.
+
+### Hata çıktısı ve betiğin konumu
+
+Programlar iki ayrı çıktı kanalı kullanır: normal çıktı (`yaz`) ve hata çıktısı. Terminalde ikisi de ekranda görünür, ama birbirinden ayrılabilirler: örneğin çıktıyı bir dosyaya yönlendirirken uyarıların dosyaya karışmaması istenir. `sistem.hata_yaz` uyarı ve kullanım iletilerini hata çıktısına yazar.
+
+`sistem.betik_klasörü`, çalışan programın bulunduğu klasördür. Programın yanındaki bir dosyayı, programı hangi klasörden çalıştırırsanız çalıştırın bulmak için yolu bununla kurarsınız:
+
+```jus
+kullan sistem
+kullan dosya
+
+yaz("Betik:", sistem.betik)
+yaz("Klasör:", sistem.betik_klasörü)
+
+# betiğin yanındaki dosyayı, nereden çalıştırılırsa çalıştırılsın bul
+değişken yol = sistem.betik_klasörü + "/ayar.txt"
+dosya.yaz(yol, "tema=koyu")
+yaz(dosya.oku(yol))
+dosya.sil(yol)
+
+sistem.hata_yaz("Uyarı: ayar dosyası eski")
+yaz("Normal çıktı")
+```
+
+`jus ornek.jus > cikti.txt` ile çalıştırırsanız `cikti.txt` dosyasına yalnızca normal çıktı gider; `Uyarı: ...` satırı ekranda kalır:
+
+```
+Betik: ornek.jus
+Klasör: .
+tema=koyu
+Normal çıktı
+```
+
+Ekranda ayrıca şu satır görünür:
+
+```
+Uyarı: ayar dosyası eski
+```
+
+`Betik` ve `Klasör` değerleri programı nasıl çağırdığınıza bağlıdır: `jus ornek.jus` dediğimiz için `ornek.jus` ve `.` (bulunulan klasör) çıktı. Tam yolla çağırırsanız tam yol görürsünüz.
 
 ## Kendi modülünüzü yazmak
 
@@ -362,8 +459,10 @@ yaz("hiç çalışmaz")
 ```
 
 ```
-ornek.jus:1: çalışma zamanı hatası: 'olmayanmodül' modülü yüklenemedi: 'olmayanmodül.jus' için dosya açılamadı.
+ornek.jus:1: çalışma zamanı hatası: 'olmayanmodül' modülü yüklenemedi: 'olmayanmodül.jus' için dosya açılamadı. Kurulu paketlerde de yok ('jus_paketleri/olmayanmodül/olmayanmodül.jus').
 ```
+
+Hata iletisinin sonundaki `jus_paketleri` ifadesi, JUS'un modülü kurulu paketlerde de aradığını gösterir; paketleri 15. bölümde anlatıyoruz.
 
 Modül adını ve dosyanın konumunu denetleyin.
 
@@ -408,7 +507,8 @@ Bir modülün üyelerini yalnızca okuyabilirsiniz. Değiştirmek istiyorsanız 
 2. `rastgele` modülüyle iki zar atın ve toplamın 2 ile 12 arasında olduğunu denetleyin.
 3. `dosya` modülüyle `[12, 7, 30]` listesindeki sayıları bir dosyaya satır satır yazın, sonra dosyayı geri okuyup toplamlarını hesaplayın ve dosyayı silin.
 4. `geometri2.jus` adında kendi modülünüzü yazın: `daireAlanı(r)` ve `kareAlanı(kenar)` fonksiyonları olsun. Başka bir dosyadan kullanın.
-5. `sistem.argümanlar` ile komut satırından ad ve soyad alıp selamlayan bir program yazın. Argüman eksikse bir kullanım iletisi yazıp 1 koduyla çıksın.
+5. `sistem.argümanlar` ile komut satırından ad ve soyad alıp selamlayan bir program yazın. Argüman eksikse bir kullanım iletisini `sistem.hata_yaz` ile yazıp 1 koduyla çıksın.
+6. `dosya.klasör_oluştur` ile `deneme_alistirma` klasörünü açın, içine `bir.txt` ve `iki.txt` dosyalarını yazın, `dosya.listele` ile adları sıralı yazdırın, sonra hepsini silin.
 
 ## Çözümler
 
@@ -498,7 +598,7 @@ yaz(yuvarla(geometri2.daireAlanı(2)))
 kullan sistem
 
 eğer uzunluk(sistem.argümanlar) < 2:
-    yaz("Kullanım: jus ornek.jus <ad> <soyad>")
+    sistem.hata_yaz("Kullanım: jus ornek.jus <ad> <soyad>")
     sistem.çık(1)
 
 yaz("Merhaba, " + sistem.argümanlar[0] + " " + sistem.argümanlar[1] + "!")
@@ -510,10 +610,33 @@ Argümansız çalıştırınca:
 Kullanım: jus ornek.jus <ad> <soyad>
 ```
 
-(çıkış kodu 1). `jus ornek.jus Ayse Yilmaz` ile:
+(çıkış kodu 1; ileti hata çıktısına gider). `jus ornek.jus Ayşe Yılmaz` ile:
 
 ```
-Merhaba, Ayse Yilmaz!
+Merhaba, Ayşe Yılmaz!
+```
+
+**6.**
+
+```jus
+kullan dosya
+
+dosya.klasör_oluştur("deneme_alistirma")
+dosya.yaz("deneme_alistirma/bir.txt", "1")
+dosya.yaz("deneme_alistirma/iki.txt", "2")
+
+değişken adlar = sırala(dosya.listele("deneme_alistirma"))
+yaz(adlar)
+
+her ad içinde adlar:
+    dosya.sil("deneme_alistirma/" + ad)
+dosya.klasör_sil("deneme_alistirma")
+yaz(dosya.var_mı("deneme_alistirma/bir.txt"))
+```
+
+```
+["bir.txt", "iki.txt"]
+yanlış
 ```
 
 ---

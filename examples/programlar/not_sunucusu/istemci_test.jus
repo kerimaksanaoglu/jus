@@ -66,6 +66,12 @@ fonksiyon test_5_hatalı_istekler():
     eşit_olmalı(http.iste("PUT", kök + "/notlar", {}, "x")["durum"], 405)
     eşit_olmalı(http.iste("PUT", kök + "/notlar/1", {}, "x")["durum"], 405)
 
+fonksiyon test_6_geçersiz_işleyici_sonucu():
+    # İşleyici metin ya da sözlük dışında bir değer döndürürse istemci 500 alır.
+    değişken yanıt = http.getir(kök + "/bozuk")
+    eşit_olmalı(yanıt["durum"], 500)
+    doğrula("işleyici metin ya da sözlük döndürmeli" içinde yanıt["gövde"])
+
 fonksiyon test_9_kapatma():
     değişken yanıt = http.gönder(kök + "/kapat", "")
     eşit_olmalı(json.çöz(yanıt["gövde"]), {"durum": "kapanıyor"})

@@ -45,8 +45,9 @@ istemci_test.jus
   geçti  test_3_listeleme_ve_arama
   geçti  test_4_tek_not_ve_silme
   geçti  test_5_hatalı_istekler
+  geçti  test_6_geçersiz_işleyici_sonucu
   geçti  test_9_kapatma
 
-1 dosya, 6 test: 6 geçti, 0 kaldı.
+1 dosya, 7 test: 7 geçti, 0 kaldı.
 Sonuç: GEÇTİ
 ```

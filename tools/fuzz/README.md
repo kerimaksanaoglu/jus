@@ -32,4 +32,6 @@ Aynı tohum aynı girdileri üretir. `--strateji` ile tek bir strateji seçilebi
 | On binlerce farklı sabit içeren dosya | Derleme dakikalarca sürüyordu | Her sabit, tablodaki tüm sabitlerle karşılaştırılıyordu |
 
 Bu iki durum `tests/hata/` altında kalıcı teste dönüştürüldü. Düzeltmelerden
-sonra üç farklı tohumla 7.500 girdi denendi; çökme ya da takılma bulunmadı.
+sonra yedi farklı tohumla 17.500 girdi denendi; çökme ya da takılma bulunmadı.
+Zaman aşımına uğrayan altı girdinin tümü gerçekten sonsuz döngü içeren ya da
+hiç gelmeyecek ağ verisini bekleyen programlardı.

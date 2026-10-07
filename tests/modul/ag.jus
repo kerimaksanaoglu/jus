@@ -32,6 +32,14 @@ yaz(ağ.satır_al(sunucu), ağ.al(sunucu, 10))   # bekle: boş boş
 ağ.kapat(sunucu)
 ağ.kapat(dinleyici)
 
+# Kullanımdaki port ikinci kez dinlenemez
+değişken ilk = ağ.dinle(0)
+dene:
+    ağ.dinle(ağ.port(ilk))
+yakala hata:
+    yaz(biter_mi(hata, "başka bir program kullanıyor olabilir."))   # bekle: doğru
+ağ.kapat(ilk)
+
 dene:
     ağ.gönder(sunucu, "x")
 yakala hata:

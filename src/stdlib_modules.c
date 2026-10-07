@@ -365,13 +365,26 @@ static bool dosyaSatirlarNative(int argCount, Value *args, Value *result) {
     return true;
 }
 
-/* dosya.var_mı(yol) */
+static void ignoreName(const char *name, void *context) {
+    (void)name;
+    (void)context;
+}
+
+/* dosya.var_mı(yol): yol bir dosyayı ya da klasörü gösteriyorsa doğru. */
 static bool dosyaVarMiNative(int argCount, Value *args, Value *result) {
     (void)argCount;
     if (!requireString("dosya.var_mı", args[0])) return false;
     FILE *file = openFile(AS_CSTRING(args[0]), "rb");
     if (file != NULL) fclose(file);
-    *result = BOOL_VAL(file != NULL);
+    *result = BOOL_VAL(file != NULL || listDirectory(AS_CSTRING(args[0]), ignoreName, NULL));
+    return true;
+}
+
+/* dosya.klasör_mü(yol) */
+static bool klasorMuNative(int argCount, Value *args, Value *result) {
+    (void)argCount;
+    if (!requireString("dosya.klasör_mü", args[0])) return false;
+    *result = BOOL_VAL(listDirectory(AS_CSTRING(args[0]), ignoreName, NULL));
     return true;
 }
 
@@ -503,6 +516,7 @@ void defineStandardModules(void) {
     moduleDefineNative(dosya, "sil", 1, dosyaSilNative);
     moduleDefineNative(dosya, "klasör_oluştur", 1, klasorOlusturNative);
     moduleDefineNative(dosya, "klasör_sil", 1, klasorSilNative);
+    moduleDefineNative(dosya, "klasör_mü", 1, klasorMuNative);
     moduleDefineNative(dosya, "listele", 1, listeleNative);
 
     ObjModule *sistem = defineModule("sistem");

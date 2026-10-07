@@ -1,10 +1,15 @@
 # JUS Dil Tanımı
 
-Sürüm 0.6.0
+Sürüm 1.0.0
 
 Bu belge JUS'un sözdizimini ve davranışını tanımlar. Yorumlayıcı bu belgeye
 uymak zorundadır; ikisi arasındaki her fark bir hatadır. Burada yazmayan bir
 özellik dilde yoktur.
+
+1.0 sürümünden itibaren bu belgede tanımlanan davranış kararlıdır: 1.x
+sürümleri yeni özellikler ekleyebilir, ancak bu belgeye uygun yazılmış bir
+programın davranışını değiştirmez. Hata iletilerinin metni bu güvencenin
+dışındadır; iyileştirilebilir.
 
 ## 1. Kaynak dosyalar
 
@@ -414,8 +419,8 @@ kullanılır. Verdikleri hata `dene` / `yakala` ile yakalanabilir.
 | `taban(x)`               | `x`'ten büyük olmayan en büyük tam sayı.                         |
 | `tavan(x)`               | `x`'ten küçük olmayan en küçük tam sayı.                         |
 | `yuvarla(x)`             | En yakın tam sayı; tam ortadaki değerler sıfırdan uzağa yuvarlanır. |
-| `yuvarla(x, basamak)`    | Verilen sayıda ondalık basamağa yuvarlar: `yuvarla(3.14159, 2)` sonucu `3.14`. |
-| `biçimle(x, basamak)`    | Sayıyı tam olarak verilen sayıda ondalık basamakla metne çevirir: `biçimle(2, 2)` sonucu `"2.00"`. |
+| `yuvarla(x, basamak)`    | Verilen sayıda ondalık basamağa yuvarlar: `yuvarla(3.14159, 2)` sonucu `3.14`. Tam ortadaki değerler burada da sıfırdan uzağa yuvarlanır. |
+| `biçimle(x, basamak)`    | Sayıyı tam olarak verilen sayıda ondalık basamakla metne çevirir: `biçimle(2, 2)` sonucu `"2.00"`. Yuvarlama kuralı `yuvarla` ile aynıdır. |
 | `aralık(son)`            | `0`'dan `son`'a kadar (son hariç) sayıların listesi.             |
 | `aralık(baş, son)`       | `baş`'tan `son`'a kadar (son hariç) sayıların listesi.           |
 | `aralık(baş, son, adım)` | Aynı, `adım` kadar artarak. Adım negatif olabilir.               |
@@ -502,7 +507,8 @@ Aşağıdaki modüller `kullan` ile yüklenir.
 | `satırlar(yol)`      | Dosyanın satırları, liste olarak.                           |
 | `yaz(yol, içerik)`   | Dosyayı içerikle oluşturur; varsa üzerine yazar.            |
 | `ekle(yol, içerik)`  | İçeriği dosyanın sonuna ekler.                              |
-| `var_mı(yol)`        | Dosya varsa `doğru`.                                        |
+| `var_mı(yol)`        | Yol bir dosyayı ya da klasörü gösteriyorsa `doğru`.         |
+| `klasör_mü(yol)`     | Yol bir klasörü gösteriyorsa `doğru`.                       |
 | `sil(yol)`           | Dosyayı siler.                                              |
 | `listele(yol)`       | Klasördeki dosya ve klasör adlarının listesi; sıra belirsizdir. |
 | `klasör_oluştur(yol)` | Klasör oluşturur.                                          |
@@ -532,7 +538,8 @@ içerebilir.
 | `yaz(değer, girinti)` | Aynı, okunaklı biçimde; `girinti` her düzey için boşluk sayısıdır. |
 
 JSON'a çevrilebilen değerler: `boş`, mantıksal, sayı, metin, liste ve anahtarları
-metin olan sözlük.
+metin olan sözlük. Sayılar, geri okunduğunda aynı değeri veren en kısa yazımla
+yazılır; bu yazım `yaz` fonksiyonunun gösterdiğinden uzun olabilir.
 
 ### ağ
 
@@ -543,7 +550,7 @@ bu sayı diğer fonksiyonlara verilir.
 |---------------------------|-------------------------------------------------------|
 | `bağlan(sunucu, port)`    | Sunucuya bağlanır, bağlantıyı döndürür.               |
 | `dinle(port)`             | Yalnızca bu bilgisayardan (127.0.0.1) gelen bağlantıları bekleyen dinleyici açar. Port 0 verilirse boş bir port seçilir. |
-| `dinle(port, adres)`      | Verilen IPv4 adresinde dinler; `"0.0.0.0"` tüm ağ arayüzleridir. |
+| `dinle(port, adres)`      | Verilen IPv4 adresinde dinler; `"0.0.0.0"` tüm ağ arayüzleridir. Port başka bir program tarafından kullanılıyorsa hata verir. |
 | `port(dinleyici)`         | Dinleyicinin kullandığı port.                         |
 | `kabul_et(dinleyici)`     | Bir bağlantı gelene kadar bekler, bağlantıyı döndürür. |
 | `gönder(bağlantı, metin)` | Metnin tamamını gönderir.                             |
@@ -580,7 +587,8 @@ Yanıt, `durum` (sayı), `başlıklar` (sözlük; adlar küçük harfli) ve `gö
 bir metin (gövde; durum 200 olur) ya da `durum`, `gövde`, `başlıklar`
 anahtarlarından istediklerini içeren bir sözlük döndürür. Sözlükte
 `"durdur": doğru` varsa sunucu o yanıttan sonra durur. İşleyicideki
-yakalanmamış hata istemciye 500 yanıtı olarak gider; sunucu çalışmayı sürdürür.
+yakalanmamış hata ya da metin ve sözlük dışında bir dönüş değeri istemciye 500
+yanıtı olarak gider; sunucu çalışmayı sürdürür.
 
 ```jus
 kullan http
@@ -655,7 +663,8 @@ ornek.jus:2: çalışma zamanı hatası: Sıfıra bölünemez.
 ## 8A. Testler
 
 `jus test [yol]` komutu, verilen klasördeki (yazılmazsa bulunulan klasördeki)
-ve alt klasörlerindeki, adı `_test.jus` ile biten dosyaları çalıştırır.
+ve alt klasörlerindeki, adı `_test.jus` ile biten dosyaları çalıştırır. Yol
+olarak tek bir test dosyası da verilebilir.
 
 Her dosya için önce dosyanın üst düzey kodu çalışır. Ardından adı `test_` ile
 başlayan, parametresiz her fonksiyon ad sırasıyla çağrılır. Hata vermeden biten

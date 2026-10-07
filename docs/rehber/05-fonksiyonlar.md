@@ -190,9 +190,31 @@ Başla!
 
 `faktöriyel(5)` şöyle çalışır: `5 * faktöriyel(4)`, o da `4 * faktöriyel(3)`... `faktöriyel(1)` 1 verince zincir geri çözülür. Taban durumu (`n <= 1`) olmasaydı fonksiyon sonsuza kadar kendini çağırırdı. JUS iç içe çağrı derinliğini sınırlar; sınır aşılırsa hata verir (aşağıda).
 
+## Boş fonksiyon gövdesi: `geç`
+
+Bir fonksiyonun gövdesi de boş olamaz. Henüz yazmadığınız bir fonksiyonun yerini tutmak için `geç` kullanın:
+
+```jus
+fonksiyon sonra_yazılacak():
+    geç
+
+fonksiyon selamla(ad):
+    dön "Merhaba, " + ad
+
+yaz(sonra_yazılacak())
+yaz(selamla("Ali"))
+```
+
+```
+boş
+Merhaba, Ali
+```
+
+Gövdesi yalnızca `geç` olan fonksiyon `boş` döndürür. (`geç` dördüncü bölümde anlatıldı.)
+
 ## Fonksiyonlar birer değerdir
 
-JUS'ta fonksiyonlar sıradan değerlerdir: bir değişkene atanabilir, başka bir fonksiyona argüman olarak verilebilir ve bir fonksiyondan döndürülebilir.
+JUS'ta fonksiyonlar sıradan değerlerdir: bir değişkene atanabilir, başka bir fonksiyona argüman olarak verilebilir ve bir fonksiyondan döndürülebilir. Bunun en yararlı kullanımını altıncı bölümde göreceksiniz: `sırala`, `eşle` ve `süz` yerleşik fonksiyonları, ne yapacaklarını bir fonksiyon argümanından öğrenir.
 
 ## İç fonksiyonlar (kısaca)
 

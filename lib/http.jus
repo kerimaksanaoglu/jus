@@ -234,6 +234,11 @@ fonksiyon dinleyiciyle_sun(dinleyici, işleyici):
                     yanıt = işleyici(istek)
                 yakala hata:
                     yanıt = {"durum": 500, "gövde": "Sunucu hatası: " + metin(hata)}
+                eğer tür(yanıt) != "metin" ve tür(yanıt) != "sözlük":
+                    yanıt = {
+                        "durum": 500,
+                        "gövde": "Sunucu hatası: işleyici metin ya da sözlük döndürmeli; " + tür(yanıt) + " döndürdü.",
+                    }
                 eğer tür(yanıt) == "sözlük" ve al(yanıt, "durdur", yanlış) == doğru:
                     sürsün = yanlış
                 yanıt_gönder(bağlantı, yanıt)

@@ -93,6 +93,9 @@ fonksiyon işle(istek):
         eğer yöntem == "POST":
             dön not_ekle(istek)
         dön hata_yanıtı(405, "Bu adres yalnızca GET ve POST kabul eder.")
+    eğer yol == "/bozuk":
+        # Bilerek hatalı: sunucunun geçersiz işleyici sonucunu nasıl ele aldığını gösterir.
+        dön 42
     eğer yol == "/kapat" ve yöntem == "POST":
         değişken yanıt = json_yanıtı(200, {"durum": "kapanıyor"})
         yanıt["durdur"] = doğru

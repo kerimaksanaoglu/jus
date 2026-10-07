@@ -191,7 +191,48 @@ her i içinde aralık(1, 4):
 
 Bu, 3x3'lük bir çarpım tablosudur. Her satırın sonunda iki boşluk kalır; gözle görünmez ama oradadır.
 
+## Boş blok: `geç`
+
+Her blokta en az bir deyim bulunmalıdır. Bazen bir koşulun ya da döngünün gövdesinde yapılacak bir şey yoktur; ya da bir bloğu sonra doldurmak üzere yerinde bırakmak istersiniz. Bu durumda hiçbir şey yapmayan `geç` deyimini yazarsınız:
+
+```jus
+her i içinde aralık(1, 7):
+    eğer i % 2 == 0:
+        geç
+    değilse:
+        yaz(i, "tek")
+
+iken yanlış:
+    geç
+yaz("bitti")
+```
+
+```
+1 tek
+3 tek
+5 tek
+bitti
+```
+
+`geç`, `devam` ya da `kır` gibi döngüyü etkilemez; yalnızca "burada bilerek bir şey yok" demektir. `geç` her blokta kullanılabilir: `eğer`, döngü, `dene` / `yakala` ve fonksiyon gövdelerinde.
+
 ## Sık yapılan hatalar
+
+**Bloğu boş bırakmak.** Yalnızca yorum içeren satırlar girintiyi etkilemez; bu yüzden aşağıdaki blok da boştur:
+
+```jus
+eğer doğru:
+    # sonra yazılacak
+yaz(1)
+```
+
+```
+ornek.jus:3:1: sözdizimi hatası: ':' işaretinden sonra girintili bir blok bekleniyor.
+    yaz(1)
+    ^
+```
+
+Çözüm: bloğa `geç` yazın.
 
 **`kır`'ı döngü dışında kullanmak.**
 

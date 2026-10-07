@@ -1,6 +1,6 @@
 # 12 - Küçük projeler
 
-Önceki: [11 - Sınıflar](11-siniflar.md) | [İçindekiler](README.md)
+Önceki: [11 - Sınıflar](11-siniflar.md) | [İçindekiler](README.md) | Sonraki: [13 - JSON ve veri](13-json-ve-veri.md)
 
 Artık gerekli parçaların hepsini biliyorsunuz. Bu bölümde üç tam program yazacağız. Her programı önce kendiniz yazmayı deneyin; takılırsanız yanındaki açıklamaya bakın. Programlar, önceki bölümlerde öğrendiklerinizi bir arada kullanır.
 
@@ -114,7 +114,7 @@ Tahmininiz: Oyun yarıda kaldı.
 
 Kullanıcı her satıra bir öğrencinin adını ve notunu yazar. Boş bir satırla bitirir. Program ortalamayı, en yüksek ve en düşük notu, geçen öğrenci sayısını ve her öğrencinin harf notunu yazar.
 
-Kullanılan konular: fonksiyonlar, liste, sözlük, `böl`, `kırp`, `dene` / `yakala`, `fırlat`, döngüler.
+Kullanılan konular: fonksiyonlar, liste, sözlük, `böl`, `kırp`, `dene` / `yakala`, `fırlat`, döngüler, `sırala` (anahtar fonksiyonuyla), `yuvarla`, `tekrarla` ve `sağa_doldur` / `sola_doldur`.
 
 `notlar.jus`:
 
@@ -129,6 +129,9 @@ fonksiyon harfNotu(ortalama):
     değilse eğer ortalama >= 50:
         dön "D"
     dön "F"
+
+fonksiyon notunEksisi(ö):
+    dön -ö["not"]
 
 değişken öğrenciler = []
 
@@ -159,30 +162,25 @@ iken doğru:
 eğer uzunluk(öğrenciler) == 0:
     yaz("Hiç öğrenci girilmedi.")
 değilse:
+    değişken sıralı = sırala(öğrenciler, notunEksisi)
     değişken toplam = 0
-    değişken enYüksek = öğrenciler[0]
-    değişken enDüşük = öğrenciler[0]
     değişken geçen = 0
 
     yaz("")
-    yaz("Sonuçlar")
-    yaz("--------")
-    her ö içinde öğrenciler:
-        yaz(ö["ad"] + ": " + metin(ö["not"]) + " (" + harfNotu(ö["not"]) + ")")
+    yaz("Sonuçlar (nota göre)")
+    yaz(tekrarla("-", 20))
+    her ö içinde sıralı:
+        yaz(sağa_doldur(ö["ad"] + ":", 9) + sola_doldur(metin(ö["not"]), 5) + "  (" + harfNotu(ö["not"]) + ")")
         toplam += ö["not"]
-        eğer ö["not"] > enYüksek["not"]:
-            enYüksek = ö
-        eğer ö["not"] < enDüşük["not"]:
-            enDüşük = ö
         eğer ö["not"] >= 50:
             geçen += 1
 
-    değişken ortalama = toplam / uzunluk(öğrenciler)
+    değişken ortalama = toplam / uzunluk(sıralı)
     yaz("")
-    yaz("Öğrenci sayısı:", uzunluk(öğrenciler))
-    yaz("Sınıf ortalaması:", yuvarla(ortalama * 10) / 10, "(" + harfNotu(ortalama) + ")")
-    yaz("En yüksek:", enYüksek["ad"], enYüksek["not"])
-    yaz("En düşük:", enDüşük["ad"], enDüşük["not"])
+    yaz("Öğrenci sayısı:", uzunluk(sıralı))
+    yaz("Sınıf ortalaması:", yuvarla(ortalama, 1), "(" + harfNotu(ortalama) + ")")
+    yaz("En yüksek:", sıralı[0]["ad"], sıralı[0]["not"])
+    yaz("En düşük:", sıralı[-1]["ad"], sıralı[-1]["not"])
     yaz("Geçen öğrenci sayısı:", geçen)
 ```
 
@@ -191,8 +189,10 @@ değilse:
 - Her öğrenci bir sözlük olarak (`{"ad": ..., "not": ...}`) `öğrenciler` listesine eklenir.
 - Her satır `kırp` ile temizlenir ve `böl(satır, " ")` ile ikiye ayrılır. İki parça değilse uyarı verilir.
 - Not, `sayı()` ile sayıya çevrilir. Çevrilemezse ya da 0-100 aralığında değilse `dene` bloğu hatayı yakalar ve öğrenci kaydedilmez. Aralık denetimini `fırlat` ile kendimiz yaptık; böylece iki farklı sorun aynı `yakala` bloğunda ele alındı.
-- Sonuç bölümünde tek bir `her` döngüsü hem yazdırır, hem toplamı, hem de en yüksek, en düşük ve geçen sayısını hesaplar. `enYüksek` ve `enDüşük` öğrencinin sözlüğünü tutar; böylece adı da elimizdedir.
-- `yuvarla(ortalama * 10) / 10` ortalamayı bir ondalık basamağa yuvarlar.
+- `sırala(öğrenciler, notunEksisi)` öğrencileri nota göre büyükten küçüğe dizer. Anahtar fonksiyonu notun eksisini döndürdüğü için en yüksek not başa gelir (sekizinci bölüm). Böylece en yüksek öğrenci `sıralı[0]`, en düşük öğrenci `sıralı[-1]` olur; en yüksek ve en düşüğü bulmak için ayrıca döngü yazmamız gerekmedi.
+- Sonuç satırları `sağa_doldur` ve `sola_doldur` ile hizalanır: adlar sola, notlar sağa yaslıdır. Başlığın altındaki çizgiyi `tekrarla` çizer.
+- Toplam ve geçen sayısı tek bir `her` döngüsünde hesaplanır.
+- `yuvarla(ortalama, 1)` ortalamayı bir ondalık basamağa yuvarlar.
 - Kısa bir hatırlatma: `harfNotu` içindeki son `dön "F"` satırı, hiçbir koşul tutmazsa çalışır; ayrı bir `değilse` yazmaya gerek yoktur, çünkü önceki dönüşler fonksiyonu zaten bitirmiştir.
 
 ### Örnek oturum
@@ -206,12 +206,12 @@ Bitirmek için boş bir satır bırakın.
 > Kaydedilmedi: "yüz" bir sayıya dönüştürülemez.
 > Kaydedilmedi: Not 0 ile 100 arasında olmalı.
 > > 
-Sonuçlar
---------
-Ayşe: 90 (A)
-Mehmet: 45 (F)
-Zeynep: 78.5 (C)
-Elif: 62 (D)
+Sonuçlar (nota göre)
+--------------------
+Ayşe:       90  (A)
+Zeynep:   78.5  (C)
+Elif:       62  (D)
+Mehmet:     45  (F)
 
 Öğrenci sayısı: 4
 Sınıf ortalaması: 68.9 (D)
@@ -232,7 +232,7 @@ Bitirmek için boş bir satır bırakın.
 
 ### Genişletme fikirleri
 
-- Öğrencileri nota göre büyükten küçüğe sıralayın. (İpucu: `sırala` sözlükleri sıralayamaz; notları ve adları ayrı listelerde tutmayı ya da elle sıralamayı düşünün.)
+- Öğrencileri nota göre değil, ada göre (Türk alfabesine uygun) sıralayın.
 - Her harf notundan kaç öğrenci olduğunu bir sözlükle sayın.
 - Sonuçları `dosya.yaz` ile bir dosyaya kaydedin.
 
@@ -487,7 +487,13 @@ dosya.sil(günlük)
 
 ## Sırada ne var?
 
-Rehberi bitirdiniz. Buradan sonrası için:
+Temel bölümleri ve üç projeyi bitirdiniz. Sonraki üç bölüm, programlarınızı dış dünyaya açar:
+
+- [13 - JSON ve veri](13-json-ve-veri.md): yapılandırılmış veriyi dosyaya kaydetmek ve okumak.
+- [14 - Ağ ve HTTP](14-ag-ve-http.md): web istemcisi ve küçük bir sunucu.
+- [15 - Test, biçim ve paket](15-test-bicim-paket.md): programlarınızı sınamak, düzenli tutmak ve paylaşmak.
+
+Bunlardan sonrası için:
 
 - Dilin tam ve bağlayıcı tanımını okuyun: [dil tanımı](../dil-tanimi.md). Rehberde değinmediğimiz ayrıntılar (işleç öncelikleri, dilbilgisi) orada.
 - Depodaki `examples` klasöründeki örnek programlara bakın.
@@ -495,4 +501,4 @@ Rehberi bitirdiniz. Buradan sonrası için:
 
 ---
 
-Önceki: [11 - Sınıflar](11-siniflar.md) | [İçindekiler](README.md)
+Önceki: [11 - Sınıflar](11-siniflar.md) | [İçindekiler](README.md) | Sonraki: [13 - JSON ve veri](13-json-ve-veri.md)

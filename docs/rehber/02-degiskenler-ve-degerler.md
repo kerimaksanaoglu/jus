@@ -156,6 +156,40 @@ yaz(x)
 - `-7 % 3` sonucu `2`'dir; sonuç bölenin işaretini taşır.
 - Çarpma ve bölme, toplama ve çıkarmadan önce yapılır. Sırayı değiştirmek için parantez kullanın: `(2 + 3) * 4`.
 
+## Yuvarlama ve ondalık biçimleme
+
+Bölme ve çarpma sonuçları çoğu zaman uzun ondalık sayılar verir. İki yerleşik fonksiyon bunu düzenler:
+
+- `yuvarla(x, basamak)` sayıyı verilen sayıda ondalık basamağa yuvarlar. Sonuç yine bir **sayı**dır.
+- `biçimle(x, basamak)` sayıyı tam olarak verilen sayıda ondalık basamakla bir **metne** çevirir.
+
+```jus
+yaz(yuvarla(3.14159, 2))
+yaz(yuvarla(1234.5678, 1))
+yaz(yuvarla(1 / 3, 2))
+yaz(biçimle(2, 2))
+yaz(biçimle(1 / 3, 4))
+yaz(tür(biçimle(2, 2)))
+
+değişken fiyat = 19.9
+değişken adet = 3
+yaz("Toplam:", yuvarla(fiyat * adet, 2))
+yaz("Toplam: " + biçimle(fiyat * adet, 2) + " TL")
+```
+
+```
+3.14
+1234.6
+0.33
+2.00
+0.3333
+metin
+Toplam: 59.7
+Toplam: 59.70 TL
+```
+
+Aradaki fark son iki satırda görünür. Sayı olarak yazılan `59.7` sondaki sıfırı taşımaz; para gibi sabit basamaklı yazmak istediğinizde `biçimle` kullanın. `biçimle` metin verdiği için sonucu `+` ile başka metinlere ekleyebilirsiniz. Sonraki hesaplarda kullanacağınız değeri `yuvarla` ile, ekrana yazacağınız değeri `biçimle` ile düzenlemek iyi bir alışkanlıktır.
+
 ## Metinleri birleştirmek
 
 İki metni `+` ile birleştirirsiniz:
@@ -294,7 +328,7 @@ değişken 2sayı = 5
 ```
 
 ```
-ornek.jus:1:10: sözdizimi hatası: Değişken adı bekleniyor.
+ornek.jus:1:10: sözdizimi hatası: Geçersiz sayı; sayının hemen ardından harf gelemez. Üslü yazım (1e5 gibi) desteklenmez.
     değişken 2sayı = 5
              ^
 ```

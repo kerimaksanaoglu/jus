@@ -207,6 +207,79 @@ Zeynep -> 85
 9A
 ```
 
+## Sözlük listesini sıralamak
+
+Sözlüklerden oluşan bir listeyi, sözlüklerin belirli bir anahtarına göre sıralamak çok yaygın bir iştir. `sırala(liste, anahtar)` bunun içindir (altıncı bölümde tanıttık): anahtar fonksiyonu her sözlüğü alır ve sıralama ölçütünü, yani bir sayıyı ya da metni döndürür. Düz `sırala(liste)` sözlükleri karşılaştıramaz; anahtar fonksiyonu şarttır.
+
+```jus
+değişken öğrenciler = [
+    {"ad": "Ayşe", "not": 90},
+    {"ad": "Mehmet", "not": 75},
+    {"ad": "Zeynep", "not": 85},
+    {"ad": "Can", "not": 75},
+]
+
+fonksiyon nota_göre(ö):
+    dön ö["not"]
+
+fonksiyon notun_eksisi(ö):
+    dön -ö["not"]
+
+fonksiyon ada_göre(ö):
+    dön ö["ad"]
+
+fonksiyon geçti_mi(ö):
+    dön ö["not"] >= 80
+
+yaz("Nota göre, küçükten büyüğe:")
+her ö içinde sırala(öğrenciler, nota_göre):
+    yaz(sağa_doldur(ö["ad"], 8) + sola_doldur(metin(ö["not"]), 4))
+
+yaz("Nota göre, büyükten küçüğe:")
+her ö içinde sırala(öğrenciler, notun_eksisi):
+    yaz(sağa_doldur(ö["ad"], 8) + sola_doldur(metin(ö["not"]), 4))
+
+yaz(eşle(sırala(öğrenciler, ada_göre), ada_göre))
+yaz(eşle(süz(öğrenciler, geçti_mi), ada_göre))
+```
+
+```
+Nota göre, küçükten büyüğe:
+Mehmet    75
+Can       75
+Zeynep    85
+Ayşe      90
+Nota göre, büyükten küçüğe:
+Ayşe      90
+Zeynep    85
+Mehmet    75
+Can       75
+["Ayşe", "Can", "Mehmet", "Zeynep"]
+["Ayşe", "Zeynep"]
+```
+
+Gözlemler:
+
+- Anahtar bir sayı olduğunda büyükten küçüğe sıralamak için sayının eksisini döndürmek yeterlidir. Metin anahtarlarda bu iş görmez; onlar için `ters(sırala(...))` kullanabilirsiniz.
+- Mehmet ve Can'ın notu eşittir; iki sıralamada da özgün sıralarını (önce Mehmet, sonra Can) korudular.
+- Metin anahtarlar Türk alfabesine göre sıralanır.
+- `eşle` ile sıralı listeden yalnızca adları, `süz` ile yalnızca koşulu sağlayan kayıtları alabilirsiniz.
+
+Aynı yöntem bir sözlüğün anahtarlarını değerlerine göre sıralamak için de kullanılır:
+
+```jus
+değişken sayım = {"elma": 3, "armut": 5, "muz": 1}
+
+fonksiyon sayıya_göre(ad):
+    dön -sayım[ad]
+
+yaz(sırala(anahtarlar(sayım), sayıya_göre))
+```
+
+```
+["armut", "elma", "muz"]
+```
+
 ## Sık yapılan hatalar
 
 **Olmayan anahtarı okumak.**
@@ -257,6 +330,31 @@ yaz(s[0])
 ornek.jus:2: çalışma zamanı hatası: Sözlükte 0 anahtarı yok.
 ```
 
+**Anahtar fonksiyonu vermeden sözlük sıralamak.**
+
+```jus
+yaz(sırala([{"a": 1}, {"a": 2}]))
+```
+
+```
+ornek.jus:1: çalışma zamanı hatası: 'sırala' için listenin tüm öğeleri sayı ya da tüm öğeleri metin olmalı. Başka türde öğeler için ikinci argüman olarak bir anahtar fonksiyonu verin.
+```
+
+**Anahtar fonksiyonunda olmayan bir anahtarı okumak.** Sıralanan her sözlükte o anahtar bulunmalıdır; yoksa hata, anahtar fonksiyonunun içinden gelir ve çağrı zinciri bunu gösterir:
+
+```jus
+fonksiyon yaşa_göre(k):
+    dön k["yaş"]
+
+yaz(sırala([{"ad": "Ali"}], yaşa_göre))
+```
+
+```
+ornek.jus:2: çalışma zamanı hatası: Sözlükte "yaş" anahtarı yok.
+    satır 2, 'yaşa_göre' fonksiyonu
+    satır 4, ana program
+```
+
 ## Alıştırmalar
 
 1. `{"Ayşe": 90, "Mehmet": 70, "Zeynep": 80}` sözlüğündeki notların ortalamasını yazdırın.
@@ -264,6 +362,7 @@ ornek.jus:2: çalışma zamanı hatası: Sözlükte 0 anahtarı yok.
 3. `{"elma": "apple", "kitap": "book", "su": "water"}` sözlüğünün anahtar ve değerlerini yer değiştirin (yeni sözlükte İngilizce kelimeler anahtar olsun).
 4. Bir telefon rehberinde `"Veli"` ve `"Selim"` adlarını arayın; kayıt yoksa `kayıtlı değil` yazdırın.
 5. `"kedi köpek kedi kuş köpek kedi"` metninde en çok geçen kelimeyi ve sayısını bulun.
+6. `[{"ad": "Ali", "yaş": 31}, {"ad": "Ece", "yaş": 24}, {"ad": "Deniz", "yaş": 45}]` listesini yaşa göre küçükten büyüğe sıralayıp her kişiyi `Ece 24` biçiminde yazdırın.
 
 ## Çözümler
 
@@ -340,6 +439,24 @@ yaz(enÇok, enÇokSayı)
 
 ```
 kedi 3
+```
+
+**6.**
+
+```jus
+değişken kişiler = [{"ad": "Ali", "yaş": 31}, {"ad": "Ece", "yaş": 24}, {"ad": "Deniz", "yaş": 45}]
+
+fonksiyon yaşa_göre(k):
+    dön k["yaş"]
+
+her k içinde sırala(kişiler, yaşa_göre):
+    yaz(k["ad"], k["yaş"])
+```
+
+```
+Ece 24
+Ali 31
+Deniz 45
 ```
 
 ---

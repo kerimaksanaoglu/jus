@@ -223,6 +223,69 @@ yanlış
 
 `sesliSay` önce metni küçük harfe çevirir, sonra her karakterin sesli harfler arasında olup olmadığına bakar. `palindromMu`, tersten de aynı okunan ifadeleri (palindrom) bulur.
 
+## Tekrarlamak ve hizalamak
+
+Çıktıyı düzenli göstermek için üç fonksiyon vardır:
+
+- `tekrarla(m, adet)` metni arka arkaya `adet` kez yazar.
+- `sola_doldur(m, genişlik)` metni sağa yaslar: `genişlik` karaktere tamamlamak için soluna boşluk ekler.
+- `sağa_doldur(m, genişlik)` metni sola yaslar: sağına boşluk ekler.
+
+İkisine de üçüncü argüman olarak tek karakterlik bir dolgu verebilirsiniz. Metin zaten genişlikten uzunsa olduğu gibi kalır; kesilmez.
+
+```jus
+yaz(tekrarla("-", 20))
+yaz(tekrarla("ab", 3))
+yaz("[" + sola_doldur("7", 3) + "]")
+yaz(sola_doldur("7", 3, "0"))
+yaz("[" + sağa_doldur("ad", 6) + "]")
+yaz(sağa_doldur("ad", 6, ".") + "|")
+yaz(sola_doldur("çilek", 3))
+```
+
+```
+--------------------
+ababab
+[  7]
+007
+[ad    ]
+ad....|
+çilek
+```
+
+Bu fonksiyonlarla hizalı bir tablo yazdırabilirsiniz. Yazı sütunlarını sola, sayı sütunlarını sağa yaslamak okumayı kolaylaştırır. Sayıları ondalık basamak sayısı sabit olacak şekilde `biçimle` ile (ikinci bölüm) metne çeviriyoruz:
+
+```jus
+değişken ürünler = [["Elma", 12.5, 3], ["Karpuz", 45, 1], ["Çilek", 80.25, 2]]
+
+yaz(sağa_doldur("Ürün", 10) + sola_doldur("Fiyat", 8) + sola_doldur("Adet", 6))
+yaz(tekrarla("-", 24))
+her ü içinde ürünler:
+    yaz(sağa_doldur(ü[0], 10) + sola_doldur(biçimle(ü[1], 2), 8) + sola_doldur(metin(ü[2]), 6))
+```
+
+```
+Ürün         Fiyat  Adet
+------------------------
+Elma         12.50     3
+Karpuz       45.00     1
+Çilek        80.25     2
+```
+
+Türkçe harfler tek karakter sayıldığı için `Çilek` ve `Ürün` gibi sözcükler de doğru hizalanır. `sola_doldur` sayı değil metin ister; sayıyı önce `metin()` ya da `biçimle()` ile çevirin. Sıra numarası gibi baştan sıfırlı yazımlar için dolgu karakteri `"0"` verilir:
+
+```jus
+her n içinde [1, 7, 42, 108]:
+    yaz("Sıra " + sola_doldur(metin(n), 4, "0"))
+```
+
+```
+Sıra 0001
+Sıra 0007
+Sıra 0042
+Sıra 0108
+```
+
 ## Sık yapılan hatalar
 
 **Metnin karakterini değiştirmeye çalışmak.**
@@ -260,6 +323,18 @@ yaz(büyük_harf(42))
 ornek.jus:1: çalışma zamanı hatası: 'büyük_harf' fonksiyonu metin ister; sayı verildi.
 ```
 
+**`sola_doldur`'a sayı vermek.**
+
+```jus
+yaz(sola_doldur(5, 3))
+```
+
+```
+ornek.jus:1: çalışma zamanı hatası: 'sola_doldur' fonksiyonu metin ister; sayı verildi.
+```
+
+Çözüm: `sola_doldur(metin(5), 3)`.
+
 **Metin fonksiyonlarını nokta ile çağırmak.** JUS'ta metin işlemleri nesne yöntemi değil, sıradan fonksiyonlardır. `m.büyük_harf()` yerine `büyük_harf(m)` yazın.
 
 ```jus
@@ -278,6 +353,7 @@ ornek.jus:2: çalışma zamanı hatası: metin türündeki değerlerin 'büyük_
 3. Bir metinde belirli bir harfin kaç kez geçtiğini veren `harfSay(m, aranan)` fonksiyonunu yazın. `"kardeşlerimiz"` içinde `e`, `r` ve `x` harflerini sayın.
 4. Kullanıcıdan adını isteyin; başındaki sonundaki boşlukları atıp büyük harfle `Merhaba, ...!` yazdırın ve harf sayısını belirtin.
 5. `["Şanlıurfa", "İzmir", "Ankara", "Çorum", "Iğdır", "Ordu"]` listesini alfabetik sıralayın.
+6. `tekrarla` ile bir üst ve alt çizgi çizerek şu çıktıyı üretin: `Fiş` başlığı yaklaşık ortada olsun, altında `Ekmek` ve `Süt` satırlarının fiyatları (`7.50` ve `32.00`) sağa yaslı olsun.
 
 ## Çözümler
 
@@ -354,6 +430,29 @@ yaz(sırala(şehirler))
 
 ```
 ["Ankara", "Çorum", "Iğdır", "İzmir", "Ordu", "Şanlıurfa"]
+```
+
+**6.** Bir olası çözüm:
+
+```jus
+fonksiyon satır(ad, tutar):
+    dön sağa_doldur(ad, 10, ".") + sola_doldur(biçimle(tutar, 2), 8)
+
+yaz(tekrarla("=", 18))
+yaz(sola_doldur("Fiş", 11))
+yaz(tekrarla("=", 18))
+yaz(satır("Ekmek", 7.5))
+yaz(satır("Süt", 32))
+yaz(tekrarla("=", 18))
+```
+
+```
+==================
+        Fiş
+==================
+Ekmek.....    7.50
+Süt.......   32.00
+==================
 ```
 
 ---

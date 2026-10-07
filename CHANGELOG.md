@@ -6,6 +6,32 @@ uyar.
 
 ## [Yayımlanmadı]
 
+## [1.0.0] - 2026-10-07
+
+İlk kararlı sürüm. Dil tanımı donduruldu: 1.x sürümleri yeni özellikler
+ekleyebilir, ancak dil tanımına uygun yazılmış programların davranışını
+değiştirmez.
+
+### Eklendi
+
+- `dosya.klasör_mü`
+- Başlangıç rehberine JSON, ağ ve HTTP, test, biçimlendirme ve paket bölümleri
+- 1.0 ölçütlerinin durumunu gösteren yol haritası
+
+### Değişti
+
+- Uzun metinleri döngüde `+=` ile büyütmek yaklaşık 5 kat hızlandı
+- `yuvarla(x, basamak)` ve `biçimle`, tam ortadaki değerleri `yuvarla(x)` gibi
+  sıfırdan uzağa yuvarlar
+- `dosya.var_mı` klasörler için de `doğru` verir
+- `json.yaz`, sayıları geri okunduğunda aynı değeri veren en kısa yazımla yazar
+
+### Düzeltildi
+
+- Windows'ta kullanımdaki bir port ikinci kez dinlenebiliyordu
+- `http.sun` işleyicisi metin ya da sözlük dışında bir değer döndürdüğünde
+  istemciye yanıt gitmiyordu
+
 ## [0.6.0]
 
 ### Eklendi
@@ -27,7 +53,6 @@ uyar.
 
 ### Değişti
 
-- Uzun metinleri döngüde `+=` ile büyütmek yaklaşık 5 kat hızlandı
 - Windows'ta çıktıda satır sonu artık `\n` (önceden `\r\n`)
 - `zaman.şimdi()` saniyenin kesirlerini de verir
 
