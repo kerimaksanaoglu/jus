@@ -6,6 +6,8 @@
 #include "compiler.h"
 #include "memory.h"
 #include "scanner.h"
+#include "table.h"
+#include "vm.h"
 
 /*
  * Tek geçişli derleyici: belirteçleri okurken doğrudan bayt kodu üretir.
@@ -83,6 +85,8 @@ typedef struct Compiler {
     int scopeDepth;
     int tryDepth; /* içinde bulunulan 'dene' bloklarının sayısı */
     Loop *loop;
+    /* Metin sabiti -> sabit numarası; aynı metnin tabloya bir kez girmesini sağlar. */
+    Table stringConstants;
 } Compiler;
 
 typedef struct ClassCompiler {
@@ -215,18 +219,36 @@ static void emitReturn(void) {
 }
 
 static int makeConstant(Value value) {
-    /* Aynı sabit (ör. sık kullanılan bir ad) tabloya yalnızca bir kez eklenir. */
+    /*
+     * Aynı sabit (ör. sık kullanılan bir ad) tabloya yalnızca bir kez eklenir.
+     * Metinler bir karma tabloyla, diğer değerler son eklenen birkaç sabite
+     * bakılarak tekilleştirilir; böylece çok sabitli dosyalarda derleme yavaşlamaz.
+     */
     ValueArray *constants = &currentChunk()->constants;
-    for (int i = 0; i < constants->count; i++) {
-        if (valuesEqual(constants->values[i], value)) return i;
+    if (IS_STRING(value)) {
+        Value index;
+        if (tableGet(&current->stringConstants, AS_STRING(value), &index)) {
+            return (int)AS_NUMBER(index);
+        }
+    } else {
+        int oldest = constants->count > 32 ? constants->count - 32 : 0;
+        for (int i = constants->count - 1; i >= oldest; i--) {
+            if (valuesEqual(constants->values[i], value)) return i;
+        }
     }
 
-    int constant = addConstant(currentChunk(), value);
-    if (constant > UINT16_MAX) {
+    if (constants->count > UINT16_MAX) {
         error("Tek bir fonksiyonda çok fazla sabit var.");
         return 0;
     }
 
+    /* Tablo büyürken çöp toplayıcı çalışabilir; değeri yığında koru. */
+    push(value);
+    int constant = addConstant(currentChunk(), value);
+    if (IS_STRING(value)) {
+        tableSet(&current->stringConstants, AS_STRING(value), NUMBER_VAL(constant));
+    }
+    pop();
     return constant;
 }
 
@@ -256,6 +278,7 @@ static void initCompiler(Compiler *compiler, FunctionType type) {
     compiler->scopeDepth = 0;
     compiler->tryDepth = 0;
     compiler->loop = NULL;
+    initTable(&compiler->stringConstants);
     compiler->function = newFunction();
     compiler->function->module = currentModule;
     current = compiler;
@@ -280,6 +303,7 @@ static ObjFunction *endCompiler(void) {
     emitReturn();
     ObjFunction *function = current->function;
 
+    freeTable(&current->stringConstants);
     current = current->enclosing;
     return function;
 }
@@ -922,6 +946,21 @@ static void funDeclaration(void) {
 
 static void synchronize(void);
 
+/* Hatalı bir deyimi, varsa girintili bloğuyla birlikte atlar. */
+static void skipStatement(void) {
+    while (!check(TOKEN_NEWLINE) && !check(TOKEN_DEDENT) && !check(TOKEN_EOF)) advance();
+    match(TOKEN_NEWLINE);
+    if (match(TOKEN_INDENT)) {
+        int depth = 1;
+        while (depth > 0 && !check(TOKEN_EOF)) {
+            if (check(TOKEN_INDENT)) depth++;
+            if (check(TOKEN_DEDENT)) depth--;
+            advance();
+        }
+    }
+    parser.panicMode = false;
+}
+
 static void method(void) {
     consume(TOKEN_FUNCTION, "Sınıf gövdesinde yalnızca 'fonksiyon' tanımları bulunabilir.");
     consume(TOKEN_IDENTIFIER, "Yöntem adı bekleniyor.");
@@ -976,8 +1015,13 @@ static void classDeclaration(void) {
     consume(TOKEN_NEWLINE, "':' işaretinden sonra satır sonu bekleniyor.");
     if (match(TOKEN_INDENT)) {
         while (!check(TOKEN_DEDENT) && !check(TOKEN_EOF)) {
-            method();
-            if (parser.panicMode) synchronize();
+            if (check(TOKEN_FUNCTION)) {
+                method();
+                if (parser.panicMode) synchronize();
+            } else {
+                errorAtCurrent("Sınıf gövdesinde yalnızca 'fonksiyon' tanımları bulunabilir.");
+                skipStatement();
+            }
         }
         consume(TOKEN_DEDENT, "Sınıf gövdesinin sonu bekleniyor.");
     } else {
