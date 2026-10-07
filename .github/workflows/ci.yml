@@ -32,3 +32,22 @@ jobs:
       # ASan + UBSan; cop toplayici her bellek ayirmada calisir.
       - name: Test
         run: bash tests/bellek-denetimi.sh
+
+  playground:
+    name: Deneme alanı (WebAssembly)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+      - name: Derle
+        run: bash playground/derle.sh
+      - name: Test
+        run: node playground/dene.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deneme-alani
+          path: |
+            playground/index.html
+            playground/calisan.js
+            playground/jus.js
+            playground/jus.wasm

@@ -14,3 +14,7 @@ Thumbs.db
 
 # Rastgele sınamanın ham bulguları
 /tools/fuzz/bulgular/
+
+# WebAssembly derleme çıktıları
+/playground/jus.js
+/playground/jus.wasm

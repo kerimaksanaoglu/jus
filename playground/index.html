@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JUS Deneme Alanı</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #1c2330; --muted: #5d6778;
+    --line: #d5dae2; --accent: #1f5fbf; --error: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --panel: #1c2027; --ink: #e6e9ee; --muted: #9aa4b3;
+      --line: #313743; --accent: #6ea8ff; --error: #ff8a80;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
+  header {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+    padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--panel);
+  }
+  h1 { font-size: 17px; margin: 0 auto 0 0; font-weight: 600; }
+  select, button {
+    font: inherit; color: var(--ink); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px;
+  }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  main {
+    flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px 16px;
+  }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+  section {
+    display: flex; flex-direction: column; min-height: 300px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+  }
+  section h2 {
+    margin: 0; padding: 8px 12px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line);
+  }
+  textarea, pre {
+    flex: 1; margin: 0; padding: 12px; border: 0; background: transparent; color: var(--ink);
+    font: 14px/1.5 ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace; tab-size: 4;
+  }
+  textarea { resize: none; outline: none; white-space: pre; overflow: auto; }
+  pre { overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .err { color: var(--error); }
+  .note { color: var(--muted); }
+  footer { padding: 8px 16px 14px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>JUS Deneme Alanı</h1>
+  <label>Örnek:
+    <select id="ornekler"></select>
+  </label>
+  <button id="calistir" class="primary">Çalıştır</button>
+  <button id="durdur" disabled>Durdur</button>
+</header>
+<main>
+  <section>
+    <h2>Program</h2>
+    <textarea id="kod" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+  </section>
+  <section>
+    <h2>Çıktı</h2>
+    <pre id="cikti" aria-live="polite"></pre>
+  </section>
+</main>
+<footer>
+  Program tarayıcınızda çalışır; hiçbir yere gönderilmez. Bu ortamda <code>oku</code>,
+  <code>dosya</code>, <code>ağ</code> ve <code>http</code> kullanılamaz. Kısayol: Ctrl+Enter.
+</footer>
+<script>
+const ORNEKLER = {
+  'Merhaba': [
+    'yaz("Merhaba, dünya!")',
+    '',
+    'değişken ad = "JUS"',
+    'yaz("Bu program " + ad + " ile yazıldı.")',
+  ],
+  'Döngü ve koşul': [
+    'her i içinde aralık(1, 16):',
+    '    eğer i % 15 == 0:',
+    '        yaz("FizzBuzz")',
+    '    değilse eğer i % 3 == 0:',
+    '        yaz("Fizz")',
+    '    değilse eğer i % 5 == 0:',
+    '        yaz("Buzz")',
+    '    değilse:',
+    '        yaz(i)',
+  ],
+  'Fonksiyon': [
+    'fonksiyon faktöriyel(n):',
+    '    eğer n <= 1:',
+    '        dön 1',
+    '    dön n * faktöriyel(n - 1)',
+    '',
+    'her n içinde [1, 5, 10, 20]:',
+    '    yaz(metin(n) + "! =", faktöriyel(n))',
+  ],
+  'Liste ve sözlük': [
+    'değişken meyveler = ["zeytin", "çilek", "armut", "ıhlamur", "incir", "şeftali"]',
+    'yaz(sırala(meyveler))',
+    '',
+    'değişken sayım = {}',
+    'her kelime içinde böl("bir iki bir üç bir iki", " "):',
+    '    sayım[kelime] = al(sayım, kelime, 0) + 1',
+    'yaz(sayım)',
+    'yaz(büyük_harf("ılık bir istanbul akşamı"))',
+  ],
+  'Sınıf': [
+    'sınıf Hayvan:',
+    '    fonksiyon kur(ad):',
+    '        bu.ad = ad',
+    '    fonksiyon tanıt():',
+    '        dön bu.ad + ": " + bu.ses()',
+    '    fonksiyon ses():',
+    '        dön "..."',
+    '',
+    'sınıf Köpek(Hayvan):',
+    '    fonksiyon ses():',
+    '        dön "Hav"',
+    '',
+    'her h içinde [Hayvan("Balık"), Köpek("Karabaş")]:',
+    '    yaz(h.tanıt())',
+  ],
+  'Hata yakalama': [
+    'fonksiyon böl(a, b):',
+    '    eğer b == 0:',
+    '        fırlat "Bölen sıfır olamaz."',
+    '    dön a / b',
+    '',
+    'her bölen içinde [2, 0, 5]:',
+    '    dene:',
+    '        yaz(10, "/", bölen, "=", böl(10, bölen))',
+    '    yakala hata:',
+    '        yaz("Hata:", hata)',
+  ],
+};
+
+const kod = document.getElementById('kod');
+const cikti = document.getElementById('cikti');
+const calistir = document.getElementById('calistir');
+const durdur = document.getElementById('durdur');
+const ornekler = document.getElementById('ornekler');
+let calisan = null;
+
+for (const ad of Object.keys(ORNEKLER)) {
+  ornekler.add(new Option(ad, ad));
+}
+ornekler.onchange = () => { kod.value = ORNEKLER[ornekler.value].join('\n') + '\n'; };
+ornekler.onchange();
+
+function satirEkle(metin, sinif) {
+  const satir = document.createElement('span');
+  if (sinif) satir.className = sinif;
+  satir.textContent = metin + '\n';
+  cikti.appendChild(satir);
+  cikti.scrollTop = cikti.scrollHeight;
+}
+
+function bitir() {
+  if (calisan) calisan.terminate();
+  calisan = null;
+  calistir.disabled = false;
+  durdur.disabled = true;
+}
+
+calistir.onclick = () => {
+  cikti.textContent = '';
+  calistir.disabled = true;
+  durdur.disabled = false;
+  calisan = new Worker('calisan.js');
+  calisan.onmessage = (olay) => {
+    if (olay.data.type === 'output') {
+      for (const satir of olay.data.lines) {
+        // Hata iletilerindeki dosya yolu, deneme alanında anlamlı değildir.
+        satirEkle(satir.text.replace('/program.jus:', 'satır '), satir.kind === 'err' ? 'err' : '');
+      }
+    } else {
+      if (olay.data.code !== 0) satirEkle('(program ' + olay.data.code + ' koduyla bitti)', 'note');
+      bitir();
+    }
+  };
+  calisan.onerror = (olay) => {
+    satirEkle('Yorumlayıcı yüklenemedi: ' + olay.message, 'err');
+    bitir();
+  };
+  calisan.postMessage({ source: kod.value });
+};
+
+durdur.onclick = () => {
+  satirEkle('(program durduruldu)', 'note');
+  bitir();
+};
+
+kod.addEventListener('keydown', (olay) => {
+  if (olay.key === 'Enter' && (olay.ctrlKey || olay.metaKey)) {
+    olay.preventDefault();
+    if (!calistir.disabled) calistir.click();
+  } else if (olay.key === 'Tab') {
+    // Sekme tuşu odağı değiştirmek yerine dört boşluk girinti ekler.
+    olay.preventDefault();
+    kod.setRangeText('    ', kod.selectionStart, kod.selectionEnd, 'end');
+  }
+});
+</script>
+</body>
+</html>
