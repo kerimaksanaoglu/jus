@@ -68,7 +68,7 @@ denetle "ders istatistiği: Tarih (16 not)" 0 "Tarih           16     76.06     
 # Ada sırası: Türk alfabesine göre (Ilgaz < Ismail < İpek; Ç, Ö, Ş, Ü yerlerinde).
 beklenen_siralama="Ali Can Tunç|Ayşe Yılmaz|Burak Özkan|Çağla Şahin|Ebru Güneş|Elif Doğan|Gül Arslan|Hasan Hüseyin Yıldız|Ilgaz Kaya|Ismail Polat|İpek Demir|Mehmet Çelik|Ömer Faruk Aydın|Sevgi Aksoy|Şule Öztürk|Ünal Koç|Zeynep Kurt"
 gercek_siralama="$(sed -n '/^Ada göre/,/^Ortalamaya göre/p' "$GECICI/cikti.txt" | tr -d '\r' \
-    | grep -E '^ *[0-9]{4}  ' | sed -E 's/^ *[0-9]{4}  //; s/ +[0-9.-]+ +[0-9.-]+ +[0-9.-]+ +[0-9.-]+ +[0-9.]+  [A-Z]{2}$//' | paste -sd'|')"
+    | grep -E '^ *[0-9]{4}  ' | sed -E 's/^ *[0-9]{4}  //; s/ +[0-9.-]+ +[0-9.-]+ +[0-9.-]+ +[0-9.-]+ +[0-9.]+  [A-Z]{2}$//' | paste -sd'|' -)"
 if [ "$gercek_siralama" = "$beklenen_siralama" ]; then
     basarili "ada göre Türk alfabesi sırası"
 else
@@ -79,7 +79,7 @@ fi
 # Ortalama sırası: numaralar yüksekten düşüğe.
 beklenen_no="1008 1003 1014 1017 1006 1001 1012 1010 1016 1004 1013 1007 1015 1002 1011 1005 1009"
 gercek_no="$(sed -n '/^Ortalamaya göre/,/^Ders istatistikleri/p' "$GECICI/cikti.txt" | tr -d '\r' \
-    | grep -E '^ *[0-9]+  +[0-9]{4}  ' | awk '{print $2}' | paste -sd' ')"
+    | grep -E '^ *[0-9]+  +[0-9]{4}  ' | awk '{print $2}' | paste -sd' ' -)"
 if [ "$gercek_no" = "$beklenen_no" ]; then
     basarili "ortalamaya göre sıra"
 else
