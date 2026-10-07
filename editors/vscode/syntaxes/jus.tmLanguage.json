@@ -64,7 +64,7 @@
         },
         {
           "name": "keyword.control.jus",
-          "match": "(?<![\\p{L}\\p{N}_])(?:eğer|değilse|iken|her|dön|devam|kır|dene|yakala|fırlat)(?![\\p{L}\\p{N}_])"
+          "match": "(?<![\\p{L}\\p{N}_])(?:eğer|değilse|iken|her|dön|devam|kır|geç|dene|yakala|fırlat)(?![\\p{L}\\p{N}_])"
         },
         {
           "name": "storage.type.jus",
@@ -86,7 +86,7 @@
     },
     "builtin-call": {
       "name": "support.function.builtin.jus",
-      "match": "(?<![\\p{L}\\p{N}_.])(?:yaz|oku|metin|sayı|tür|uzunluk|örneği_mi|karekök|mutlak|taban|tavan|yuvarla|aralık|saat|ekle|araya_ekle|çıkar|sil|sırala|ters|bul|anahtarlar|değerler|al|büyük_harf|küçük_harf|kırp|değiştir|böl|birleştir|başlar_mı|biter_mi)(?=\\s*\\()"
+      "match": "(?<![\\p{L}\\p{N}_.])(?:yaz|oku|metin|sayı|tür|uzunluk|örneği_mi|karekök|mutlak|taban|tavan|yuvarla|aralık|saat|ekle|araya_ekle|çıkar|sil|sırala|ters|bul|anahtarlar|değerler|al|büyük_harf|küçük_harf|kırp|değiştir|böl|birleştir|başlar_mı|biter_mi|eşle|süz|biçimle|sola_doldur|sağa_doldur|tekrarla|doğrula|eşit_olmalı)(?=\\s*\\()"
     },
     "function-call": {
       "name": "entity.name.function.call.jus",
