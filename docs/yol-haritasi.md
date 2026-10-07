@@ -71,7 +71,7 @@ Sonraki sürümlere bırakılanlar: klasör listeleme ve oluşturma, süreç
 - Biçimlendirici (`jus bicimle`) (tamamlandı)
 - Test çalıştırıcı (`jus test`) (tamamlandı)
 - VS Code eklentisi: renklendirme (tamamlandı), hata gösterimi, tamamlama
-- Tarayıcıda deneme alanı (WebAssembly)
+- Tarayıcıda deneme alanı (WebAssembly) (tamamlandı; `playground/`)
 
 ### 0.7 Hız ve sağlamlık
 

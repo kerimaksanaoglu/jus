@@ -19,14 +19,17 @@ indirilebilir bir paket olarak sunar.
 ## Çalıştırma
 
 Sayfa dosya sisteminden doğrudan açılamaz (tarayıcılar buna izin vermez);
-klasörü bir web sunucusuyla sunun:
+klasörü birlikte gelen küçük sunucuyla sunun:
 
 ```sh
-cd playground
-python -m http.server 8000
+python playground/sun.py 8000
 ```
 
-Ardından tarayıcıda `http://localhost:8000` adresini açın.
+Ardından tarayıcıda `http://127.0.0.1:8000` adresini açın.
+
+`python -m http.server` yerine bu betiği kullanın: Python'un hazır sunucusu
+bazı Windows kurulumlarında `.js` dosyalarını yanlış içerik türüyle gönderir ve
+tarayıcı yorumlayıcıyı yüklemeyi reddeder.
 
 ## Sınırlar
 
@@ -34,4 +37,5 @@ Ardından tarayıcıda `http://localhost:8000` adresini açın.
 - Program ayrı bir iş parçacığında çalışır; sonsuz döngüye giren program
   "Durdur" düğmesiyle sonlandırılabilir.
 - Node.js sınaması yorumlayıcının WebAssembly derlemesini doğrular. Sayfanın
-  kendisi (düğmeler, çıktı alanı) otomatik olarak sınanmaz.
+  kendisi (düğmeler, çıktı alanı) otomatik olarak sınanmaz; Chrome'da elle
+  denenmiştir.

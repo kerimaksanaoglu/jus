@@ -67,8 +67,7 @@ Kaynak dosyalar UTF-8 olmalıdır.
 - Satır ve sütun gösteren Türkçe hata iletileri
 - Otomatik bellek yönetimi (çöp toplayıcı)
 
-Henüz olmayanlar (şifreli ağ bağlantıları, tarayıcıda deneme alanı ve
-diğerleri) için
+Henüz olmayanlar (şifreli ağ bağlantıları ve diğerleri) için
 [yol haritasına](docs/yol-haritasi.md) bakın.
 
 ## Belgeler
@@ -77,6 +76,7 @@ diğerleri) için
   için adım adım anlatım
 - [Dil tanımı](docs/dil-tanimi.md): sözdizimi ve davranışın tam tanımı
 - [VS Code eklentisi](editors/vscode/): sözdizimi renklendirme
+- [Deneme alanı](playground/): programları tarayıcıda çalıştıran sayfa
 - [Hız ölçümleri](bench/): CPython ile karşılaştırma
 - [Yol haritası](docs/yol-haritasi.md): planlanan sürümler ve 1.0 ölçütleri
 - [Değişiklik günlüğü](CHANGELOG.md)

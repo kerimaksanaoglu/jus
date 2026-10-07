@@ -10,6 +10,7 @@ uyar.
 
 ### Eklendi
 
+- Tarayıcıda deneme alanı: yorumlayıcının WebAssembly derlemesi (`playground/`)
 - Biçimlendirici: `jus bicimle [--denetle] dosya...`
 - Paket yöneticisi: `jus paket kur / listele / kaldır`; `kullan`, modülleri
   `jus_paketleri/` klasöründe de arar

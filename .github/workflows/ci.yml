@@ -49,5 +49,6 @@ jobs:
           path: |
             playground/index.html
             playground/calisan.js
+            playground/sun.py
             playground/jus.js
             playground/jus.wasm
