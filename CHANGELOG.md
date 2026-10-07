@@ -27,6 +27,7 @@ uyar.
 
 ### Değişti
 
+- Uzun metinleri döngüde `+=` ile büyütmek yaklaşık 5 kat hızlandı
 - Windows'ta çıktıda satır sonu artık `\n` (önceden `\r\n`)
 - `zaman.şimdi()` saniyenin kesirlerini de verir
 

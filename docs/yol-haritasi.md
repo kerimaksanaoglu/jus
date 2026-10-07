@@ -76,8 +76,8 @@ Sonraki sürümlere bırakılanlar: klasör listeleme ve oluşturma, süreç
 ### 0.7 Hız ve sağlamlık
 
 - Ölçüm paketi ve CPython ile karşılaştırma (tamamlandı; sonuçlar `bench/README.md`)
-- Döngüde metin birleştirmenin (`m += parça`) hızlandırılması; şu an her
-  adımda metnin tamamı kopyalanıyor
+- Döngüde metin birleştirmenin (`m += parça`) hızlandırılması (kısmen
+  tamamlandı: CPython'a göre 17 kat yavaşken 3 kat yavaşa indi)
 - Sanal makine iyileştirmeleri
 - Rastgele girdiyle sınama (tamamlandı; `tools/fuzz`)
 

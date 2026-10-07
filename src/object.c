@@ -95,11 +95,16 @@ static ObjString *allocateString(char *chars, int length, uint32_t hash) {
     return string;
 }
 
-/* FNV-1a */
+/*
+ * FNV-1a. Uzun metinlerde baytların tümü değil, eşit aralıklı en çok ~64 tanesi
+ * karılır; böylece büyük metinler üretmek (ör. döngüde birleştirme) metnin
+ * uzunluğuyla orantılı bir karma maliyeti getirmez. Uzunluk da karmaya katılır.
+ */
 static uint32_t hashString(const char *key, int length) {
-    uint32_t hash = 2166136261u;
-    for (int i = 0; i < length; i++) {
-        hash ^= (uint8_t)key[i];
+    uint32_t hash = 2166136261u ^ (uint32_t)length;
+    int step = (length >> 6) + 1;
+    for (int i = length; i >= step; i -= step) {
+        hash ^= (uint8_t)key[i - 1];
         hash *= 16777619;
     }
     return hash;

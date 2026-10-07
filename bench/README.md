@@ -60,9 +60,8 @@ Eşdeğerlik notları:
 - İşletim sistemi: Windows 11 Enterprise (10.0.26300), Intel64 Family 6 Model 191
   işlemci
 - Python: 3.11.9
-- JUS: 0.4.0 (`jus --surum` çıktısı), depodaki hazır `jus.exe`
-- Çalıştırma: `python bench/calistir.py /tmp/jus_bench.exe` (`jus.exe`'nin kopyası),
-  `-n 3`
+- JUS: 0.6.0 (`jus --surum` çıktısı)
+- Çalıştırma: `python bench/calistir.py ./jus.exe -n 3`
 
 ## Sonuçlar
 
@@ -71,21 +70,19 @@ gösterir. Süreler saniyedir, 3 çalıştırmanın en iyisidir.
 
 | Program | JUS sn | Python sn | Oran |
 |---|---:|---:|---:|
-| birlestir | 0,535 | 0,032 | 16,59x |
-| dongu | 0,220 | 0,364 | 0,60x |
-| elek | 0,274 | 0,495 | 0,55x |
-| fib | 0,269 | 0,366 | 0,74x |
-| hata | 0,286 | 0,763 | 0,38x |
-| kapanim | 0,190 | 0,294 | 0,65x |
-| liste | 0,310 | 0,407 | 0,76x |
-| matris | 0,189 | 0,241 | 0,78x |
-| metin | 0,256 | 0,147 | 1,75x |
-| sinif | 0,203 | 0,264 | 0,77x |
-| sozluk | 0,286 | 0,180 | 1,59x |
+| birlestir | 0,108 | 0,035 | 3,06x |
+| dongu | 0,220 | 0,373 | 0,59x |
+| elek | 0,265 | 0,370 | 0,72x |
+| fib | 0,187 | 0,234 | 0,80x |
+| hata | 0,200 | 0,502 | 0,40x |
+| kapanim | 0,149 | 0,229 | 0,65x |
+| liste | 0,256 | 0,310 | 0,83x |
+| matris | 0,188 | 0,241 | 0,78x |
+| metin | 0,245 | 0,138 | 1,78x |
+| sinif | 0,198 | 0,269 | 0,73x |
+| sozluk | 0,302 | 0,173 | 1,74x |
 
-Oranların geometrik ortalaması: 1,02x (11 ölçüm). Bu ortalama `birlestir`
-ölçümünün büyük sapmasından güçlü biçimde etkilenir; o hariç tutulursa 0,77x
-çıkar.
+Oranların geometrik ortalaması: 0,92x (11 ölçüm).
 
 ## Yorum
 
@@ -100,11 +97,11 @@ Tek bir Python sürümü (3.11) ve tek bir derleme ile karşılaştırılmışt�
   programında; burada Python'un istisna oluşturma maliyeti öne çıkıyor.
   `elek` ve `dongu` gibi saf döngü programlarında fark 1,6-1,8 kat.
 - JUS'un geride olduğu yerler:
-  - Metin ekleme (`birlestir`): `s += "ab"` her turda metni baştan kopyalıyor gibi
-    görünüyor; süre öğe sayısının karesiyle büyüyor (10.000 tur 0,15 sn, 20.000 tur
-    0,45 sn, 40.000 tur 1,6 sn, 80.000 tur 6 sn). CPython aynı kalıpta yerinde
-    büyütme eniyilemesi uyguladığı için burada fark 16 kat. Büyük metinler `birleştir`
-    ile kurulduğunda bu sorun yok.
+  - Metin ekleme (`birlestir`): `s += "ab"` her turda metnin tamamını kopyalar;
+    CPython aynı kalıpta metni yerinde büyütür. Bu ölçümde JUS yaklaşık 3 kat
+    yavaş. 0.6 sürümünden önce fark 17 kattı; uzun metinlerin karma değeri
+    artık tüm baytlar yerine örneklenerek hesaplanıyor. Çok büyük metinler
+    `birleştir` ile kurulduğunda kopyalama maliyeti de ortadan kalkar.
   - Sözlük (`sozluk`) ve metin işleme (`metin`): bu ölçümlerde JUS yaklaşık 1,6-1,8
     kat yavaş. Sözlük programında metin anahtarı üretimi (`"k" + metin(i)`) ve
     sözlük erişimi birlikte ölçülüyor; ayrı ayrı profillenmedi, bu nedenle payların
