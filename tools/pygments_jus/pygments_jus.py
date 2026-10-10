@@ -57,7 +57,7 @@ class JusLexer(RegexLexer):
             (words(BUILTINS, prefix=r"(?<![\w.])", suffix=r"(?=\s*\()"), Name.Builtin),
             (IDENTIFIER + r"(?=\s*\()", Name.Function),
             (IDENTIFIER, Name),
-            (r"==|!=|<=|>=|\+=|-=|\*=|/=|[+\-*/%<>=]", Operator),
+            (r"==|!=|<=|>=|<<|>>|\+=|-=|\*=|/=|[+\-*/%<>=&|^~]", Operator),
             (r"[()\[\]{},.:]", Punctuation),
             (r"\s+", Text),
             (r".", Text),

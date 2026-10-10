@@ -29,6 +29,12 @@ typedef enum {
     OP_MULTIPLY,
     OP_DIVIDE,
     OP_MODULO,
+    OP_BIT_AND,        /* & */
+    OP_BIT_OR,         /* | */
+    OP_BIT_XOR,        /* ^ */
+    OP_BIT_NOT,        /* ~ */
+    OP_SHIFT_LEFT,     /* << */
+    OP_SHIFT_RIGHT,    /* >> */
     OP_NOT,
     OP_NEGATE,
     OP_ASSERT_BOOL,    /* yığının tepesi mantıksal değilse hata */

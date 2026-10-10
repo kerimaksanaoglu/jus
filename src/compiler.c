@@ -32,7 +32,11 @@ typedef enum {
     PREC_AND,        /* ve */
     PREC_NOT,        /* değil */
     PREC_EQUALITY,   /* == != */
-    PREC_COMPARISON, /* < > <= >= */
+    PREC_COMPARISON, /* < > <= >= içinde */
+    PREC_BIT_OR,     /* | */
+    PREC_BIT_XOR,    /* ^ */
+    PREC_BIT_AND,    /* & */
+    PREC_SHIFT,      /* << >> */
     PREC_TERM,       /* + - */
     PREC_FACTOR,     /* * / % */
     PREC_UNARY,      /* - */
@@ -576,6 +580,11 @@ static void binary(bool canAssign) {
         case TOKEN_STAR: emitByte(OP_MULTIPLY); break;
         case TOKEN_SLASH: emitByte(OP_DIVIDE); break;
         case TOKEN_PERCENT: emitByte(OP_MODULO); break;
+        case TOKEN_AMPERSAND: emitByte(OP_BIT_AND); break;
+        case TOKEN_PIPE: emitByte(OP_BIT_OR); break;
+        case TOKEN_CARET: emitByte(OP_BIT_XOR); break;
+        case TOKEN_SHIFT_LEFT: emitByte(OP_SHIFT_LEFT); break;
+        case TOKEN_SHIFT_RIGHT: emitByte(OP_SHIFT_RIGHT); break;
         case TOKEN_IN: emitByte(OP_IN); break;
         default: return; /* ulaşılamaz */
     }
@@ -958,6 +967,12 @@ static void unary(bool canAssign) {
     emitByte(OP_NEGATE);
 }
 
+static void bitNot(bool canAssign) {
+    (void)canAssign;
+    parsePrecedence(PREC_UNARY);
+    emitByte(OP_BIT_NOT);
+}
+
 static const ParseRule rules[] = {
     [TOKEN_LEFT_PAREN]    = {grouping, call,   PREC_CALL},
     [TOKEN_RIGHT_PAREN]   = {NULL,     NULL,   PREC_NONE},
@@ -977,6 +992,12 @@ static const ParseRule rules[] = {
     [TOKEN_SLASH]         = {NULL,     binary, PREC_FACTOR},
     [TOKEN_STAR]          = {NULL,     binary, PREC_FACTOR},
     [TOKEN_PERCENT]       = {NULL,     binary, PREC_FACTOR},
+    [TOKEN_AMPERSAND]     = {NULL,     binary, PREC_BIT_AND},
+    [TOKEN_PIPE]          = {NULL,     binary, PREC_BIT_OR},
+    [TOKEN_CARET]         = {NULL,     binary, PREC_BIT_XOR},
+    [TOKEN_TILDE]         = {bitNot,   NULL,   PREC_NONE},
+    [TOKEN_SHIFT_LEFT]    = {NULL,     binary, PREC_SHIFT},
+    [TOKEN_SHIFT_RIGHT]   = {NULL,     binary, PREC_SHIFT},
     [TOKEN_EQUAL]         = {NULL,     NULL,   PREC_NONE},
     [TOKEN_EQUAL_EQUAL]   = {NULL,     binary, PREC_EQUALITY},
     [TOKEN_BANG_EQUAL]    = {NULL,     binary, PREC_EQUALITY},

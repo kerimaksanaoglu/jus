@@ -352,12 +352,20 @@ Token scanToken(void) {
         case '/': return makeToken(match('=') ? TOKEN_SLASH_EQUAL : TOKEN_SLASH);
         case '*': return makeToken(match('=') ? TOKEN_STAR_EQUAL : TOKEN_STAR);
         case '%': return makeToken(TOKEN_PERCENT);
+        case '&': return makeToken(TOKEN_AMPERSAND);
+        case '|': return makeToken(TOKEN_PIPE);
+        case '^': return makeToken(TOKEN_CARET);
+        case '~': return makeToken(TOKEN_TILDE);
         case '!':
             if (match('=')) return makeToken(TOKEN_BANG_EQUAL);
             return errorToken("'!' tek başına kullanılamaz; olumsuzlama için 'değil' yazın.");
         case '=': return makeToken(match('=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL);
-        case '<': return makeToken(match('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
-        case '>': return makeToken(match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
+        case '<':
+            if (match('<')) return makeToken(TOKEN_SHIFT_LEFT);
+            return makeToken(match('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
+        case '>':
+            if (match('>')) return makeToken(TOKEN_SHIFT_RIGHT);
+            return makeToken(match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
         case '"': return string();
     }
 

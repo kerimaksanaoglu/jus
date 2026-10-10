@@ -525,6 +525,81 @@ static void hintForKey(Value key, ObjMap *map, char *out) {
     }
 }
 
+/* ---- Bit işleçleri ----
+ *
+ * İşlenenler tam değerli ve ±2^53 aralığında olmalıdır: ondalık gösterimde bu
+ * sınırın ötesi kesin değildir ve kesin olmayan bir sayıda bit işlemi anlamsızdır.
+ * Kırpma ya da sarma yapılmaz; aralık dışı değer hatadır. Hesap 64 bit ikiye
+ * tümleyen üzerinde yapılır ve sonucun da aynı aralıkta olması istenir.
+ */
+
+#define BIT_LIMIT 9007199254740992.0 /* 2^53 */
+
+static bool bitOperand(const char *symbol, Value value, int64_t *out) {
+    if (!IS_NUMBER(value)) {
+        runtimeError("'%s' işleci tam sayı ister; %s verildi.", symbol, valueTypeName(value));
+        return false;
+    }
+    double number = AS_NUMBER(value);
+    if (number != floor(number)) {
+        char shown[32];
+        formatNumber(number, shown, sizeof(shown));
+        runtimeError("'%s' işleci tam sayı ister; %s ondalık kısmı olan bir sayı.", symbol, shown);
+        return false;
+    }
+    if (fabs(number) > BIT_LIMIT) {
+        runtimeError("'%s' işlecinin işleneni 2^53'ten büyük olamaz; bu büyüklükteki sayılar kesin değildir.",
+                     symbol);
+        return false;
+    }
+    *out = (int64_t)number;
+    return true;
+}
+
+static bool bitResult(const char *symbol, int64_t result) {
+    if (result > (int64_t)BIT_LIMIT || result < -(int64_t)BIT_LIMIT) {
+        runtimeError("'%s' işlecinin sonucu 2^53'ü aşıyor; bu büyüklükteki sayılar kesin değildir.", symbol);
+        return false;
+    }
+    push(NUMBER_VAL((double)result));
+    return true;
+}
+
+/* [a, b] -> sonuç */
+static bool bitBinary(uint8_t op) {
+    const char *symbol = op == OP_BIT_AND ? "&" : op == OP_BIT_OR ? "|" : op == OP_BIT_XOR ? "^" :
+                         op == OP_SHIFT_LEFT ? "<<" : ">>";
+    int64_t a, b;
+    if (!bitOperand(symbol, peek(1), &a) || !bitOperand(symbol, peek(0), &b)) return false;
+    pop();
+    pop();
+
+    int64_t result = 0;
+    switch (op) {
+        case OP_BIT_AND: result = a & b; break;
+        case OP_BIT_OR: result = a | b; break;
+        case OP_BIT_XOR: result = a ^ b; break;
+        case OP_SHIFT_LEFT:
+        case OP_SHIFT_RIGHT:
+            if (b < 0 || b > 63) {
+                runtimeError("Kaydırma miktarı 0 ile 63 arasında olmalı; %lld verildi.", (long long)b);
+                return false;
+            }
+            if (op == OP_SHIFT_RIGHT) {
+                /* Aritmetik kaydırma: işaret korunur. */
+                result = a < 0 ? ~((~a) >> b) : a >> b;
+            } else {
+                /* Taşmayı bit kaymadan önce yakala: sonuç 2^53'ü aşacaksa hata. */
+                double scaled = (double)a * pow(2.0, (double)b);
+                if (fabs(scaled) > BIT_LIMIT) return bitResult(symbol, scaled > 0 ? INT64_MAX : INT64_MIN);
+                result = (int64_t)scaled;
+            }
+            break;
+        default: break;
+    }
+    return bitResult(symbol, result);
+}
+
 static bool integerValue(Value value, int *out) {
     if (!IS_NUMBER(value)) return false;
     double number = AS_NUMBER(value);
@@ -1203,6 +1278,20 @@ static InterpretResult run(int stopAt, bool script) {
                 double result = fmod(a, b);
                 if (result != 0 && (result < 0) != (b < 0)) result += b;
                 push(NUMBER_VAL(result));
+                break;
+            }
+            case OP_BIT_AND:
+            case OP_BIT_OR:
+            case OP_BIT_XOR:
+            case OP_SHIFT_LEFT:
+            case OP_SHIFT_RIGHT:
+                if (!bitBinary(instruction)) goto on_error;
+                break;
+            case OP_BIT_NOT: {
+                int64_t a;
+                if (!bitOperand("~", peek(0), &a)) goto on_error;
+                pop();
+                if (!bitResult("~", ~a)) goto on_error;
                 break;
             }
             case OP_NOT:

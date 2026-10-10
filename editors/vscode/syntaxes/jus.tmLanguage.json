@@ -120,6 +120,10 @@
           "match": "\\+=|-=|\\*=|/="
         },
         {
+          "name": "keyword.operator.bitwise.jus",
+          "match": "<<|>>|[&|^~]"
+        },
+        {
           "name": "keyword.operator.comparison.jus",
           "match": "==|!=|<=|>=|<|>"
         },
