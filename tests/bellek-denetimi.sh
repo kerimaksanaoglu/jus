@@ -14,7 +14,7 @@ trap 'rm -rf "$CIKTI"' EXIT
 "${CC:-gcc}" -std=c99 -Wall -Wextra -pedantic -g \
     -fsanitize=address,undefined -fno-sanitize-recover=all \
     -DJUS_DEBUG_STRESS_GC \
-    "$KOK"/src/*.c -o "$CIKTI/jus" -lm
+    "$KOK"/src/*.c -o "$CIKTI/jus" -lm $(if [ "$(uname)" = Darwin ]; then echo "-framework Security -framework CoreFoundation"; else echo "-ldl"; fi)
 cd "$KOK"
 
 bash "$KOK/tests/calistir.sh" "$CIKTI/jus"

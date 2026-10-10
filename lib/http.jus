@@ -1,7 +1,8 @@
 # http modülü: HTTP/1.1 istemcisi ve sunucusu.
 #
-# Yalnızca şifresiz (http://) bağlantılar desteklenir. Bu dosya yorumlayıcının
-# içine gömülür; değiştirdikten sonra tools/gomulu_uret.py çalıştırılmalıdır.
+# İstemci http:// ve https:// adreslerine bağlanır; sunucu yalnızca şifresizdir.
+# Bu dosya yorumlayıcının içine gömülür; değiştirdikten sonra
+# tools/gomulu_uret.py çalıştırılmalıdır.
 kullan ağ
 
 değişken _BÜYÜK = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -85,27 +86,31 @@ fonksiyon _gövdeyi_oku(bağlantı, başlıklar, kapanana_kadar):
     dön ""
 
 fonksiyon _adresi_ayır(adres):
+    değişken şifreli = yanlış
+    değişken kalan = ""
     eğer başlar_mı(adres, "https://"):
-        fırlat "http modülü şifreli (https) bağlantıları desteklemiyor: " + adres
-    eğer değil başlar_mı(adres, "http://"):
-        fırlat "Adres 'http://' ile başlamalı: " + adres
-
-    değişken sunucu = adres[7:]
+        şifreli = doğru
+        kalan = adres[8:]
+    değilse eğer başlar_mı(adres, "http://"):
+        kalan = adres[7:]
+    değilse:
+        fırlat "Adres http:// ya da https:// ile başlamalı: " + adres
+    değişken bölü = bul(kalan, "/")
+    değişken sunucu = kalan
     değişken yol = "/"
-    değişken bölü = bul(sunucu, "/")
     eğer bölü >= 0:
-        yol = sunucu[bölü:]
-        sunucu = sunucu[:bölü]
-
+        sunucu = kalan[:bölü]
+        yol = kalan[bölü:]
     değişken port = 80
+    eğer şifreli:
+        port = 443
     değişken iki_nokta = bul(sunucu, ":")
     eğer iki_nokta >= 0:
         port = sayı(sunucu[iki_nokta + 1:])
         sunucu = sunucu[:iki_nokta]
-
     eğer sunucu == "":
         fırlat "Adreste sunucu adı yok: " + adres
-    dön {"sunucu": sunucu, "port": port, "yol": yol}
+    dön {"sunucu": sunucu, "port": port, "yol": yol, "şifreli": şifreli}
 
 fonksiyon _sorguyu_çöz(yazı):
     değişken sorgu = {}
@@ -147,7 +152,11 @@ fonksiyon yanıtı_oku(bağlantı):
 # Verilen adrese istek gönderir ve yanıtı döndürür.
 fonksiyon iste(yöntem, adres, başlıklar, gövde):
     değişken hedef = _adresi_ayır(adres)
-    değişken bağlantı = ağ.bağlan(hedef["sunucu"], hedef["port"])
+    değişken bağlantı = boş
+    eğer hedef["şifreli"]:
+        bağlantı = ağ.şifreli_bağlan(hedef["sunucu"], hedef["port"])
+    değilse:
+        bağlantı = ağ.bağlan(hedef["sunucu"], hedef["port"])
     değişken yanıt = boş
     dene:
         ağ.zaman_aşımı(bağlantı, 30)

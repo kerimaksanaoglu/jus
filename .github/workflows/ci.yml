@@ -24,6 +24,9 @@ jobs:
         run: make test
       - name: Örnek programlar
         run: make examples
+      # Gerçek ağa çıkar: https ve sertifika doğrulaması üç platformun kendi TLS altyapısıyla sınanır.
+      - name: Ağ testi
+        run: bash tests/ag_testi.sh ./jus
 
   sanitize:
     name: Bellek denetimi

@@ -1,0 +1,16 @@
+# ağ.şifreli_bağlan ile ham HTTP isteği; yanıtın ilk satırı ve gövdenin bayt olarak okunması.
+kullan ağ
+
+değişken bağlantı = ağ.şifreli_bağlan("example.com", 443)
+ağ.zaman_aşımı(bağlantı, 30)
+ağ.gönder(bağlantı, "GET / HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n")
+yaz(ağ.satır_al(bağlantı))
+
+değişken toplam = 0
+iken doğru:
+    değişken parça = ağ.bayt_al(bağlantı, 4096)
+    eğer parça == boş:
+        kır
+    toplam += uzunluk(parça)
+yaz(toplam > 500)
+ağ.kapat(bağlantı)

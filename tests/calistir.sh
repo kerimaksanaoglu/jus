@@ -10,7 +10,8 @@
 #   # girdi: <metin>   programa standart girdiden verilecek satır
 #
 # Adı '_' ile başlayan klasörlerdeki dosyalar test değil, testlerin kullandığı
-# yardımcı modüllerdir.
+# yardımcı modüllerdir. tests/ag altındaki dosyalar gerçek ağa çıkar ve
+# tests/ag_testi.sh ile ayrıca çalıştırılır.
 
 JUS="${1:-./jus}"
 KOK="$(cd "$(dirname "$0")" && pwd)"
@@ -67,7 +68,7 @@ while IFS= read -r dosya; do
             sed 's/^/  /' "$hata"
         fi
     fi
-done < <(find "$KOK" -name '*.jus' -not -path '*/_*' -not -path '*/araclar/*' | sort)
+done < <(find "$KOK" -name '*.jus' -not -path '*/_*' -not -path '*/araclar/*' -not -path '*/ag/*' | sort)
 
 echo "$gecen test geçti, $kalan test başarısız."
 [ "$kalan" -eq 0 ]

@@ -32,6 +32,7 @@ typedef int Socket;
 #include "bytes.h"
 #include "object.h"
 #include "stdlib_modules.h"
+#include "tls.h"
 #include "value.h"
 #include "vm.h"
 
@@ -48,6 +49,7 @@ typedef struct {
     bool used;
     bool listener;
     Socket socket;
+    Tls *tls; /* şifreli bağlantıda TLS durumu; düz bağlantıda NULL */
     char *buffer;
     int length;
     int capacity;
@@ -76,6 +78,7 @@ static int addConnection(Socket socket, bool listener) {
         connections[i].used = true;
         connections[i].listener = listener;
         connections[i].socket = socket;
+        connections[i].tls = NULL;
         connections[i].buffer = NULL;
         connections[i].length = 0;
         connections[i].capacity = 0;
@@ -123,15 +126,13 @@ static void prepareSocket(Socket socket) {
 #endif
 }
 
-/* ağ.bağlan(sunucu, port): TCP bağlantısı açar. */
-static bool baglanNative(int argCount, Value *args, Value *result) {
-    (void)argCount;
+/* Sunucuya TCP bağlantısı açar; başarısızsa nativeFail ile ileti bırakır. */
+static bool openSocket(const char *name, Value *args, Socket *out, int *portOut) {
     if (!IS_STRING(args[0])) {
-        return nativeFail("'ağ.bağlan' için sunucu adı metin olmalı; %s verildi.",
-                          valueTypeName(args[0]));
+        return nativeFail("'%s' için sunucu adı metin olmalı; %s verildi.", name, valueTypeName(args[0]));
     }
     int port = 0;
-    if (!toPort("ağ.bağlan", args[1], &port)) return false;
+    if (!toPort(name, args[1], &port)) return false;
     if (!startNetwork()) return nativeFail("Ağ başlatılamadı.");
 
     char service[16];
@@ -163,14 +164,50 @@ static bool baglanNative(int argCount, Value *args, Value *result) {
                           AS_CSTRING(args[0]), port);
     }
     prepareSocket(connected);
+    *out = connected;
+    *portOut = port;
+    return true;
+}
 
-    int handle = addConnection(connected, false);
+static bool registerConnection(Socket socket, Tls *tls, Value *result) {
+    int handle = addConnection(socket, false);
     if (handle == 0) {
-        closeSocket(connected);
+        if (tls != NULL) tlsClose(tls);
+        closeSocket(socket);
         return nativeFail("Aynı anda en çok %d bağlantı açık olabilir.", MAX_CONNECTIONS);
     }
+    connections[handle - 1].tls = tls;
     *result = NUMBER_VAL(handle);
     return true;
+}
+
+/* ağ.bağlan(sunucu, port): TCP bağlantısı açar. */
+static bool baglanNative(int argCount, Value *args, Value *result) {
+    (void)argCount;
+    Socket socket;
+    int port;
+    if (!openSocket("ağ.bağlan", args, &socket, &port)) return false;
+    return registerConnection(socket, NULL, result);
+}
+
+/*
+ * ağ.şifreli_bağlan(sunucu, port): TLS ile şifrelenmiş bağlantı açar. Sunucunun
+ * sertifikası sistemin kök sertifikalarıyla doğrulanır ve sunucu adıyla eşleşmelidir.
+ */
+static bool sifreliBaglanNative(int argCount, Value *args, Value *result) {
+    (void)argCount;
+    const char *reason = NULL;
+    if (!tlsAvailable(&reason)) return nativeFail("%s", reason);
+    Socket socket;
+    int port;
+    if (!openSocket("ağ.şifreli_bağlan", args, &socket, &port)) return false;
+    char error[256];
+    Tls *tls = tlsConnect((intptr_t)socket, AS_CSTRING(args[0]), error, sizeof(error));
+    if (tls == NULL) {
+        closeSocket(socket);
+        return nativeFail("'%.200s' ile şifreli bağlantı kurulamadı: %s", AS_CSTRING(args[0]), error);
+    }
+    return registerConnection(socket, tls, result);
 }
 
 /* ağ.dinle(port) / ağ.dinle(port, adres): gelen bağlantıları bekleyen dinleyici açar. */
@@ -258,6 +295,23 @@ static bool kabulEtNative(int argCount, Value *args, Value *result) {
     return true;
 }
 
+/* Bağlantıya tüm veriyi gönderir; şifreli bağlantıda TLS katmanından geçer. */
+static bool connectionSend(Connection *connection, const char *data, int length) {
+    if (connection->tls != NULL) return tlsSend(connection->tls, data, length);
+    int sent = 0;
+    while (sent < length) {
+#ifdef MSG_NOSIGNAL
+        int flags = MSG_NOSIGNAL;
+#else
+        int flags = 0;
+#endif
+        int count = (int)send(connection->socket, data + sent, length - sent, flags);
+        if (count <= 0) return false;
+        sent += count;
+    }
+    return true;
+}
+
 /* ağ.gönder(bağlantı, metin): metnin tamamını gönderir. */
 static bool gonderNative(int argCount, Value *args, Value *result) {
     (void)argCount;
@@ -269,16 +323,8 @@ static bool gonderNative(int argCount, Value *args, Value *result) {
     }
 
     ObjString *data = AS_STRING(args[1]);
-    int sent = 0;
-    while (sent < data->length) {
-#ifdef MSG_NOSIGNAL
-        int flags = MSG_NOSIGNAL;
-#else
-        int flags = 0;
-#endif
-        int count = (int)send(connection->socket, data->chars + sent, data->length - sent, flags);
-        if (count <= 0) return nativeFail("Veri gönderilemedi; bağlantı kopmuş olabilir.");
-        sent += count;
+    if (!connectionSend(connection, data->chars, data->length)) {
+        return nativeFail("Veri gönderilemedi; bağlantı kopmuş olabilir.");
     }
     return true;
 }
@@ -293,16 +339,8 @@ static bool baytGonderNative(int argCount, Value *args, Value *result) {
         return nativeFail("'ağ.bayt_gönder' baytlar gönderir; %s verildi.", valueTypeName(args[1]));
     }
     ObjBytes *data = AS_BYTES(args[1]);
-    int sent = 0;
-    while (sent < data->count) {
-#ifdef MSG_NOSIGNAL
-        int flags = MSG_NOSIGNAL;
-#else
-        int flags = 0;
-#endif
-        int count = (int)send(connection->socket, (const char *)data->data + sent, data->count - sent, flags);
-        if (count <= 0) return nativeFail("Veri gönderilemedi; bağlantı kopmuş olabilir.");
-        sent += count;
+    if (!connectionSend(connection, (const char *)data->data, data->count)) {
+        return nativeFail("Veri gönderilemedi; bağlantı kopmuş olabilir.");
     }
     return true;
 }
@@ -320,8 +358,9 @@ static int receiveMore(Connection *connection) {
         connection->capacity = capacity;
     }
 
-    int count = (int)recv(connection->socket, connection->buffer + connection->length,
-                          RECEIVE_CHUNK, 0);
+    int count = connection->tls != NULL
+                    ? tlsRecv(connection->tls, connection->buffer + connection->length, RECEIVE_CHUNK)
+                    : (int)recv(connection->socket, connection->buffer + connection->length, RECEIVE_CHUNK, 0);
     if (count < 0) return -1;
     if (count == 0) return 0;
     connection->length += count;
@@ -473,6 +512,10 @@ static bool kapatNative(int argCount, Value *args, Value *result) {
         return nativeFail("'ağ.kapat' için geçerli, açık bir bağlantı ya da dinleyici gerekli.");
     }
 
+    if (connection->tls != NULL) {
+        tlsClose(connection->tls);
+        connection->tls = NULL;
+    }
     closeSocket(connection->socket);
     free(connection->buffer);
     connection->buffer = NULL;
@@ -554,6 +597,7 @@ static bool urlKodlaNative(int argCount, Value *args, Value *result) {
 void defineNetworkModule(void) {
     ObjModule *net = defineModule("ağ");
     moduleDefineNative(net, "bağlan", 2, baglanNative);
+    moduleDefineNative(net, "şifreli_bağlan", 2, sifreliBaglanNative);
     moduleDefineNative(net, "dinle", -1, dinleNative);
     moduleDefineNative(net, "port", 1, portNative);
     moduleDefineNative(net, "kabul_et", 1, kabulEtNative);

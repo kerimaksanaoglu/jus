@@ -1,0 +1,5 @@
+# https adresine GET isteği: durum 200 ve beklenen gövde.
+kullan http
+
+değişken yanıt = http.getir("https://example.com/")
+yaz(yanıt["durum"], "Example Domain" içinde yanıt["gövde"])

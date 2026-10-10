@@ -1,0 +1,9 @@
+# Sertifika doğrulaması: üç hatalı sunucu da reddedilmeli.
+kullan http
+
+her adres içinde ["https://expired.badssl.com/", "https://wrong.host.badssl.com/", "https://self-signed.badssl.com/"]:
+    dene:
+        http.getir(adres)
+        yaz("HATA: bağlantı kabul edildi:", adres)
+    yakala hata:
+        yaz(hata)

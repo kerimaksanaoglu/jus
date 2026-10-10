@@ -13,12 +13,19 @@ CFLAGS = -O2
 WARNINGS = -std=c99 -Wall -Wextra -pedantic
 EXTRA =
 
+# Şifreli bağlantılar platformun kendi TLS altyapısını kullanır:
+#   Windows: SChannel (secur32, crypt32); macOS: Secure Transport (Security çerçevesi);
+#   Linux: çalışma zamanında yüklenen OpenSSL (dlopen için eski glibc'de -ldl gerekir).
 ifeq ($(OS),Windows_NT)
 EXE = .exe
-LDLIBS = -lm -lws2_32
+LDLIBS = -lm -lws2_32 -lsecur32 -lcrypt32
 else
 EXE =
-LDLIBS = -lm
+ifeq ($(shell uname),Darwin)
+LDLIBS = -lm -framework Security -framework CoreFoundation
+else
+LDLIBS = -lm -ldl
+endif
 endif
 
 TARGET = jus$(EXE)
