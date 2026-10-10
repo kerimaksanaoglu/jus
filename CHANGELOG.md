@@ -6,6 +6,30 @@ uyar.
 
 ## [Yayımlanmadı]
 
+### Eklendi
+
+- Varsayılan parametre değerleri: `fonksiyon selamla(ad, selam = "Merhaba"):`.
+  Varsayılan ifade argüman verilmediğinde her çağrıda yeniden hesaplanır
+  (`liste = []` her çağrıda yeni liste verir) ve kendinden önceki parametreleri
+  görebilir (`fonksiyon kayıt(ad, etiket = ad + "-1"):`). Yöntemlerde (`kur`
+  dahil) ve iç fonksiyonlarda da çalışır. Varsayılanı olan parametreden sonra
+  varsayılanı olmayan parametre derleme hatasıdır. Argüman sayısı iletisi
+  aralığı söyler: `'f' fonksiyonu en az 1, en çok 2 argüman bekliyor, 3 verildi.`
+- Değişken sayıda parametre: `fonksiyon topla(*sayılar):`. Adlı parametrelerden
+  sonra kalan argümanlar yeni bir liste olarak gelir, hiç kalmazsa boş liste.
+  `*` parametresi sonuncu olmalıdır ve `fonksiyon f(a, b = 2, *kalan)` gibi
+  varsayılanlı parametrelerle birlikte kullanılabilir. Biçimlendirici `*kalan`
+  yazımını korur. Çağrıda liste açma (`f(*liste)`) yoktur.
+- Biçimli metin: `f"Merhaba, {ad}! Yaşın {yaş + 1}."`. `{ }` içindeki ifadeler
+  hesaplanıp `metin()` ile aynı biçimde metne çevrilir; süslü parantez için
+  `{{` ve `}}` yazılır. Biçim belirteci (`{x:.2f}`) yoktur; `{biçimle(x, 2)}`
+  yazılır. Kapatılmamış `{`, tek `}` ve boş `{}` derleme hatasıdır.
+- Etkileşimli kipte satır düzenleme: ok tuşları, `Home` / `End`, Türkçe harfleri
+  tek tuşla silen `Backspace`; yukarı / aşağı okla geçmiş (ev klasöründeki
+  `.jus_gecmis` dosyasında, en çok 1000 giriş); `Tab` ile anahtar kelime,
+  yerleşik fonksiyon, tanımlı ad ve modül adı tamamlama. Girdi yönlendirilmişse
+  düz okuma sürer.
+
 ## [1.2.0] - 2026-10-10
 
 ### Eklendi

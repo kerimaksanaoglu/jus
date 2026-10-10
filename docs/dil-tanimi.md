@@ -63,6 +63,39 @@ Metinler çift tırnak içinde yazılır ve tek satırda biter. Kaçış diziler
 
 Başka bir kaçış dizisi sözdizimi hatasıdır.
 
+### 2.5A Biçimli metinler
+
+Önünde `f` harfi bulunan ve hemen ardından çift tırnakla başlayan metin
+**biçimli metindir**: `f"Merhaba, {ad}! Yaşın {yaş + 1}."`. `f` ile açılış
+tırnağı arasında boşluk bulunamaz.
+
+```jus
+değişken ad = "Ayşe"
+yaz(f"Merhaba, {ad}! {{süslü}} {uzunluk(ad) * 2}")
+```
+
+```
+Merhaba, Ayşe! {süslü} 8
+```
+
+- Biçimli metin, düz metin parçalarından ve `{` ile `}` arasına yazılan
+  ifadelerden oluşur. Düz parçalarda 2.5'teki kaçış dizileri geçerlidir.
+- İfadeler metindeki sıralarıyla, soldan sağa hesaplanır. Her sonuç `metin()`
+  ile aynı biçimde metne çevrilir (6.2): metinler tırnaksız, listeler ve
+  sözlükler yazıldıkları gibi görünür. Parçalar art arda birleştirilir; sonuç
+  `metin` türündedir.
+- Süslü parantezin kendisi `{{` ve `}}` ile yazılır.
+- `{ }` içindeki ifade atama olamaz (dilbilgisinde `veya_ifadesi`). İfadenin
+  içinde çift tırnak kullanılamaz: çift tırnak metni bitirir. Tırnaklı bir
+  değer gerekiyorsa önce bir değişkene alınır.
+- Biçim belirteci yoktur: `{x:.2f}` sözdizimi hatasıdır. Biçimlendirme için
+  `biçimle`, `sola_doldur` gibi fonksiyonlar `{ }` içinde çağrılır:
+  `f"{biçimle(fiyat, 2)} TL"`.
+- Biçimli metindeki hatalar derleme zamanında bildirilir (7.1): kapatılmamış
+  `{`, tek başına `}` ve boş `{}`. Bu üç hata biçimli metnin başlangıcını
+  gösterir. İfadenin kendi içindeki bir sözdizimi hatası ise sıradan bir
+  sözdizimi hatası gibi, kendi satır ve sütunuyla bildirilir.
+
 ### 2.6 Satırlar ve girinti
 
 - Her deyim bir satırda yazılır ve satır sonunda biter.
@@ -96,6 +129,8 @@ Başka bir kaçış dizisi sözdizimi hatasıdır.
 
 JUS dinamik tiplidir: değişkenlerin değil, değerlerin türü vardır. Türler
 arasında örtük dönüşüm yapılmaz; dönüşüm için `metin()` ve `sayı()` kullanılır.
+Biçimli metin (2.5A) bu kuralın dışında değildir: dönüşümü `f"..."` yazımı
+açıkça ister.
 
 Tam sayı değerli sayılar ondalık kısım olmadan yazılır (`4`); diğerleri en çok
 14 anlamlı basamakla yazılır (`0.33333333333333`). Tam sayılar 2^53'e
@@ -169,7 +204,8 @@ Parantez önceliği değiştirir: `(2 + 3) * 4`.
 - `+`, `-`, `*`, `/`, `%` iki sayı ister. `+` ayrıca iki metni ya da iki
   listeyi birleştirir.
 - Bir sayı ile bir metni `+` ile birleştirmek hatadır; önce `metin()` ile
-  dönüştürülür: `"yaş: " + metin(25)`.
+  dönüştürülür: `"yaş: " + metin(25)`. Biçimli metin aynı işi tek yazımda
+  yapar: `f"yaş: {25}"` (2.5A).
 - `/` her zaman ondalıklı bölme yapar: `15 / 4` sonucu `3.75` olur.
 - `%` kalanı verir; sonuç bölenin işaretini taşır: `-7 % 3` sonucu `2` olur.
 - Sıfıra bölme ve sıfıra göre kalan çalışma zamanı hatasıdır.
@@ -203,8 +239,23 @@ Dizinlerle de kullanılabilir: `sayım["a"] += 1`.
 
 ### 4.6 Fonksiyon çağrısı
 
-`f(a, b)` biçimindedir. Argüman sayısı fonksiyonun parametre sayısına eşit
-olmalıdır. Bir çağrıda en çok 255 argüman bulunabilir.
+`f(a, b)` biçimindedir. Argümanlar soldan sağa, parametrelere sırayla bağlanır.
+
+- Varsayılan değeri olmayan her parametre için argüman verilmelidir.
+- Fonksiyonun `*` parametresi (5.4) yoksa parametre sayısından fazla argüman
+  verilemez.
+- Varsayılan değeri olup argüman verilmeyen parametreler için varsayılan ifade
+  çağrıda hesaplanır (5.4).
+- `*` parametresi varsa, adlı parametrelere bağlanmayan argümanlar yeni bir
+  liste olarak o parametreye verilir.
+- Bu kurallara uymayan çağrı çalışma zamanı hatasıdır. İleti kabul edilen
+  aralığı bildirir: `'f' fonksiyonu 2 argüman bekliyor, 3 verildi.` (varsayılansız
+  ve `*`'sız fonksiyon), `'f' fonksiyonu en az 1, en çok 2 argüman bekliyor, 3
+  verildi.` (varsayılanlı), `'g' fonksiyonu en az 1 argüman bekliyor, 0
+  verildi.` (`*` parametreli).
+- Çağrıda liste açma (`f(*liste)`) yoktur.
+
+Bir çağrıda en çok 255 argüman bulunabilir.
 
 ## 5. Deyimler
 
@@ -264,11 +315,32 @@ Belirli sayıda yineleme için `aralık` kullanılır: `her i içinde aralık(5)
 ### 5.4 Fonksiyon tanımı
 
 ```jus
-fonksiyon ad(parametre1, parametre2):
+fonksiyon ad(parametre1, parametre2 = varsayılan, *kalan):
     ...
     dön ifade
 ```
 
+- Parametre listesi sırayla şunlardan oluşur: varsayılan değeri olmayan
+  (zorunlu) parametreler, varsayılan değeri olan parametreler ve en çok bir `*`
+  parametresi.
+- `parametre = ifade` parametreye varsayılan değer verir. Çağrıda o parametre
+  için argüman verilmezse ifade, fonksiyonun gövdesi başlamadan önce
+  **her çağrıda yeniden** hesaplanır; yani `liste = []` varsayılanı her
+  çağrıda yeni bir boş liste verir. Argüman verilirse ifade hesaplanmaz.
+  Açıkça verilen `boş`, varsayılanı devreye sokmaz.
+- Varsayılan ifade, kendinden önceki parametreleri ve çevredeki kapsamın
+  adlarını kullanabilir; kendisini ve sonraki parametreleri kullanamaz.
+- Varsayılan değeri olan bir parametreden sonra varsayılan değeri olmayan
+  parametre gelemez (sözdizimi hatası: `Varsayılan değeri olan parametreden
+  sonra varsayılan değeri olmayan parametre gelemez.`).
+- Son parametre `*ad` biçiminde yazılırsa değişken sayıda argüman alır:
+  adlı parametrelere bağlanmayan argümanlar yeni bir liste olarak `ad`'a
+  verilir; hiç argüman kalmazsa boş listedir. `*` ile işaretlenen parametre
+  sonuncu olmalıdır (sözdizimi hatası: `'*' ile işaretlenen parametre sonuncu
+  olmalıdır.`) ve varsayılan değer alamaz. Varsayılanlı parametrelerle birlikte
+  kullanılabilir: `fonksiyon f(a, b = 2, *kalan)`.
+- Varsayılan değerler ve `*` parametresi yöntemlerde (`kur` dahil, 5.8) ve iç
+  fonksiyonlarda da aynı kurallarla geçerlidir.
 - `dön ifade` fonksiyonu bitirir ve değeri çağırana verir. Yalnız `dön` ya da
   gövdenin sonuna ulaşmak `boş` döndürür.
 - `dön` yalnızca fonksiyon içinde kullanılabilir.
@@ -678,6 +750,22 @@ yakalanan hata değeri de öneriyi içerir.
 - `:` ile biten satır bir blok başlatır; blok boş bir satırla bitirilir.
 - `çıkış` yazmak ya da girdiyi kapatmak kipi sonlandırır.
 
+Girdi bir uçbirimse (klavye) satır düzenleme kullanılır:
+
+- Sol ve sağ ok tuşları ile `Home` / `End` imleci taşır. `Backspace` imlecin
+  solundaki karakteri siler; Türkçe harfler (`ç`, `ğ`, `ş`, `ö`, `ü` ...) tek
+  tuşla silinir.
+- Yukarı ve aşağı ok tuşları önceki girişler arasında gezdirir. Geçmiş,
+  kullanıcının ev klasöründeki `.jus_gecmis` dosyasında saklanır ve en çok 1000
+  girişi tutar.
+- `Tab` yazılmakta olan adı tamamlar. Adaylar anahtar kelimeler, yerleşik
+  fonksiyonlar, o ana kadar tanımlanan adlar ve yüklü modüllerdir.
+- `Ctrl+C` yazılmakta olan satırı iptal eder. Boş satırda
+  `Ctrl+D` (Windows'ta `Ctrl+Z`) girdiyi kapatır ve kipten çıkar.
+
+Girdi bir dosyadan ya da başka bir programdan yönlendirilmişse satır
+düzenleme kullanılmaz; satırlar düz okunur.
+
 ## 8A. Testler
 
 `jus test [yol]` komutu, verilen klasördeki (yazılmazsa bulunulan klasördeki)
@@ -763,7 +851,9 @@ sınıf_tanımı   = "sınıf" AD [ "(" AD ")" ] ":" SATIR_SONU
                  GİRİNTİ fonksiyon_tanımı { fonksiyon_tanımı } GİRİNTİ_SONU ;
 
 değişken_tanımı  = "değişken" AD [ "=" ifade ] SATIR_SONU ;
-fonksiyon_tanımı = "fonksiyon" AD "(" [ AD { "," AD } ] ")" blok ;
+fonksiyon_tanımı = "fonksiyon" AD "(" [ parametreler ] ")" blok ;
+parametreler     = parametre { "," parametre } [ "," "*" AD ] | "*" AD ;
+parametre        = AD [ "=" ifade ] ;
 
 deyim          = eğer_deyimi | iken_deyimi | her_deyimi | dön_deyimi
                | dene_deyimi | fırlat_deyimi | kullan_deyimi
@@ -792,9 +882,14 @@ toplam         = çarpım { ( "+" | "-" ) çarpım } ;
 tekli          = "-" tekli | çağrı ;
 çağrı          = birincil { "(" [ ifade { "," ifade } ] ")" | dizin | "." AD } ;
 dizin          = "[" ifade "]" | "[" [ ifade ] ":" [ ifade ] "]" ;
-birincil       = SAYI | METİN | AD | "doğru" | "yanlış" | "boş" | "bu"
+birincil       = SAYI | METİN | BİÇİMLİ_METİN | AD | "doğru" | "yanlış" | "boş" | "bu"
                | "üst" "." AD | "(" ifade ")" | liste | sözlük ;
 liste          = "[" [ ifade { "," ifade } [ "," ] ] "]" ;
 sözlük         = "{" [ çift { "," çift } [ "," ] ] "}" ;
 çift           = ifade ":" ifade ;
 ```
+
+`BİÇİMLİ_METİN` bir sözcük türüdür ve 2.5A'da tanımlanır; `{ }` arasındaki
+ifadeler `veya_ifadesi` kuralıyla ayrıştırılır. Varsayılan değeri olan
+parametreden sonra varsayılan değeri olmayan parametre gelemeyeceği kuralı
+(5.4) dilbilgisinin dışında, anlam denetiminde uygulanır.

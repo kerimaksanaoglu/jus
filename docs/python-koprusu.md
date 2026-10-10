@@ -42,6 +42,9 @@ Bazı kurulumlarda `python` yerine `python3` ya da `py` gerekebilir. Girdi alan 
 | `aralık(5)` | `range(5)` | JUS liste verir, Python `range` nesnesi |
 | `kır` / `devam` / `geç` | `break` / `continue` / `pass` | |
 | `fonksiyon f(a):` | `def f(a):` | |
+| `fonksiyon f(a, b = 2):` | `def f(a, b=2):` | varsayılan parametre; JUS'ta varsayılan ifade her çağrıda yeniden hesaplanır (4.8A) |
+| `fonksiyon f(*kalan):` | `def f(*args):` | JUS'ta `kalan` liste, Python'da demettir; çağrıda `f(*liste)` JUS'ta yoktur |
+| `f"Merhaba, {ad}"` | `f"Merhaba, {ad}"` | aynı; JUS'ta `{x:.2f}` gibi biçim belirteci yoktur |
 | `dön x` | `return x` | |
 | `doğru` / `yanlış` / `boş` | `True` / `False` / `None` | Python'da baş harf büyük |
 | `ve` / `veya` / `değil` | `and` / `or` / `not` | Python'da her değerle çalışır (4.1) |
@@ -66,7 +69,7 @@ Bazı kurulumlarda `python` yerine `python3` ya da `py` gerekebilir. Girdi alan 
 | `örneği_mi(x, S)` | `isinstance(x, S)` | |
 | `mutlak(x)` | `abs(x)` | |
 | `yuvarla(x)`, `yuvarla(x, n)` | `round(x)`, `round(x, n)` | yarım değerlerde sonuç farklıdır (4.3) |
-| `biçimle(x, n)` | `f"{x:.{n}f}"` | |
+| `biçimle(x, n)` | `f"{x:.{n}f}"` | JUS'ta biçim belirteci yoktur; `f"{biçimle(x, n)}"` yazılır |
 | `taban(x)`, `tavan(x)` | `math.floor(x)`, `math.ceil(x)` | |
 | `karekök(x)` | `math.sqrt(x)` | |
 | `taban(a / b)` | `a // b` | tam bölme |
@@ -152,7 +155,7 @@ Toplam: 37.50 TL
 
 Python'da `değişken` gibi bir tanım anahtar kelimesi yoktur: bir adı ilk kez atadığınız yer onu tanımlar, sonraki atamalar değeri değiştirir. JUS'taki `değişken x` (başlangıç değeri `boş`) Python'da `x = None` olur. İkisi de dinamik tiplidir: değişkenin değil değerin türü vardır. Python'da `a, b = b, a` gibi çoklu atama vardır; JUS'ta yer değiştirmek için geçici değişken gerekir.
 
-Metinlere değer yerleştirmenin yaygın Python yolu `f"..."` metinleridir: süslü parantez içine ifade yazarsınız, `:.2f` iki ondalık basamak ister. JUS'ta f-metni yoktur; `+`, `metin()` ve `biçimle()` kullanılır. Python'da tek tırnak (`'ab'`) ve üç tırnaklı çok satırlı metinler de vardır; JUS yalnızca çift tırnak ve tek satır kullanır. `\n`, `\t`, `\"`, `\\` kaçış dizileri aynıdır. İkisinde de metin karakter dizisidir ve değiştirilemez. Python Türkçe harfli adlara izin verir, ancak birçok proje ASCII adlar kullanır (`yas`, `ogrenci`).
+Metinlere değer yerleştirmenin yaygın Python yolu `f"..."` metinleridir: süslü parantez içine ifade yazarsınız, `:.2f` iki ondalık basamak ister. JUS'ta da aynı yazım vardır (`f"Merhaba, {ad}!"`; süslü parantezin kendisi için `{{` ve `}}`), ancak üç fark bulunur. Birincisi, JUS'ta biçim belirteci (`:.2f`, `:>8`) yoktur; sayıyı biçimlemek için `{}` içinde `biçimle()` ya da `sola_doldur()` çağrılır: `f"{biçimle(fiyat * 3, 2)} TL"`. İkincisi, ifadenin içinde çift tırnak kullanılamaz (Python 3.12'den önce de böyleydi); tırnaklı değer önce bir değişkene alınır. Üçüncüsü, `{x=}` gibi yardımcı yazımlar yoktur. Yukarıdaki JUS örneği `+`, `metin()` ve `biçimle()` ile yazıldı; aynı çıktı f-metinleriyle de elde edilebilirdi. Python'da tek tırnak (`'ab'`) ve üç tırnaklı çok satırlı metinler de vardır; JUS yalnızca çift tırnak ve tek satır kullanır. `\n`, `\t`, `\"`, `\\` kaçış dizileri aynıdır. İkisinde de metin karakter dizisidir ve değiştirilemez. Python Türkçe harfli adlara izin verir, ancak birçok proje ASCII adlar kullanır (`yas`, `ogrenci`).
 
 ### 3.3 Girdi alma
 
@@ -307,7 +310,52 @@ print(list(map(kare, [1, 2, 3])))
 [1, 4, 9]
 ```
 
-İkisinde de fonksiyonlar birer değerdir: değişkene atanır, argüman olarak verilir, döndürülür. Fark parametrelerde: JUS'ta argüman sayısı parametre sayısına eşit olmalıdır; Python'da varsayılan değerli (`def f(a, b=2)`), anahtar sözcükle verilen (`f(b=1, a=3)`) ve sayısı değişen (`*args`, `**kwargs`) parametreler vardır. JUS'ta adsız fonksiyon (Python'daki `lambda x: x * x`) yoktur; fonksiyona önce bir ad verilir. Değer döndürmeyen fonksiyon JUS'ta `boş`, Python'da `None` verir.
+İkisinde de fonksiyonlar birer değerdir: değişkene atanır, argüman olarak verilir, döndürülür. Parametreler de büyük ölçüde aynıdır: varsayılan değerli (`def f(a, b=2)`) ve sayısı değişen (`*args`) parametreler iki dilde de vardır.
+
+```jus
+fonksiyon selamla(ad, selam = "Merhaba"):
+    dön f"{selam}, {ad}!"
+
+fonksiyon topla(*sayılar):
+    değişken t = 0
+    her s içinde sayılar:
+        t += s
+    dön t
+
+yaz(selamla("Ayşe"), selamla("Ali", "Günaydın"))
+yaz(topla(), topla(1, 2, 3))
+```
+
+```
+Merhaba, Ayşe! Günaydın, Ali!
+0 6
+```
+
+Python karşılığı:
+
+```python
+def selamla(ad, selam="Merhaba"):
+    return f"{selam}, {ad}!"
+
+def topla(*sayılar):
+    t = 0
+    for s in sayılar:
+        t += s
+    return t
+
+print(selamla("Ayşe"), selamla("Ali", "Günaydın"))
+print(topla(), topla(1, 2, 3))
+```
+
+Farklar şunlardır:
+
+- JUS'ta `*sayılar` bir **liste** olur, Python'da bir demet (`tuple`). Argüman kalmazsa JUS'ta `[]`, Python'da `()` gelir.
+- Çağrı tarafında liste açma JUS'ta yoktur: Python'da `topla(*[1, 2, 3])` yazılabilir, JUS'ta `topla(*liste)` sözdizimi hatasıdır. Listeyi tek argüman olarak alan sıradan bir parametre kullanılır.
+- Varsayılan ifade JUS'ta her çağrıda yeniden hesaplanır, Python'da `def` satırında bir kez (4.8A).
+- Anahtar sözcükle verilen argümanlar (`f(b=1, a=3)`), `**kwargs` ve yalnızca anahtar sözcükle verilebilen parametreler JUS'ta yoktur; argümanlar sırayla verilir.
+- İki dilde de varsayılanı olan parametreden sonra varsayılanı olmayan parametre yazılamaz (Python: `SyntaxError: non-default argument follows default argument`). JUS'ta ayrıca `*` parametresi sonuncu olmalıdır.
+
+JUS'ta adsız fonksiyon (Python'daki `lambda x: x * x`) yoktur; fonksiyona önce bir ad verilir. Değer döndürmeyen fonksiyon JUS'ta `boş`, Python'da `None` verir.
 
 ### 3.7 Listeler
 
@@ -759,7 +807,7 @@ Python çıktısı:
 TypeError: can only concatenate str (not "int") to str
 ```
 
-Çözüm ikisinde de dönüşümdür: `"yaş: " + metin(25)` / `"yaş: " + str(25)` ya da Python'da `f"yaş: {25}"`. JUS iletisi türleri Türkçe söyler ve çözümü önerir; Python iletisi türleri İngilizce adlarıyla (`str`, `int`) verir. Sayıyı sola yazarsanız Python iletisi değişir: `5 + "a"` için `TypeError: unsupported operand type(s) for +: 'int' and 'str'`.
+Çözüm ikisinde de dönüşümdür: `"yaş: " + metin(25)` / `"yaş: " + str(25)` ya da iki dilde de `f"yaş: {25}"`. JUS iletisi türleri Türkçe söyler ve çözümü önerir; Python iletisi türleri İngilizce adlarıyla (`str`, `int`) verir. Sayıyı sola yazarsanız Python iletisi değişir: `5 + "a"` için `TypeError: unsupported operand type(s) for +: 'int' and 'str'`.
 
 Metni sayıyla **çarpmak** ise Python'da hata değil, metni tekrarlamaktır: `"5" * 2` sonucu `55` olur. JUS'ta aynı ifade `'*' işleci iki sayı ister; metin ve sayı verildi.` hatasıdır; metni tekrarlamak için `tekrarla("5", 2)` yazılır. `"5"` yerine `5` beklerken bu sessiz sonuç bir hatanın habercisi olabilir.
 
@@ -1051,6 +1099,50 @@ b 2
 
 Python'da sözlük üzerinde `for k in d` yalnızca anahtarları verir (JUS'taki gibi); değerler için `d.values()`, ikisi için `d.items()` gerekir. Python 3.7'den beri sözlükler de ekleme sırasını korur.
 
+### 4.8A Varsayılan değer her çağrıda yeniden hesaplanır
+
+Varsayılan değerli parametre iki dilde de aynı yazılır, ama varsayılan ifadenin **ne zaman** hesaplandığı farklıdır. Python ifadeyi `def` satırı çalışırken bir kez hesaplar ve aynı nesneyi bütün çağrılarda kullanır; JUS her çağrıda, gövde başlamadan önce yeniden hesaplar. Fark, varsayılan değer liste ya da sözlük gibi değiştirilebilir bir nesne olduğunda görünür.
+
+```jus
+fonksiyon ekle_öğe(öğe, liste = []):
+    ekle(liste, öğe)
+    dön liste
+
+yaz(ekle_öğe(1))
+yaz(ekle_öğe(2))
+yaz(ekle_öğe(3, [10]))
+```
+
+```
+[1]
+[2]
+[10, 3]
+```
+
+Aynı program Python'da:
+
+```python
+def ekle_öğe(öğe, liste=[]):
+    liste.append(öğe)
+    return liste
+
+print(ekle_öğe(1))
+print(ekle_öğe(2))
+print(ekle_öğe(3, [10]))
+```
+
+Python çıktısı:
+
+```
+[1]
+[1, 2]
+[10, 3]
+```
+
+Python'da `liste=[]` bir kez oluşturulur ve ikinci çağrıda birinci çağrının eklediği öğe hâlâ oradadır. Python'da bu yüzden `liste=None` yazıp gövdede `if liste is None: liste = []` ile yeni liste oluşturmak alışkanlıktır; JUS'ta buna gerek yoktur, `liste = []` her çağrıda yeni bir liste verir. Aynı kural yan etkili ifadelere de uygulanır: varsayılan bir fonksiyon çağrısıysa JUS'ta her çağrıda çalışır, Python'da yalnızca tanım anında bir kez.
+
+İkinci fark: JUS'ta varsayılan ifade kendinden önceki parametreleri kullanabilir (`fonksiyon kayıt(ad, etiket = ad + "-1")`). Python'da aynı yazım `def` satırı çalışırken hata verir (`NameError: name 'ad' is not defined`); orada `etiket=None` yazıp gövdede `ad`'dan türetmek gerekir. Ayrıca JUS'ta açıkça verilen `boş`, varsayılanı devreye sokmaz; parametre `boş` olur (Python'da `None` verildiğinde de böyledir).
+
 ### 4.9 Python'da olup JUS'ta olmayanlar
 
 Python, JUS'tan çok daha geniştir. JUS'ta olmayan ve Python'da sık karşılaşacağınız özellikler:
@@ -1061,8 +1153,9 @@ Python, JUS'tan çok daha geniştir. JUS'ta olmayan ve Python'da sık karşıla�
 | `lambda x: x * x` | yok; adlı `fonksiyon` tanımlayıp adını verirsiniz |
 | liste, sözlük, küme kapsamları (`[x*x for x in l]`) | yok; `eşle`, `süz` ya da döngü |
 | demet `(1, 2)` ve küme `{1, 2}` türleri | yok; yalnızca liste ve sözlük |
-| `f"{x}"` metinleri | yok; `+`, `metin()`, `biçimle()` |
-| varsayılan, anahtar sözcüklü, sayısı değişen parametreler | yok; argüman sayısı parametre sayısına eşit olmalı |
+| f-metinlerinde biçim belirteci (`f"{x:.2f}"`, `f"{x:>8}"`) ve `f"{x=}"` | yok; `{}` içinde `biçimle()`, `sola_doldur()` çağrılır. `f"{x}"` metinleri JUS'ta vardır |
+| anahtar sözcüklü argümanlar (`f(b=1)`), `**kwargs`, yalnızca anahtar sözcükle verilen parametreler | yok; argümanlar sırayla verilir. Varsayılan değerli ve `*kalan` parametreleri JUS'ta vardır |
+| çağrıda liste açma (`f(*liste)`) ve sözlük açma (`f(**sözlük)`) | yok |
 | `//`, `**` işleçleri | yok; `taban(a / b)`, `matematik.üs(a, b)` |
 | `a, b = b, a` çoklu atama ve açma | yok |
 | `with`, `try ... finally`, `try ... else`, `for ... else` | yok |
@@ -1130,6 +1223,13 @@ Python 3.11'den itibaren kodun ilgili parçasını `^` ve `~` işaretleriyle alt
 
 - Python: `print(len())` → `TypeError: len() takes exactly one argument (0 given)`
 - JUS: `yaz(uzunluk())` → `ornek.jus:1: çalışma zamanı hatası: 'uzunluk' fonksiyonu 1 argüman bekliyor, 0 verildi.`
+
+Varsayılan değerli fonksiyonlarda iki ileti de aralığı söyler. `def f(a, b=2)` ve `fonksiyon f(a, b = 2)` için üç argüman verildiğinde:
+
+- Python: `f() takes from 1 to 2 positional arguments but 3 were given`
+- JUS: `ornek.jus:4: çalışma zamanı hatası: 'f' fonksiyonu en az 1, en çok 2 argüman bekliyor, 3 verildi.`
+
+`*` parametresi olan fonksiyonun üst sınırı olmadığından JUS yalnızca alt sınırı söyler: `'g' fonksiyonu en az 1 argüman bekliyor, 0 verildi.` (Python: `g() missing 1 required positional argument: 'a'`).
 
 **IndexError**: Listede ya da metinde olmayan bir dizine eriştiniz.
 
@@ -1379,8 +1479,8 @@ JUS'tan Python'a geçerken şu sırayı izlemeniz işe yarar:
 2. **Eski JUS programlarınızı çevirin.** [Küçük projeler](rehber/12-kucuk-projeler.md) bölümündeki programları Python'a taşıyın ve çıktıları karşılaştırın. Bu belgedeki 6. bölüm bu çalışmanın bir örneğidir.
 3. **Resmî öğreticiyi okuyun:** [Python Tutorial](https://docs.python.org/3/tutorial/index.html). Bu belgenin atladığı konuları anlatır: [veri yapıları](https://docs.python.org/3/tutorial/datastructures.html) (demetler, kümeler, liste kapsamları), [modüller ve paketler](https://docs.python.org/3/tutorial/modules.html), [hatalar ve istisnalar](https://docs.python.org/3/tutorial/errors.html), [sınıflar](https://docs.python.org/3/tutorial/classes.html). Belgelerin kısmî bir Türkçe çevirisi de vardır ([docs.python.org/tr/3](https://docs.python.org/tr/3/)); gerektiğinde İngilizce sürüme bakın.
 4. **Bu belgede kısaca değinilen konuları sırasıyla öğrenin:**
-   - f-metinleri ve metin yöntemleri ([yerleşik türler](https://docs.python.org/3/builtins/stdtypes.html))
-   - varsayılan ve anahtar sözcüklü parametreler, `lambda`, liste kapsamları
+   - f-metinlerinin biçim belirteçleri (`:.2f`, `:>8`) ve metin yöntemleri ([yerleşik türler](https://docs.python.org/3/builtins/stdtypes.html))
+   - anahtar sözcüklü argümanlar, `**kwargs`, `lambda`, liste kapsamları
    - demet, küme; `with` deyimi; `try` / `finally`
    - özel yöntemler (`__str__`, `__eq__`) ve `@property`
    - sanal ortam ve paketler: [`venv` öğreticisi](https://docs.python.org/3/tutorial/venv.html), [`pip` ile modül kurma](https://docs.python.org/3/installing/index.html)

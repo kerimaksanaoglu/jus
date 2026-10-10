@@ -76,7 +76,9 @@ Kaynak dosyalar UTF-8 olmalıdır.
 - `eğer` / `değilse eğer` / `değilse`
 - `iken` ve `her ... içinde` döngüleri, `kır`, `devam`
 - Fonksiyonlar, özyineleme, kapanımlar (`fonksiyon`, `dön`)
+- Varsayılan ve değişken sayıda parametreler: `fonksiyon f(a, b = 2, *kalan)`
 - Dizinleme ve dilimleme: `liste[0]`, `metin[1:4]`
+- Biçimli metin: `f"Merhaba, {ad}! Yaşın {yaş + 1}."`
 - Türkçeye duyarlı metin işlemleri: `büyük_harf("ılık")` sonucu `"ILIK"`,
   alfabetik sıralamada `ç`, `ğ`, `ı`, `ö`, `ş`, `ü` doğru yerlerinde
 - Sınıflar, yöntemler ve kalıtım (`sınıf`, `bu`, `üst`)
