@@ -6,6 +6,8 @@ uyar.
 
 ## [Yayımlanmadı]
 
+## [1.2.0] - 2026-10-10
+
 ### Eklendi
 
 - Hata iletilerinde "şunu mu demek istediniz?" önerileri: tanımsız ad,

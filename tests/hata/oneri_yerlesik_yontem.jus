@@ -7,8 +7,12 @@ yakala hata:
 dene:
     yaz(l.uzunlugu())
 yakala hata:
-    yaz(hata)   # bekle: liste türündeki değerlerin 'uzunlugu' adında bir yöntemi yok. 'uzunluk' yerleşik fonksiyonunu mu demek istediniz? Yerleşik fonksiyonlar uzunluk(liste, ...) biçiminde çağrılır.
+    yaz(hata)   # bekle: liste türündeki değerlerin 'uzunlugu' adında bir yöntemi yok. 'uzunluk' yerleşik fonksiyonunu mu demek istediniz? Yerleşik fonksiyonlar uzunluk(liste) biçiminde çağrılır.
 dene:
     yaz("abc".boyut)
 yakala hata:
     yaz(hata)   # bekle: metin türündeki değerlerin 'boyut' adında bir üyesi yok. Bu türün yöntemi yoktur; uzunluk(metin) gibi yerleşik fonksiyonlar kullanılır.
+dene:
+    yaz("ılık".büyük_harf())
+yakala hata:
+    yaz(hata)   # bekle: metin türündeki değerlerin 'büyük_harf' adında bir yöntemi yok. 'büyük_harf' bir yerleşik fonksiyondur; büyük_harf(metin) biçiminde çağrılır.

@@ -77,5 +77,20 @@ nav:
       - 14 - Ağ ve HTTP: rehber/14-ag-ve-http.md
       - 15 - Test, biçim, paket: rehber/15-test-bicim-paket.md
   - JUS'tan Python'a: python-koprusu.md
+  - Öğretmen kiti:
+      - Kit hakkında: ogretmen/README.md
+      - "Hafta 01 - İlk program: yaz ve hata iletisi": ogretmen/hafta-01.md
+      - "Hafta 02 - Değişkenler, sayılar ve metinler": ogretmen/hafta-02.md
+      - "Hafta 03 - Kararlar: eğer ve değilse": ogretmen/hafta-03.md
+      - "Hafta 04 - Döngüler: iken ve her": ogretmen/hafta-04.md
+      - "Hafta 05 - Fonksiyonlar": ogretmen/hafta-05.md
+      - "Hafta 06 - Listeler": ogretmen/hafta-06.md
+      - "Hafta 07 - Metin işlemleri": ogretmen/hafta-07.md
+      - "Hafta 08 - Sözlükler": ogretmen/hafta-08.md
+      - "Hafta 09 - Hata yakalama ve küçük bir oyun": ogretmen/hafta-09.md
+      - "Hafta 10 - Dönem projesi ve sunum": ogretmen/hafta-10.md
+      - Dönem projesi: ogretmen/proje.md
+      - Değerlendirme: ogretmen/degerlendirme.md
+      - Cevap anahtarı: ogretmen/cevap-anahtari.md
   - Dil tanımı: dil-tanimi.md
   - Yol haritası: yol-haritasi.md

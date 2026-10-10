@@ -32,7 +32,7 @@ geçtiğinde yalnızca kelimeleri değiştirir.
 |-------|------|--------|-------|
 | 1.0 | Kararlı dil | Dil tanımının dondurulması | Yayımlandı |
 | 1.1 | Erişim | Belge sitesi, "JUS'tan Python'a" rehberi, Scoop ve winget paket tanımları, VS Code eklenti paketi, logo | Yayımlandı |
-| 1.2 | Sınıf içi kullanım | Deneme alanında paylaşılabilir bağlantı, hata iletilerinde "şunu mu demek istediniz?" önerileri, öğretmen kiti | Planlandı |
+| 1.2 | Sınıf içi kullanım | Deneme alanında paylaşılabilir bağlantı, hata iletilerinde "şunu mu demek istediniz?" önerileri, öğretmen kiti | Yayımlandı |
 | 1.3 | Dil rahatlığı | Varsayılan ve değişken sayıda parametre, biçimli metin (`f"..."`), etkileşimli kipte satır düzenleme, geçmiş ve tamamlama | Planlandı |
 | 1.4 | Ağ ve veri | Şifreli bağlantılar (`https`), bit işleçleri, bayt dizileri (`baytlar`); ayrıntı aşağıda | Planlandı |
 | 1.5 | Düzenleyici desteği ve 2.0'a hazırlık | Dil sunucusu (`jus lsp`): VS Code'da hata gösterimi, tamamlama, tanıma gitme, biçimlendirme. 2.0'a geçişi kolaylaştıran eklemeler (`//`, `tam`, `ondalık`, `sayı_mı`) ve `jus denetle --2.0` geçiş denetimi; ayrıntı aşağıda | Planlandı |
@@ -303,6 +303,7 @@ güncellenir.
 | 0.6 | Test çalıştırıcı, biçimlendirici, paket yöneticisi, deneme alanı, rastgele girdiyle sınama |
 | 1.0 | Dil tanımının dondurulması |
 | 1.1 | Belge sitesi, Python köprüsü rehberi, Scoop ve winget paket tanımları, logo |
+| 1.2 | Hata iletilerinde öneriler, öğretmen kiti, deneme alanında paylaşım bağlantısı |
 
 Ayrıntılar [değişiklik günlüğündedir](https://github.com/kerimaksanaoglu/jus/blob/main/CHANGELOG.md).
 

@@ -403,8 +403,24 @@ static void hintForTable(ObjString *name, Table *table, char *out) {
  * türlerin yöntemi yoktur; başka dillerden gelen l.append(x) ya da Türkçe harf
  * kullanılmadan yazılmış l.uzunlugu() gibi çağrılar yerleşik fonksiyona yönlendirilir.
  */
+/* Yerleşik fonksiyonun örnek çağrı yazımı: tek parametreliyse ad(tür), değilse ad(tür, ...). */
+static const char *builtinCallSuffix(const char *name, int length) {
+    Value builtin;
+    ObjString *key = copyString(name, length);
+    if (tableGet(&vm.builtins, key, &builtin) && IS_NATIVE(builtin) && AS_NATIVE(builtin)->arity == 1) {
+        return "";
+    }
+    return ", ...";
+}
+
 static void hintForBuiltinMethod(ObjString *name, Value receiver, char *out) {
     out[0] = '\0';
+    Value builtin;
+    if (tableGet(&vm.builtins, name, &builtin)) {
+        snprintf(out, HINT_SIZE, " '%s' bir yerleşik fonksiyondur; %s(%s%s) biçiminde çağrılır.", name->chars,
+                 name->chars, valueTypeName(receiver), builtinCallSuffix(name->chars, name->length));
+        return;
+    }
     const char *equivalent = foreignEquivalent(name->chars, name->length);
     if (equivalent != NULL) {
         snprintf(out, HINT_SIZE, " JUS'ta bunun karşılığı '%s' yerleşik fonksiyonudur: %s(%s, ...).", equivalent,
@@ -416,8 +432,9 @@ static void hintForBuiltinMethod(ObjString *name, Value receiver, char *out) {
     considerTable(&suggestion, &vm.builtins);
     if (suggestionFound(&suggestion)) {
         snprintf(out, HINT_SIZE, " '%.*s' yerleşik fonksiyonunu mu demek istediniz? Yerleşik fonksiyonlar "
-                 "%.*s(%s, ...) biçiminde çağrılır.", suggestion.bestLength, suggestion.best,
-                 suggestion.bestLength, suggestion.best, valueTypeName(receiver));
+                 "%.*s(%s%s) biçiminde çağrılır.", suggestion.bestLength, suggestion.best,
+                 suggestion.bestLength, suggestion.best, valueTypeName(receiver),
+                 builtinCallSuffix(suggestion.best, suggestion.bestLength));
         return;
     }
     snprintf(out, HINT_SIZE, " Bu türün yöntemi yoktur; uzunluk(%s) gibi yerleşik fonksiyonlar kullanılır.",

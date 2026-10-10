@@ -29,6 +29,7 @@ Merhaba, Zeynep!
 | Bilgisayara kurmak | [Kurulum](kurulum.md) |
 | Programlamayı sıfırdan öğrenmek | [Başlangıç rehberi](rehber/README.md) |
 | Python'a geçmek ya da Python'dan gelmek | [JUS'tan Python'a](python-koprusu.md) |
+| Sınıfta öğretmek | [Öğretmen kiti](ogretmen/README.md) |
 | Bir özelliğin tam tanımına bakmak | [Dil tanımı](dil-tanimi.md) |
 
 ## JUS'u ayıran özellikler

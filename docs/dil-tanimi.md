@@ -1,6 +1,6 @@
 # JUS Dil Tanımı
 
-Sürüm 1.1.0
+Sürüm 1.2.0
 
 Bu belge JUS'un sözdizimini ve davranışını tanımlar. Yorumlayıcı bu belgeye
 uymak zorundadır; ikisi arasındaki her fark bir hatadır. Burada yazmayan bir
