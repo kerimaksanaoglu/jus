@@ -28,11 +28,16 @@ geçtiğinde yalnızca kelimeleri değiştirir.
 
 1.x sürümleri var olan programları bozmaz; yalnızca ekleme yapar.
 
+Durum sütunu: "Yayımlandı" yalnızca `main`'e birleştirilip etiketi gönderilmiş
+sürümler için kullanılır; "Tamamlandı, yayım bekliyor" işi bitmiş, etiketi yerel
+olarak konmuş ama henüz yayımlanmamış sürümleri gösterir (bkz. "Elle yapılacak
+adımlar").
+
 | Sürüm | Tema | İçerik | Durum |
 |-------|------|--------|-------|
 | 1.0 | Kararlı dil | Dil tanımının dondurulması | Yayımlandı |
-| 1.1 | Erişim | Belge sitesi, "JUS'tan Python'a" rehberi, Scoop ve winget paket tanımları, VS Code eklenti paketi, logo | Yayımlandı |
-| 1.2 | Sınıf içi kullanım | Deneme alanında paylaşılabilir bağlantı, hata iletilerinde "şunu mu demek istediniz?" önerileri, öğretmen kiti | Yayımlandı |
+| 1.1 | Erişim | Belge sitesi, "JUS'tan Python'a" rehberi, Scoop ve winget paket tanımları, VS Code eklenti paketi, logo | Tamamlandı, yayım bekliyor |
+| 1.2 | Sınıf içi kullanım | Deneme alanında paylaşılabilir bağlantı, hata iletilerinde "şunu mu demek istediniz?" önerileri, öğretmen kiti | Tamamlandı, yayım bekliyor |
 | 1.3 | Dil rahatlığı | Varsayılan ve değişken sayıda parametre, biçimli metin (`f"..."`), etkileşimli kipte satır düzenleme, geçmiş ve tamamlama | Planlandı |
 | 1.4 | Ağ ve veri | Şifreli bağlantılar (`https`), bit işleçleri, bayt dizileri (`baytlar`); ayrıntı aşağıda | Planlandı |
 | 1.5 | Düzenleyici desteği ve 2.0'a hazırlık | Dil sunucusu (`jus lsp`): VS Code'da hata gösterimi, tamamlama, tanıma gitme, biçimlendirme. 2.0'a geçişi kolaylaştıran eklemeler (`//`, `tam`, `ondalık`, `sayı_mı`) ve `jus denetle --2.0` geçiş denetimi; ayrıntı aşağıda | Planlandı |

@@ -71,6 +71,11 @@ jobs:
         run: |
           pip install -r tools/belge-sitesi/requirements.txt ./tools/pygments_jus
           mkdocs build --strict --site-dir site/belgeler
+      # Öğretmen kitindeki her kod bloğu yorumlayıcıyla çalıştırılır; gösterilen çıktılar gerçek çıktıyla aynı olmalıdır.
+      - name: Belgelerdeki kod blokları
+        run: |
+          make
+          python tools/belge_kodlari.py --katı --jus ./jus docs/ogretmen
 
   eklenti:
     name: VS Code eklentisi

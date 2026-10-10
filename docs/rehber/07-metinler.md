@@ -343,7 +343,7 @@ yaz(m.büyük_harf())
 ```
 
 ```
-ornek.jus:2: çalışma zamanı hatası: metin türündeki değerlerin 'büyük_harf' adında bir yöntemi yok.
+ornek.jus:2: çalışma zamanı hatası: metin türündeki değerlerin 'büyük_harf' adında bir yöntemi yok. 'büyük_harf' bir yerleşik fonksiyondur; büyük_harf(metin) biçiminde çağrılır.
 ```
 
 ## Alıştırmalar
