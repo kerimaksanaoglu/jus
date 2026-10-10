@@ -28,9 +28,9 @@ Rehberdeki her kod örneği çalıştırılmış, gösterilen çıktılar gerçe
 | [02 - Değişkenler ve değerler](02-degiskenler-ve-degerler.md) | sayı, metin, mantıksal, boş; aritmetik; `yuvarla` ve `biçimle`; `oku` ile girdi |
 | [03 - Kararlar](03-kararlar.md) | karşılaştırma, `ve` / `veya` / `değil`, `eğer` |
 | [04 - Döngüler](04-donguler.md) | `iken`, `her ... içinde`, `aralık`, `kır`, `devam`, `geç` |
-| [05 - Fonksiyonlar](05-fonksiyonlar.md) | tanım, parametre, `dön`, kapsam, özyineleme |
+| [05 - Fonksiyonlar](05-fonksiyonlar.md) | tanım, parametre, varsayılan değerler, değişken sayıda argüman (`*`), `dön`, kapsam, özyineleme |
 | [06 - Listeler](06-listeler.md) | dizin, dilim, ekleme, silme, sıralama, `eşle`, `süz` |
-| [07 - Metinler](07-metinler.md) | dilim, bölme, bulma, Türkçe harf kuralları, hizalama |
+| [07 - Metinler](07-metinler.md) | dilim, bölme, biçimli metin (`f"..."`), bulma, Türkçe harf kuralları, hizalama |
 | [08 - Sözlükler](08-sozlukler.md) | anahtar-değer eşlemeleri, kelime sayma |
 | [09 - Hatalar](09-hatalar.md) | `dene` / `yakala`, `fırlat` |
 | [10 - Modüller](10-moduller.md) | `kullan`, standart kütüphane (`dosya` klasörleri, `sistem`), kendi modülünüz |
@@ -64,7 +64,7 @@ jus --surum
 ```
 
 ```
-JUS 1.0.0
+JUS 1.3.0
 ```
 
 Komut bulunamazsa `jus` dosyasının bulunduğu klasörde olduğunuzdan emin olun. Linux ve macOS'ta `./jus`, Windows'ta `jus.exe` yazmanız gerekebilir. Rehberin geri kalanında kısalık için `jus` yazılmıştır.
@@ -117,7 +117,7 @@ Kısa denemeler için dosya yazmanız gerekmez. `jus` komutunu dosya adı vermed
 Aşağıda, `>>>` istemini izleyen satırlar sizin yazdıklarınızdır; altındaki satırlar JUS'un yanıtıdır:
 
 ```
-JUS 1.0.0 - çıkmak için 'çıkış' yazın.
+JUS 1.3.0 - çıkmak için 'çıkış' yazın.
 >>> 2 + 3
 5
 >>> değişken x = 10

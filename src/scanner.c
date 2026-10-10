@@ -3,22 +3,7 @@
 #include "common.h"
 #include "scanner.h"
 
-#define MAX_INDENT_LEVELS 64
-
-typedef struct {
-    const char *source;
-    const char *start;
-    const char *current;
-    int line;
-    bool atLineStart;
-    int parenDepth; /* (), [] ve {} içinde satır sonları ve girinti yok sayılır */
-    int indentStack[MAX_INDENT_LEVELS];
-    int indentCount;
-    int pendingDedents;
-    char indentChar; /* dosyada kullanılan girinti karakteri; henüz görülmediyse 0 */
-} Scanner;
-
-static Scanner scanner;
+static ScannerState scanner;
 
 typedef struct {
     const char *text;
@@ -57,6 +42,7 @@ void initScanner(const char *source) {
     scanner.source = source;
     scanner.start = source;
     scanner.current = source;
+    scanner.end = source + strlen(source);
     scanner.line = 1;
     scanner.atLineStart = true;
     scanner.parenDepth = 0;
@@ -64,6 +50,25 @@ void initScanner(const char *source) {
     scanner.indentCount = 1;
     scanner.pendingDedents = 0;
     scanner.indentChar = 0;
+}
+
+void initScannerRange(const char *source, const char *start, const char *end, int line) {
+    initScanner(source);
+    scanner.start = start;
+    scanner.current = start;
+    scanner.end = end;
+    scanner.line = line;
+    /* Aralık tek satırlık bir ifadedir: girinti ve satır sonu üretilmez, sonda doğrudan EOF gelir. */
+    scanner.parenDepth = 1;
+    scanner.atLineStart = true;
+}
+
+void scannerSave(ScannerState *out) {
+    *out = scanner;
+}
+
+void scannerRestore(const ScannerState *saved) {
+    scanner = *saved;
 }
 
 const char *scannerSource(void) {
@@ -81,7 +86,7 @@ static bool isAlpha(char c) {
 }
 
 static bool isAtEnd(void) {
-    return *scanner.current == '\0';
+    return scanner.current >= scanner.end || *scanner.current == '\0';
 }
 
 static char advance(void) {
@@ -90,11 +95,12 @@ static char advance(void) {
 }
 
 static char peek(void) {
+    if (isAtEnd()) return '\0';
     return *scanner.current;
 }
 
 static char peekNext(void) {
-    if (isAtEnd()) return '\0';
+    if (isAtEnd() || scanner.current + 1 >= scanner.end) return '\0';
     return scanner.current[1];
 }
 
@@ -175,7 +181,7 @@ static bool scanIndentation(Token *out) {
 
         int top = scanner.indentStack[scanner.indentCount - 1];
         if (indent > top) {
-            if (scanner.indentCount == MAX_INDENT_LEVELS) {
+            if (scanner.indentCount == SCANNER_MAX_INDENT_LEVELS) {
                 *out = errorToken("Çok fazla iç içe blok var.");
                 return true;
             }
@@ -237,8 +243,17 @@ static TokenKind identifierType(void) {
     return TOKEN_IDENTIFIER;
 }
 
+static Token string(void);
+
 static Token identifier(void) {
     while (isAlpha(peek()) || isDigit(peek())) advance();
+    /* f"..." biçimli metin: içindeki {ifade} parçaları derleyicide çözülür. */
+    if (scanner.current - scanner.start == 1 && scanner.start[0] == 'f' && peek() == '"') {
+        advance();
+        Token token = string();
+        if (token.type == TOKEN_STRING) token.type = TOKEN_FSTRING;
+        return token;
+    }
     return makeToken(identifierType());
 }
 
@@ -337,12 +352,20 @@ Token scanToken(void) {
         case '/': return makeToken(match('=') ? TOKEN_SLASH_EQUAL : TOKEN_SLASH);
         case '*': return makeToken(match('=') ? TOKEN_STAR_EQUAL : TOKEN_STAR);
         case '%': return makeToken(TOKEN_PERCENT);
+        case '&': return makeToken(TOKEN_AMPERSAND);
+        case '|': return makeToken(TOKEN_PIPE);
+        case '^': return makeToken(TOKEN_CARET);
+        case '~': return makeToken(TOKEN_TILDE);
         case '!':
             if (match('=')) return makeToken(TOKEN_BANG_EQUAL);
             return errorToken("'!' tek başına kullanılamaz; olumsuzlama için 'değil' yazın.");
         case '=': return makeToken(match('=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL);
-        case '<': return makeToken(match('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
-        case '>': return makeToken(match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
+        case '<':
+            if (match('<')) return makeToken(TOKEN_SHIFT_LEFT);
+            return makeToken(match('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
+        case '>':
+            if (match('>')) return makeToken(TOKEN_SHIFT_RIGHT);
+            return makeToken(match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
         case '"': return string();
     }
 

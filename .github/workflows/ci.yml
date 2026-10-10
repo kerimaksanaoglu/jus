@@ -2,6 +2,7 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
@@ -23,13 +24,16 @@ jobs:
         run: make test
       - name: Örnek programlar
         run: make examples
+      # Gerçek ağa çıkar: https ve sertifika doğrulaması üç platformun kendi TLS altyapısıyla sınanır.
+      - name: Ağ testi
+        run: bash tests/ag_testi.sh ./jus
 
   sanitize:
     name: Bellek denetimi
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # ASan + UBSan; cop toplayici her bellek ayirmada calisir.
+      # ASan + UBSan; çöp toplayıcı her bellek ayırmada çalışır.
       - name: Test
         run: bash tests/bellek-denetimi.sh
 
@@ -42,13 +46,52 @@ jobs:
       - name: Derle
         run: bash playground/derle.sh
       - name: Test
-        run: node playground/dene.cjs
+        run: |
+          node playground/dene.cjs
+          node playground/dene_paylas.cjs
       - uses: actions/upload-artifact@v4
         with:
           name: deneme-alani
           path: |
             playground/index.html
             playground/calisan.js
+            playground/paylas.js
             playground/sun.py
+            playground/simge.png
             playground/jus.js
             playground/jus.wasm
+
+  belgeler:
+    name: Belge sitesi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # --strict: kırık bağlantı ya da gezinmede eksik sayfa varsa derleme başarısız olur.
+      - name: Üret
+        run: |
+          pip install -r tools/belge-sitesi/requirements.txt ./tools/pygments_jus
+          mkdocs build --strict --site-dir site/belgeler
+      # Öğretmen kitindeki her kod bloğu yorumlayıcıyla çalıştırılır; gösterilen çıktılar gerçek çıktıyla aynı olmalıdır.
+      - name: Belgelerdeki kod blokları
+        run: |
+          make
+          python tools/belge_kodlari.py --katı --jus ./jus docs/ogretmen
+
+  eklenti:
+    name: VS Code eklentisi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Paketle
+        working-directory: editors/vscode
+        run: npx --yes @vscode/vsce package --out ../../jus-vscode.vsix
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vscode-eklentisi
+          path: jus-vscode.vsix

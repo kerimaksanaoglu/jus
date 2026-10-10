@@ -1,0 +1,5 @@
+# Biçimli metnin içinde atama yapılamaz.
+# kod: 65
+# hata: derleme_bicimli_metin_atama.jus:5:10: sözdizimi hatası: Biçimli metindeki ifadeden sonra '}' bekleniyor.
+değişken x = 1
+yaz(f"{x = 2}")

@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.locale.1.6.0.schema.json
+
+PackageIdentifier: JUSBil.JUS
+PackageVersion: 1.0.0
+PackageLocale: tr-TR
+Publisher: JUSBil
+PublisherUrl: https://github.com/kerimaksanaoglu
+PublisherSupportUrl: https://github.com/kerimaksanaoglu/jus/issues
+PackageName: JUS
+PackageUrl: https://github.com/kerimaksanaoglu/jus
+License: MIT
+LicenseUrl: https://github.com/kerimaksanaoglu/jus/blob/v1.0.0/LICENSE
+ShortDescription: Türkçe sözdizimli, genel amaçlı betik dili
+Tags:
+- programming-language
+- interpreter
+- turkish
+- education
+ReleaseNotesUrl: https://github.com/kerimaksanaoglu/jus/releases/tag/v1.0.0
+ManifestType: locale
+ManifestVersion: 1.6.0

@@ -1,10 +1,17 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="marka/logo-acik.svg">
+    <img src="marka/logo.svg" alt="JUS" width="240">
+  </picture>
+</p>
+
 # JUS
 
 JUS, Türkçe sözdizimli, genel amaçlı bir betik dilidir. Kaynak kod bayt koduna
 derlenir ve bir sanal makinede çalışır. Yorumlayıcı C99 ile yazılmıştır ve dış
 bağımlılığı yoktur.
 
-Geçerli sürüm: **1.0.0**. Dil tanımı kararlıdır; 1.x sürümleri var olan
+Geçerli sürüm: **1.3.0**. Dil tanımı kararlıdır; 1.x sürümleri var olan
 programların davranışını değiştirmez.
 
 ```jus
@@ -23,9 +30,12 @@ iken i <= 5:
 
 - **Tarayıcıda:** [deneme alanı](https://kerimaksanaoglu.github.io/jus/) kurulum
   gerektirmez.
-- **Hazır paket:** [sürümler sayfasından](https://github.com/kerimaksanaoglu/jus/releases)
+- **Windows (Scoop):**
+  `scoop bucket add jus https://github.com/kerimaksanaoglu/jus` ve ardından
+  `scoop install jus`
+- **Hazır paket:** [sürümler sayfasından](https://github.com/kerimaksanaoglu/jus/releases/latest)
   işletim sisteminize uygun paketi indirin, açın ve içindeki `jus` dosyasını
-  çalıştırın. Her yerden çalıştırabilmek için klasörü `PATH` değişkenine ekleyin.
+  çalıştırın. Ayrıntılı adımlar [kurulum sayfasındadır](https://kerimaksanaoglu.github.io/jus/belgeler/kurulum/).
 - **Kaynaktan:** aşağıdaki gibi derleyin.
 
 ## Derleme
@@ -66,7 +76,9 @@ Kaynak dosyalar UTF-8 olmalıdır.
 - `eğer` / `değilse eğer` / `değilse`
 - `iken` ve `her ... içinde` döngüleri, `kır`, `devam`
 - Fonksiyonlar, özyineleme, kapanımlar (`fonksiyon`, `dön`)
+- Varsayılan ve değişken sayıda parametreler: `fonksiyon f(a, b = 2, *kalan)`
 - Dizinleme ve dilimleme: `liste[0]`, `metin[1:4]`
+- Biçimli metin: `f"Merhaba, {ad}! Yaşın {yaş + 1}."`
 - Türkçeye duyarlı metin işlemleri: `büyük_harf("ılık")` sonucu `"ILIK"`,
   alfabetik sıralamada `ç`, `ğ`, `ı`, `ö`, `ş`, `ü` doğru yerlerinde
 - Sınıflar, yöntemler ve kalıtım (`sınıf`, `bu`, `üst`)
@@ -74,7 +86,8 @@ Kaynak dosyalar UTF-8 olmalıdır.
 - Modüller (`kullan`) ve standart kütüphane: `matematik`, `rastgele`, `zaman`,
   `dosya`, `sistem`, `json`, `ağ`, `http`, `tr`
 - 30'dan fazla yerleşik fonksiyon
-- Satır ve sütun gösteren Türkçe hata iletileri
+- Satır ve sütun gösteren Türkçe hata iletileri; yazım yanlışlarında "şunu mu
+  demek istediniz?" önerileri
 - Otomatik bellek yönetimi (çöp toplayıcı)
 
 Henüz olmayanlar (şifreli ağ bağlantıları ve diğerleri) için
@@ -82,8 +95,14 @@ Henüz olmayanlar (şifreli ağ bağlantıları ve diğerleri) için
 
 ## Belgeler
 
+Belgelerin tamamı aranabilir biçimde
+[belge sitesindedir](https://kerimaksanaoglu.github.io/jus/belgeler/).
+
 - [Başlangıç rehberi](docs/rehber/README.md): programlamaya sıfırdan başlayanlar
   için adım adım anlatım
+- [Öğretmen kiti](docs/ogretmen/README.md): 10 haftalık ders planı, dönem projesi ve
+  değerlendirme
+- [JUS'tan Python'a](docs/python-koprusu.md): iki dilin yan yana karşılaştırması
 - [Dil tanımı](docs/dil-tanimi.md): sözdizimi ve davranışın tam tanımı
 - [VS Code eklentisi](editors/vscode/): sözdizimi renklendirme
 - [Deneme alanı](playground/): programları tarayıcıda çalıştıran sayfa
@@ -106,6 +125,9 @@ docs/       belgeler
 editors/    düzenleyici eklentileri
 bench/      hız ölçüm paketi
 tools/      geliştirme araçları
+marka/      logo ve simge dosyaları
+bucket/     Scoop paket tanımı
+paketleme/  winget paket tanımları
 ```
 
 ## Lisans

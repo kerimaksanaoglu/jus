@@ -1,38 +1,39 @@
 # JUS için VS Code eklentisi
 
-JUS programlama dili (`.jus` dosyaları) için sözdizimi renklendirme ve temel
-dil yapılandırması sağlar. Eklenti yalnızca bildirim dosyalarından oluşur;
-çalıştırılabilir kod ve bağımlılık içermez.
+[JUS](https://github.com/kerimaksanaoglu/jus) programlama dili (`.jus` dosyaları)
+için sözdizimi renklendirme ve temel dil yapılandırması sağlar.
 
-## Kapsam
+## Özellikler
 
-- Yorumlar (`#`), metinler ve kaçış dizileri (geçersiz kaçışlar ayrıca işaretlenir), sayılar
-- Anahtar kelimeler: denetim akışı, bildirimler, mantıksal işleçler, sabitler,
-  `bu` / `üst` ve `kullan` / `olarak`
-- Fonksiyon, sınıf ve üst sınıf adları; fonksiyon çağrıları ve yerleşik fonksiyonlar
-- İşleçler
-- Satır yorumu, parantez çiftleri, otomatik kapanan çiftler ve `:` ile biten
-  satırdan sonra girinti artışı
+- Yorumların, metinlerin, sayıların, anahtar kelimelerin ve yerleşik
+  fonksiyonların renklendirilmesi
+- Fonksiyon, sınıf ve üst sınıf adlarının ayırt edilmesi
+- `#` ile satır yorumu (Ctrl+/), parantez eşleştirme, otomatik kapanan çiftler
+- `:` ile biten satırdan sonra otomatik girinti
 
-Dilin tanımı için `docs/dil-tanimi.md` dosyasına bakınız.
+## Kurulum
 
-## Yerelde kurulum
+VS Code'un Eklentiler panelinde "JUS" diye aratıp kurun.
 
-Yöntem 1: Bu klasörü VS Code eklenti dizinine kopyalayın.
-
-- Windows: `%USERPROFILE%\.vscode\extensions\jus`
-- Linux / macOS: `~/.vscode/extensions/jus`
-
-Ardından VS Code'u yeniden başlatın.
-
-Yöntem 2: `vsce` ile paketleyip kurun.
+Marketplace'e erişemiyorsanız JUS'un
+[sürümler sayfasından](https://github.com/kerimaksanaoglu/jus/releases/latest)
+`jus-vscode.vsix` dosyasını indirip şu komutla kurun:
 
 ```
-npm install -g @vscode/vsce
-cd editors/vscode
-vsce package
-code --install-extension jus-0.4.0.vsix
+code --install-extension jus-vscode.vsix
 ```
 
-`vsce package` bir depo adresi ve lisans dosyası bulunmadığına dair uyarı
-verebilir; yerel kurulum için bu uyarılar atlanabilir (`--allow-missing-repository`).
+## JUS hakkında
+
+JUS, Türkçe sözdizimli, genel amaçlı bir betik dilidir. Dili denemek için
+[tarayıcıdaki deneme alanını](https://kerimaksanaoglu.github.io/jus/), öğrenmek
+için [belge sitesini](https://kerimaksanaoglu.github.io/jus/belgeler/) kullanın.
+
+## Geliştirme
+
+Eklenti yalnızca bildirim dosyalarından oluşur; çalıştırılabilir kod ve
+bağımlılık içermez. Paketlemek için:
+
+```
+npx @vscode/vsce package
+```

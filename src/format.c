@@ -152,6 +152,17 @@ static TokenKind readToken(const char *p, const char *end, size_t *length) {
     char c = *p++;
     if (isAlpha(c)) {
         while (p < end && (isAlpha(*p) || isDigit(*p))) p++;
+        /* f"..." biçimli metin tek bir belirteçtir. */
+        if (p - start == 1 && c == 'f' && p < end && *p == '"') {
+            p++;
+            while (p < end && *p != '"') {
+                if (*p == '\\' && p + 1 < end) p++;
+                p++;
+            }
+            if (p < end) p++;
+            *length = (size_t)(p - start);
+            return TOKEN_STRING;
+        }
         *length = (size_t)(p - start);
         return identifierKind(start, *length);
     }
@@ -187,20 +198,25 @@ static TokenKind readToken(const char *p, const char *end, size_t *length) {
         case '.': kind = TOKEN_DOT; break;
         case ':': kind = TOKEN_COLON; break;
         case '%': kind = TOKEN_PERCENT; break;
+        case '&': kind = TOKEN_AMPERSAND; break;
+        case '|': kind = TOKEN_PIPE; break;
+        case '^': kind = TOKEN_CARET; break;
+        case '~': kind = TOKEN_TILDE; break;
         case '-': kind = eq ? TOKEN_MINUS_EQUAL : TOKEN_MINUS; break;
         case '+': kind = eq ? TOKEN_PLUS_EQUAL : TOKEN_PLUS; break;
         case '/': kind = eq ? TOKEN_SLASH_EQUAL : TOKEN_SLASH; break;
         case '*': kind = eq ? TOKEN_STAR_EQUAL : TOKEN_STAR; break;
         case '=': kind = eq ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL; break;
-        case '<': kind = eq ? TOKEN_LESS_EQUAL : TOKEN_LESS; break;
-        case '>': kind = eq ? TOKEN_GREATER_EQUAL : TOKEN_GREATER; break;
+        case '<': kind = (p < end && *p == '<') ? TOKEN_SHIFT_LEFT : eq ? TOKEN_LESS_EQUAL : TOKEN_LESS; break;
+        case '>': kind = (p < end && *p == '>') ? TOKEN_SHIFT_RIGHT : eq ? TOKEN_GREATER_EQUAL : TOKEN_GREATER; break;
         case '!': kind = eq ? TOKEN_BANG_EQUAL : TOKEN_ERROR; break;
         default: break;
     }
     bool twoChar = kind == TOKEN_MINUS_EQUAL || kind == TOKEN_PLUS_EQUAL ||
                    kind == TOKEN_SLASH_EQUAL || kind == TOKEN_STAR_EQUAL ||
                    kind == TOKEN_EQUAL_EQUAL || kind == TOKEN_LESS_EQUAL ||
-                   kind == TOKEN_GREATER_EQUAL || kind == TOKEN_BANG_EQUAL;
+                   kind == TOKEN_GREATER_EQUAL || kind == TOKEN_BANG_EQUAL ||
+                   kind == TOKEN_SHIFT_LEFT || kind == TOKEN_SHIFT_RIGHT;
     if (twoChar) p++;
     *length = (size_t)(p - start);
     return kind;
@@ -385,7 +401,9 @@ static void formatLine(Formatter *f, const char *p, const char *end) {
 
         bool unary = false;
         char colon = 0;
-        if (kind == TOKEN_MINUS) unary = !(st->hasPrev && endsValue(st->prev));
+        /* Tekli eksi ve parametre listesindeki '*ad' işaretinden sonra boşluk konmaz. */
+        if (kind == TOKEN_MINUS || kind == TOKEN_STAR) unary = !(st->hasPrev && endsValue(st->prev));
+        if (kind == TOKEN_TILDE) unary = true;
         if (kind == TOKEN_COLON) {
             colon = st->depth == 0 ? 'B' : (st->brackets[st->depth - 1] == '[' ? 'S' : 'D');
         }

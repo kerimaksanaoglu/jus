@@ -1,0 +1,60 @@
+# Bit işleçleri: &, |, ^, ~, <<, >>. İşlenenler tam değerli olmalıdır.
+yaz(12 & 10, 12 | 10, 12 ^ 10)          # bekle: 8 14 6
+yaz(~0, ~5, ~-1)                        # bekle: -1 -6 0
+yaz(1 << 10, 1024 >> 3, 5 << 0)         # bekle: 1024 128 5
+
+# Sağa kaydırma işareti korur (aritmetik).
+yaz(-8 >> 1, -1 >> 10, -7 >> 1)         # bekle: -4 -1 -4
+
+# Negatif sayılar ikiye tümleyen gösterimiyle işlenir.
+yaz(-1 & 255, -2 | 1, -1 ^ 1)           # bekle: 255 -1 -2
+
+# Öncelik: kaydırma, toplamadan düşük; &, ^, | sırasıyla daha düşük; hepsi karşılaştırmadan yüksek.
+yaz(1 + 2 << 1)                         # bekle: 6
+yaz(6 & 3 == 2)                         # bekle: doğru
+yaz(1 | 2 ^ 3 & 1)                      # bekle: 3
+yaz((1 | 2) ^ (3 & 1))                  # bekle: 2
+yaz(8 >> 1 + 1)                         # bekle: 2
+
+# Bayrak kullanımı.
+değişken OKU = 1
+değişken YAZ = 2
+değişken ÇALIŞTIR = 4
+değişken izin = OKU | ÇALIŞTIR
+yaz(izin & YAZ == 0, izin & ÇALIŞTIR != 0)  # bekle: doğru doğru
+izin = izin & ~OKU
+yaz(izin)                               # bekle: 4
+
+# Büyük ama kesin değerler çalışır; sınır 2^53'tür.
+yaz(1 << 52, (1 << 53) >> 53)           # bekle: 4503599627370496 1
+yaz(4503599627370496 | 1)               # bekle: 4503599627370497
+
+# Hatalar: ondalık kısım, aralık dışı, sayı olmayan, geçersiz kaydırma miktarı.
+dene:
+    yaz(1.5 & 1)
+yakala hata:
+    yaz(hata)   # bekle: '&' işleci tam sayı ister; 1.5 ondalık kısmı olan bir sayı.
+dene:
+    yaz("a" | 1)
+yakala hata:
+    yaz(hata)   # bekle: '|' işleci tam sayı ister; metin verildi.
+dene:
+    yaz(1 << 53 << 1)
+yakala hata:
+    yaz(hata)   # bekle: '<<' işlecinin sonucu 2^53'ü aşıyor; bu büyüklükteki sayılar kesin değildir.
+dene:
+    yaz(1 << 64)
+yakala hata:
+    yaz(hata)   # bekle: Kaydırma miktarı 0 ile 63 arasında olmalı; 64 verildi.
+dene:
+    yaz(1 >> -1)
+yakala hata:
+    yaz(hata)   # bekle: Kaydırma miktarı 0 ile 63 arasında olmalı; -1 verildi.
+dene:
+    yaz(~18014398509481984)
+yakala hata:
+    yaz(hata)   # bekle: '~' işlecinin işleneni 2^53'ten büyük olamaz; bu büyüklükteki sayılar kesin değildir.
+dene:
+    yaz(~9007199254740992)
+yakala hata:
+    yaz(hata)   # bekle: '~' işlecinin sonucu 2^53'ü aşıyor; bu büyüklükteki sayılar kesin değildir.

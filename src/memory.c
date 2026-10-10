@@ -96,6 +96,7 @@ static void blackenObject(Obj *object) {
             markObject((Obj *)function->name);
             markObject((Obj *)function->module);
             markArray(&function->chunk.constants);
+            markArray(&function->localNames);
             break;
         }
         case OBJ_MODULE: {
@@ -105,6 +106,8 @@ static void blackenObject(Obj *object) {
             markTable(&module->globals);
             break;
         }
+        case OBJ_BYTES: /* ham veri; işaretlenecek nesne yok */
+            break;
         case OBJ_LIST: {
             ObjList *list = (ObjList *)object;
             for (int i = 0; i < list->count; i++) {
@@ -155,6 +158,7 @@ static void freeObject(Obj *object) {
         case OBJ_FUNCTION: {
             ObjFunction *function = (ObjFunction *)object;
             freeChunk(&function->chunk);
+            freeValueArray(&function->localNames);
             FREE(ObjFunction, object);
             break;
         }
@@ -162,6 +166,12 @@ static void freeObject(Obj *object) {
             ObjList *list = (ObjList *)object;
             FREE_ARRAY(Value, list->items, list->capacity);
             FREE(ObjList, object);
+            break;
+        }
+        case OBJ_BYTES: {
+            ObjBytes *bytes = (ObjBytes *)object;
+            FREE_ARRAY(uint8_t, bytes->data, bytes->capacity);
+            FREE(ObjBytes, object);
             break;
         }
         case OBJ_MAP: {

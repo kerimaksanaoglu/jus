@@ -1,0 +1,21 @@
+/* Belge sitesinin marka renkleri (bkz. marka/README.md). */
+:root {
+  --md-primary-fg-color: #2f6fed;
+  --md-primary-fg-color--light: #5b8df2;
+  --md-primary-fg-color--dark: #1f55c4;
+  --md-accent-fg-color: #1f55c4;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #1f55c4;
+  --md-accent-fg-color: #a9c6ff;
+  --md-typeset-a-color: #8fb4ff;
+}
+
+/* Ana sayfadaki logo. */
+.jus-logo {
+  display: block;
+  width: 220px;
+  max-width: 60%;
+  margin: 1.5rem 0 2rem;
+}

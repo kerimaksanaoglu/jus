@@ -1,0 +1,3 @@
+# Belge sitesini üretmek için gereken paketler (sürümler sabitlenmiştir).
+mkdocs>=1.6,<2
+mkdocs-material==9.7.7

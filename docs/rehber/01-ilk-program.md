@@ -180,7 +180,7 @@ Yaz("Merhaba")
 ```
 
 ```
-ornek.jus:1: çalışma zamanı hatası: 'Yaz' adında bir değişken ya da fonksiyon tanımlı değil.
+ornek.jus:1: çalışma zamanı hatası: 'Yaz' adında bir değişken ya da fonksiyon tanımlı değil. 'yaz' mı demek istediniz?
 ```
 
 **Girintiyi bozmak.** Kural gereği bir bloğun içindeki satırlar aynı hizada olmalıdır. Girinti konusunu üçüncü bölümde işleyeceğiz; şimdilik şu kadarını bilin: girintisiz bir satırı birdenbire girintili yazamazsınız.

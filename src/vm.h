@@ -13,6 +13,7 @@ typedef struct {
     ObjClosure *closure;
     uint8_t *ip;
     Value *slots;
+    int argCount; /* çağrıda verilen argüman sayısı; varsayılan değerler için */
 } CallFrame;
 
 /* Bir 'dene' bloğuna girilirken kaydedilen durum. */

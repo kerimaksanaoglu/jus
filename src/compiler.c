@@ -6,6 +6,7 @@
 #include "compiler.h"
 #include "memory.h"
 #include "scanner.h"
+#include "suggest.h"
 #include "table.h"
 #include "vm.h"
 
@@ -31,7 +32,11 @@ typedef enum {
     PREC_AND,        /* ve */
     PREC_NOT,        /* değil */
     PREC_EQUALITY,   /* == != */
-    PREC_COMPARISON, /* < > <= >= */
+    PREC_COMPARISON, /* < > <= >= içinde */
+    PREC_BIT_OR,     /* | */
+    PREC_BIT_XOR,    /* ^ */
+    PREC_BIT_AND,    /* & */
+    PREC_SHIFT,      /* << >> */
     PREC_TERM,       /* + - */
     PREC_FACTOR,     /* * / % */
     PREC_UNARY,      /* - */
@@ -109,6 +114,46 @@ static Chunk *currentChunk(void) {
 
 /* ---- Hata bildirimi ---- */
 
+static bool startsValue(TokenKind type) {
+    return type == TOKEN_STRING || type == TOKEN_FSTRING || type == TOKEN_NUMBER || type == TOKEN_IDENTIFIER ||
+           type == TOKEN_TRUE || type == TOKEN_FALSE || type == TOKEN_NIL;
+}
+
+/*
+ * Hatanın yanındaki ad bir anahtar kelimeye benziyorsa (ör. Türkçe harf
+ * kullanılmadan yazılmışsa) ya da başka bir dilden geliyorsa bir ipucu yazar.
+ */
+static void printHint(const Token *token) {
+    const Token *nearby[2] = {token, &parser.previous};
+    for (int i = 0; i < 2; i++) {
+        const Token *name = nearby[i];
+        if (name->type != TOKEN_IDENTIFIER) continue;
+
+        const char *equivalent = foreignEquivalent(name->start, name->length);
+        if (equivalent != NULL) {
+            fprintf(stderr, "    İpucu: JUS'ta '%.*s' yerine '%s' yazılır.\n", name->length, name->start,
+                    equivalent);
+            return;
+        }
+
+        Suggestion suggestion;
+        suggestionInit(&suggestion, name->start, name->length);
+        suggestionConsiderKeywords(&suggestion);
+        if (suggestionFound(&suggestion)) {
+            fprintf(stderr, "    İpucu: '%.*s' yerine '%.*s' yazmak istemiş olabilirsiniz.\n", name->length,
+                    name->start, suggestion.bestLength, suggestion.best);
+            return;
+        }
+    }
+
+    /* yaz "merhaba" gibi: fonksiyon adından sonra parantezsiz argüman. */
+    if (token != &parser.previous && parser.previous.type == TOKEN_IDENTIFIER &&
+        parser.previous.line == token->line && startsValue(token->type)) {
+        fprintf(stderr, "    İpucu: Fonksiyon çağrısında argümanlar parantez içine yazılır: %.*s(...)\n",
+                parser.previous.length, parser.previous.start);
+    }
+}
+
 static void errorAt(const Token *token, const char *message) {
     if (parser.panicMode) return;
     parser.panicMode = true;
@@ -134,6 +179,7 @@ static void errorAt(const Token *token, const char *message) {
         fputc(*p == '\t' ? '\t' : ' ', stderr);
     }
     fputs("^\n", stderr);
+    printHint(token);
 }
 
 static void error(const char *message) {
@@ -270,6 +316,20 @@ static void patchJump(int offset) {
     currentChunk()->code[offset + 1] = (uint8_t)(jump & 0xff);
 }
 
+/* Yerel adı, çalışma zamanındaki "şunu mu demek istediniz?" önerileri için kaydeder. */
+static void recordLocalName(ObjFunction *function, const char *start, int length) {
+    if (length == 0) return;
+    ObjString *name = copyString(start, length);
+    ValueArray *names = &function->localNames;
+    for (int i = 0; i < names->count; i++) {
+        if (AS_OBJ(names->values[i]) == (Obj *)name) return;
+    }
+    /* Dizi büyürken çöp toplayıcı çalışabilir; adı yığında koru. */
+    push(OBJ_VAL(name));
+    writeValueArray(names, OBJ_VAL(name));
+    pop();
+}
+
 static void initCompiler(Compiler *compiler, FunctionType type) {
     compiler->enclosing = current;
     compiler->function = NULL;
@@ -284,6 +344,13 @@ static void initCompiler(Compiler *compiler, FunctionType type) {
     current = compiler;
     if (type != TYPE_SCRIPT) {
         current->function->name = copyString(parser.previous.start, parser.previous.length);
+    }
+
+    /* İç fonksiyon, kendisini saran fonksiyonların yerellerini de görebilir. */
+    for (Compiler *outer = compiler->enclosing; outer != NULL; outer = outer->enclosing) {
+        for (int i = 0; i < outer->localCount; i++) {
+            recordLocalName(compiler->function, outer->locals[i].name.start, outer->locals[i].name.length);
+        }
     }
 
     /* 0 numaralı yuva yöntemlerde 'bu' nesnesini, diğerlerinde fonksiyonun kendisini tutar. */
@@ -404,6 +471,7 @@ static void addLocal(Token name) {
     local->name = name;
     local->depth = -1;
     local->isCaptured = false;
+    recordLocalName(current->function, name.start, name.length);
 }
 
 static void declareVariable(const Token *name) {
@@ -512,6 +580,11 @@ static void binary(bool canAssign) {
         case TOKEN_STAR: emitByte(OP_MULTIPLY); break;
         case TOKEN_SLASH: emitByte(OP_DIVIDE); break;
         case TOKEN_PERCENT: emitByte(OP_MODULO); break;
+        case TOKEN_AMPERSAND: emitByte(OP_BIT_AND); break;
+        case TOKEN_PIPE: emitByte(OP_BIT_OR); break;
+        case TOKEN_CARET: emitByte(OP_BIT_XOR); break;
+        case TOKEN_SHIFT_LEFT: emitByte(OP_SHIFT_LEFT); break;
+        case TOKEN_SHIFT_RIGHT: emitByte(OP_SHIFT_RIGHT); break;
         case TOKEN_IN: emitByte(OP_IN); break;
         default: return; /* ulaşılamaz */
     }
@@ -646,41 +719,149 @@ static void number(bool canAssign) {
     emitConstant(NUMBER_VAL(value));
 }
 
-static void string(bool canAssign) {
-    (void)canAssign;
-    /* Tırnakları at, kaçış dizilerini çöz. */
-    const char *source = parser.previous.start + 1;
-    int sourceLength = parser.previous.length - 2;
-
-    char *buffer = (char *)malloc((size_t)sourceLength + 1);
+static char *allocateBuffer(size_t size) {
+    char *buffer = (char *)malloc(size);
     if (buffer == NULL) {
         fprintf(stderr, "jus: bellek yetersiz.\n");
         exit(JUS_EXIT_OUT_OF_MEMORY);
     }
+    return buffer;
+}
 
+/* Kaçış dizisini çözer: *p ters bölüyü gösterir; ilerletir ve karakteri buffer'a yazar. */
+static void appendEscape(const char **p, const char *end, char *buffer, int *length) {
+    (*p)++;
+    char c = *p < end ? **p : '\0';
+    switch (c) {
+        case 'n': buffer[(*length)++] = '\n'; break;
+        case 't': buffer[(*length)++] = '\t'; break;
+        case 'r': buffer[(*length)++] = '\r'; break;
+        case '"': buffer[(*length)++] = '"'; break;
+        case '\\': buffer[(*length)++] = '\\'; break;
+        default:
+            error("Geçersiz kaçış dizisi. Kullanılabilenler: \\n \\t \\r \\\" \\\\");
+            break;
+    }
+    if (*p < end) (*p)++;
+}
+
+static void string(bool canAssign) {
+    (void)canAssign;
+    /* Tırnakları at, kaçış dizilerini çöz. */
+    const char *p = parser.previous.start + 1;
+    const char *end = parser.previous.start + parser.previous.length - 1;
+
+    char *buffer = allocateBuffer((size_t)(end - p) + 1);
     int length = 0;
-    for (int i = 0; i < sourceLength; i++) {
-        char c = source[i];
-        if (c != '\\') {
-            buffer[length++] = c;
-            continue;
-        }
-
-        i++;
-        switch (source[i]) {
-            case 'n': buffer[length++] = '\n'; break;
-            case 't': buffer[length++] = '\t'; break;
-            case 'r': buffer[length++] = '\r'; break;
-            case '"': buffer[length++] = '"'; break;
-            case '\\': buffer[length++] = '\\'; break;
-            default:
-                error("Geçersiz kaçış dizisi. Kullanılabilenler: \\n \\t \\r \\\" \\\\");
-                break;
+    while (p < end) {
+        if (*p == '\\') {
+            appendEscape(&p, end, buffer, &length);
+        } else {
+            buffer[length++] = *p++;
         }
     }
 
     emitConstant(OBJ_VAL(copyString(buffer, length)));
     free(buffer);
+}
+
+/*
+ * Biçimli metnin içindeki bir ifadeyi derler. Tarayıcı ve ayrıştırıcı durumu
+ * kaydedilir, kaynağın [start, end) aralığı ifade olarak taranır ve durum geri
+ * yüklenir. Hata konumları tüm kaynağa göre doğru kalır.
+ */
+static void embeddedExpression(const char *start, const char *end, int line) {
+    Token savedCurrent = parser.current;
+    Token savedPrevious = parser.previous;
+    ScannerState savedScanner;
+    scannerSave(&savedScanner);
+
+    initScannerRange(scannerSource(), start, end, line);
+    advance();
+    /* Atama bir ifade olsa da biçimli metnin içinde anlamsızdır; izin verilmez. */
+    parsePrecedence(PREC_OR);
+    if (!check(TOKEN_EOF)) {
+        errorAtCurrent("Biçimli metindeki ifadeden sonra '}' bekleniyor.");
+    }
+
+    scannerRestore(&savedScanner);
+    parser.current = savedCurrent;
+    parser.previous = savedPrevious;
+}
+
+/* f"metin {ifade} metin": parçalar yığına konur ve tek metinde birleştirilir. */
+static void fstring(bool canAssign) {
+    (void)canAssign;
+    Token token = parser.previous;
+    const char *p = token.start + 2; /* f ve açılış tırnağı */
+    const char *end = token.start + token.length - 1;
+
+    char *buffer = allocateBuffer((size_t)(end - p) + 1);
+    int length = 0;
+    int parts = 0;
+    bool lastIsLiteral = true;
+
+    while (p < end) {
+        if (*p == '{') {
+            if (p + 1 < end && p[1] == '{') {
+                buffer[length++] = '{';
+                p += 2;
+                continue;
+            }
+            if (length > 0) {
+                emitConstant(OBJ_VAL(copyString(buffer, length)));
+                length = 0;
+                parts++;
+            }
+            const char *exprStart = p + 1;
+            const char *q = exprStart;
+            int depth = 1;
+            while (q < end && depth > 0) {
+                if (*q == '{') depth++;
+                else if (*q == '}') depth--;
+                if (depth > 0) q++;
+            }
+            if (depth > 0) {
+                errorAt(&token, "Biçimli metinde '{' açıldı ama '}' ile kapatılmadı.");
+                break;
+            }
+            const char *exprEnd = q;
+            while (exprStart < exprEnd && (*exprStart == ' ' || *exprStart == '\t')) exprStart++;
+            if (exprStart == exprEnd) {
+                errorAt(&token, "Biçimli metinde '{' ile '}' arasında bir ifade bekleniyor.");
+                break;
+            }
+            embeddedExpression(exprStart, exprEnd, token.line);
+            parts++;
+            lastIsLiteral = false;
+            p = q + 1;
+        } else if (*p == '}') {
+            if (p + 1 < end && p[1] == '}') {
+                buffer[length++] = '}';
+                p += 2;
+                continue;
+            }
+            errorAt(&token, "Biçimli metinde tek başına '}' kullanılamaz; '}' yazmak için '}}' yazın.");
+            break;
+        } else if (*p == '\\') {
+            appendEscape(&p, end, buffer, &length);
+        } else {
+            buffer[length++] = *p++;
+        }
+    }
+
+    if (length > 0 || parts == 0) {
+        emitConstant(OBJ_VAL(copyString(buffer, length)));
+        parts++;
+        lastIsLiteral = true;
+    }
+    free(buffer);
+
+    /* Tek bir metin sabiti zaten metindir; diğer durumlarda parçalar metne çevrilip birleştirilir. */
+    if (parts != 1 || !lastIsLiteral) {
+        emitByte(OP_BUILD_STRING);
+        emitShort(parts);
+    }
 }
 
 static void namedVariable(Token name, bool canAssign) {
@@ -786,6 +967,12 @@ static void unary(bool canAssign) {
     emitByte(OP_NEGATE);
 }
 
+static void bitNot(bool canAssign) {
+    (void)canAssign;
+    parsePrecedence(PREC_UNARY);
+    emitByte(OP_BIT_NOT);
+}
+
 static const ParseRule rules[] = {
     [TOKEN_LEFT_PAREN]    = {grouping, call,   PREC_CALL},
     [TOKEN_RIGHT_PAREN]   = {NULL,     NULL,   PREC_NONE},
@@ -805,6 +992,12 @@ static const ParseRule rules[] = {
     [TOKEN_SLASH]         = {NULL,     binary, PREC_FACTOR},
     [TOKEN_STAR]          = {NULL,     binary, PREC_FACTOR},
     [TOKEN_PERCENT]       = {NULL,     binary, PREC_FACTOR},
+    [TOKEN_AMPERSAND]     = {NULL,     binary, PREC_BIT_AND},
+    [TOKEN_PIPE]          = {NULL,     binary, PREC_BIT_OR},
+    [TOKEN_CARET]         = {NULL,     binary, PREC_BIT_XOR},
+    [TOKEN_TILDE]         = {bitNot,   NULL,   PREC_NONE},
+    [TOKEN_SHIFT_LEFT]    = {NULL,     binary, PREC_SHIFT},
+    [TOKEN_SHIFT_RIGHT]   = {NULL,     binary, PREC_SHIFT},
     [TOKEN_EQUAL]         = {NULL,     NULL,   PREC_NONE},
     [TOKEN_EQUAL_EQUAL]   = {NULL,     binary, PREC_EQUALITY},
     [TOKEN_BANG_EQUAL]    = {NULL,     binary, PREC_EQUALITY},
@@ -814,6 +1007,7 @@ static const ParseRule rules[] = {
     [TOKEN_LESS_EQUAL]    = {NULL,     binary, PREC_COMPARISON},
     [TOKEN_IDENTIFIER]    = {variable, NULL,   PREC_NONE},
     [TOKEN_STRING]        = {string,   NULL,   PREC_NONE},
+    [TOKEN_FSTRING]       = {fstring,  NULL,   PREC_NONE},
     [TOKEN_NUMBER]        = {number,   NULL,   PREC_NONE},
     [TOKEN_AND]           = {NULL,     and_,   PREC_AND},
     [TOKEN_AS]            = {NULL,     NULL,   PREC_NONE},
@@ -914,11 +1108,45 @@ static void function(FunctionType type) {
     consume(TOKEN_LEFT_PAREN, "Fonksiyon adından sonra '(' bekleniyor.");
     if (!check(TOKEN_RIGHT_PAREN)) {
         do {
-            current->function->arity++;
-            if (current->function->arity > 255) {
+            ObjFunction *fn = current->function;
+            if (fn->hasRest) {
+                errorAtCurrent("'*' ile işaretlenen parametre sonuncu olmalıdır.");
+            }
+            int index = fn->arity + fn->optionalCount; /* parametrenin sırası; yuvası index + 1 */
+            if (index >= 255) {
                 errorAtCurrent("Bir fonksiyonun en çok 255 parametresi olabilir.");
             }
+
+            if (match(TOKEN_STAR)) {
+                /* *ad: kalan argümanlar bu parametreye liste olarak gelir. */
+                int constant = parseVariable("'*' işaretinden sonra parametre adı bekleniyor.");
+                fn->hasRest = true;
+                defineVariable(constant);
+                continue;
+            }
+
             int constant = parseVariable("Parametre adı bekleniyor.");
+            if (match(TOKEN_EQUAL)) {
+                /*
+                 * Varsayılan değer: argüman verilmediyse fonksiyonun başında hesaplanır.
+                 * Önceki parametreler görülebilir; parametre kendisi henüz tanımsızdır.
+                 */
+                fn->optionalCount++;
+                emitByte(OP_ARG_GIVEN);
+                emitByte((uint8_t)index);
+                emitByte(0xff);
+                emitByte(0xff);
+                int skip = currentChunk()->count - 2;
+                expression();
+                emitBytes(OP_SET_LOCAL, (uint8_t)(index + 1));
+                emitByte(OP_POP);
+                patchJump(skip);
+            } else {
+                if (fn->optionalCount > 0) {
+                    error("Varsayılan değeri olan parametreden sonra varsayılan değeri olmayan parametre gelemez.");
+                }
+                fn->arity++;
+            }
             defineVariable(constant);
         } while (match(TOKEN_COMMA));
     }
@@ -1285,13 +1513,26 @@ static void returnStatement(void) {
     }
 }
 
-/* Hatadan sonra bir sonraki satırın başına kadar ilerle. */
+/*
+ * Hatadan sonra bir sonraki satırın başına kadar ilerle. Hatalı satır bir blok
+ * açıyorsa (ör. 'eger x > 2:') bloğun gövdesi de atlanır; yoksa gövdenin her
+ * satırı "beklenmeyen girinti" diye ayrıca bildirilirdi.
+ */
 static void synchronize(void) {
     parser.panicMode = false;
 
     while (parser.current.type != TOKEN_EOF) {
-        if (parser.previous.type == TOKEN_NEWLINE) return;
+        if (parser.previous.type == TOKEN_NEWLINE) break;
         advance();
+    }
+    if (check(TOKEN_INDENT)) {
+        advance();
+        int depth = 1;
+        while (depth > 0 && !check(TOKEN_EOF)) {
+            if (check(TOKEN_INDENT)) depth++;
+            if (check(TOKEN_DEDENT)) depth--;
+            advance();
+        }
     }
 }
 
@@ -1356,6 +1597,13 @@ ObjFunction *compile(const char *name, const char *source, bool repl, ObjModule 
     lastExpressionWasAssignment = false;
     parser.hadError = false;
     parser.panicMode = false;
+    /* Önceki derlemeden kalan belirteçler eski kaynağı gösterir; sıfırla. */
+    parser.previous.type = TOKEN_EOF;
+    parser.previous.start = source;
+    parser.previous.length = 0;
+    parser.previous.line = 1;
+    parser.previous.message = NULL;
+    parser.current = parser.previous;
     initCompiler(&compiler, TYPE_SCRIPT);
 
     advance();

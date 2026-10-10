@@ -1,0 +1,5 @@
+# Modülde bulunamayan üye için öneri.
+# kod: 70
+# hata: 'matematik' modülünde 'karekok' adında bir üye yok. 'karekök' mü demek istediniz?
+kullan matematik
+yaz(matematik.karekok(16))

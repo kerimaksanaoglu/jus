@@ -43,6 +43,12 @@ static bool equalAtDepth(Value a, Value b, int depth) {
     if (AS_OBJ(a) == AS_OBJ(b)) return true;
     if (depth > MAX_NESTING) return false;
 
+    if (IS_BYTES(a) && IS_BYTES(b)) {
+        ObjBytes *x = AS_BYTES(a);
+        ObjBytes *y = AS_BYTES(b);
+        return x->count == y->count && (x->count == 0 || memcmp(x->data, y->data, (size_t)x->count) == 0);
+    }
+
     if (IS_LIST(a) && IS_LIST(b)) {
         ObjList *x = AS_LIST(a);
         ObjList *y = AS_LIST(b);
@@ -82,6 +88,7 @@ const char *valueTypeName(Value value) {
             switch (OBJ_TYPE(value)) {
                 case OBJ_STRING: return "metin";
                 case OBJ_LIST: return "liste";
+                case OBJ_BYTES: return "baytlar";
                 case OBJ_MAP: return "sözlük";
                 case OBJ_MODULE: return "modül";
                 case OBJ_CLASS: return "sınıf";
@@ -185,6 +192,22 @@ static void appendValue(TextBuffer *buffer, Value value, bool quoteStrings, int 
                 bufferAppend(buffer, AS_STRING(value)->chars, (size_t)AS_STRING(value)->length);
             }
             break;
+        case OBJ_BYTES: {
+            /* <baytlar 3: 01 02 ff>; uzun dizilerde ilk 16 bayt gösterilir. */
+            ObjBytes *bytes = AS_BYTES(value);
+            char head[40];
+            snprintf(head, sizeof(head), "<baytlar %d:", bytes->count);
+            bufferAppendText(buffer, head);
+            int shown = bytes->count < 16 ? bytes->count : 16;
+            for (int i = 0; i < shown; i++) {
+                char hex[4];
+                snprintf(hex, sizeof(hex), " %02x", bytes->data[i]);
+                bufferAppendText(buffer, hex);
+            }
+            if (shown < bytes->count) bufferAppendText(buffer, " ...");
+            bufferAppend(buffer, ">", 1);
+            break;
+        }
         case OBJ_LIST: {
             ObjList *list = AS_LIST(value);
             if (depth > MAX_NESTING) {

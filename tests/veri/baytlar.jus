@@ -1,0 +1,75 @@
+# baytlar türü: değiştirilebilir bayt dizisi.
+kullan bayt
+
+değişken b = baytlar(3)
+yaz(b, uzunluk(b), tür(b))                  # bekle: <baytlar 3: 00 00 00> 3 baytlar
+b[0] = 1
+b[2] = 255
+yaz(b, b[0], b[-1])                         # bekle: <baytlar 3: 01 00 ff> 1 255
+
+değişken c = baytlar([72, 105, 33])
+yaz(c, bayt.metne(c))                       # bekle: <baytlar 3: 48 69 21> Hi!
+yaz(baytlar(), uzunluk(baytlar()))          # bekle: <baytlar 0:> 0
+
+# Dilim, birleştirme, eşitlik, üyelik, döngü.
+yaz(c[1:], c[:1] + c[2:])                   # bekle: <baytlar 2: 69 21> <baytlar 2: 48 21>
+yaz(c == baytlar([72, 105, 33]), c == baytlar([72]), c == "Hi!")  # bekle: doğru yanlış yanlış
+yaz(105 içinde c, 7 içinde c, baytlar([105, 33]) içinde c)  # bekle: doğru yanlış doğru
+değişken toplam = 0
+her x içinde c:
+    toplam += x
+yaz(toplam)                                 # bekle: 210
+ekle(c, 10)
+yaz(uzunluk(c), c[3])                       # bekle: 4 10
+
+# Uzun diziler kısaltılarak gösterilir.
+yaz(baytlar(20))                            # bekle: <baytlar 20: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ...>
+
+# Metin dönüşümleri UTF-8 üzerinden yapılır.
+değişken m = bayt.metinden("çay")
+yaz(m, uzunluk(m), uzunluk("çay"))          # bekle: <baytlar 4: c3 a7 61 79> 4 3
+yaz(bayt.metne(m))                          # bekle: çay
+yaz(bayt.onaltılık_kodla(m))                # bekle: c3a76179
+yaz(bayt.onaltılık_çöz("C3 A7 61 79") == m) # bekle: doğru
+yaz(bayt.base64_kodla(bayt.metinden("Merhaba dünya")))  # bekle: TWVyaGFiYSBkw7xueWE=
+yaz(bayt.metne(bayt.base64_çöz("TWVyaGFiYSBkw7xueWE=")))  # bekle: Merhaba dünya
+yaz(bayt.base64_kodla(baytlar()), bayt.base64_kodla(baytlar([0])), bayt.base64_kodla(baytlar([0, 0])))  # bekle:  AA== AAA=
+
+# Kopyalama: baytlar(baytlar) yeni bir dizi verir.
+değişken k = baytlar(m)
+k[0] = 0
+yaz(m[0], k[0])                             # bekle: 195 0
+
+# Hatalar.
+dene:
+    b[0] = 256
+yakala hata:
+    yaz(hata)   # bekle: Bayt değeri 0 ile 255 arasında bir tam sayı olmalı; 256 verildi.
+dene:
+    b[0] = 1.5
+yakala hata:
+    yaz(hata)   # bekle: Bayt değeri 0 ile 255 arasında bir tam sayı olmalı; 1.5 verildi.
+dene:
+    baytlar([1, "a"])
+yakala hata:
+    yaz(hata)   # bekle: Bayt değeri 0 ile 255 arasında bir tam sayı olmalı; metin verildi.
+dene:
+    b[5]
+yakala hata:
+    yaz(hata)   # bekle: Dizin sınırların dışında: uzunluk 3, istenen dizin 5.
+dene:
+    bayt.metne(baytlar([255, 254]))
+yakala hata:
+    yaz(hata)   # bekle: Baytlar geçerli bir UTF-8 metni değil.
+dene:
+    bayt.onaltılık_çöz("abc")
+yakala hata:
+    yaz(hata)   # bekle: Onaltılık metnin basamak sayısı tek; her bayt iki basamakla yazılır.
+dene:
+    bayt.base64_çöz("A")
+yakala hata:
+    yaz(hata)   # bekle: Base64 metni eksik; uzunluğu 4'ün katı olmalı.
+dene:
+    yaz(b + "a")
+yakala hata:
+    yaz(hata)   # bekle: '+' işleci iki sayı, iki metin, iki liste ya da iki baytlar ister; baytlar ve metin verildi. Dönüştürmek için metin() ya da sayı() kullanılabilir.

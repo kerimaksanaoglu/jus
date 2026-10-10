@@ -76,6 +76,90 @@ abc
 
 Son satıra dikkat: art arda iki ayraç, aralarında boş bir parça üretir. Bu yüzden kullanıcıdan gelen metni bölmeden önce `kırp` ile temizlemek iyi bir alışkanlıktır.
 
+## Biçimli metin
+
+Metne değer yerleştirmenin bir yolu `+` ile birleştirmek ve sayıları `metin()` ile çevirmektir. Bir de **biçimli metin** vardır: metnin önüne `f` harfi, hemen ardından çift tırnak yazılır; `{` ile `}` arasındaki her ifade hesaplanır ve metnin o yerine eklenir.
+
+```jus
+değişken ad = "Ayşe"
+değişken yaş = 25
+
+yaz("yaş: " + metin(25))
+yaz(f"yaş: {25}")
+
+yaz("Merhaba, " + ad + "! Yaşın " + metin(yaş + 1) + ".")
+yaz(f"Merhaba, {ad}! Yaşın {yaş + 1}.")
+```
+
+```
+yaş: 25
+yaş: 25
+Merhaba, Ayşe! Yaşın 26.
+Merhaba, Ayşe! Yaşın 26.
+```
+
+İki yazımın çıktısı aynıdır; biçimli metin yalnızca daha kısa ve okunaklıdır. İkinci bölümde türlerin sessizce çevrilmediğini öğrenmiştiniz. Biçimli metinde de dönüşüm gizli değildir: `f` harfi ve süslü parantezler, "bunu metne çevir" demenin açık yoludur.
+
+Kurallar:
+
+- `f` ile açılış tırnağı arasında boşluk olmaz. Sonuç her zaman `metin` türündedir.
+- `{}` içine her türlü ifade yazılabilir: değişken, aritmetik, fonksiyon çağrısı, dizin, dilim.
+- Değer, `metin()` ile aynı biçimde metne çevrilir: metinler tırnaksız, listeler ve sözlükler yazıldıkları gibi görünür.
+- Süslü parantezin kendisini yazmak için `{{` ve `}}` yazın.
+- `\n`, `\t`, `\"`, `\\`, `\r` kaçış dizileri sıradan metinlerdeki gibi çalışır.
+
+```jus
+değişken liste = [1, "iki", 3.5]
+değişken kişi = {"ad": "Mert", "notlar": [70, 90]}
+değişken notlar = kişi["notlar"]
+değişken anahtar = "ad"
+
+yaz(f"liste: {liste}")
+yaz(f"kişi: {kişi}")
+yaz(f"{boş} {doğru} {yanlış} {2.50}")
+yaz(f"ad: {kişi[anahtar]}")
+yaz(f"ilk not: {notlar[0]}, son not: {notlar[-1]}")
+yaz(f"ortalama: {(notlar[0] + notlar[1]) / 2}")
+yaz(f"büyük: {büyük_harf(kişi[anahtar])}, uzunluk: {uzunluk(notlar)}")
+yaz(f"{{ad}} yerine {{{anahtar}}} yazdık")
+yaz(f"iki satır:\n\tgirintili \"tırnaklı\" metin")
+```
+
+```
+liste: [1, "iki", 3.5]
+kişi: {"ad": "Mert", "notlar": [70, 90]}
+boş doğru yanlış 2.5
+ad: Mert
+ilk not: 70, son not: 90
+ortalama: 80
+büyük: MERT, uzunluk: 2
+{ad} yerine {ad} yazdık
+iki satır:
+	girintili "tırnaklı" metin
+```
+
+`{{{anahtar}}}` üç parçadan oluşur: `{{` (düz `{`), `{anahtar}` (değişkenin değeri) ve `}}` (düz `}`).
+
+Biçimli metinde iki sınır vardır:
+
+- **İfadenin içinde çift tırnak kullanamazsınız.** Çift tırnak metni bitirir; bu yüzden `f"{kişi["ad"]}"` yazılamaz. İfade tırnaklı bir metin gerektiriyorsa onu önce bir değişkene alın (yukarıdaki `kişi[anahtar]` gibi).
+- **Biçim belirteci yoktur.** Başka dillerdeki `{x:.2f}` yazımı JUS'ta hatadır. Sayıyı biçimlemek için `{}` içinde `biçimle`, hizalamak için `sola_doldur` gibi fonksiyonları çağırın:
+
+```jus
+değişken fiyat = 12.5
+değişken sıfır = "0"
+
+yaz(f"{biçimle(fiyat, 2)} TL")
+yaz(f"[{sola_doldur(metin(7), 4, sıfır)}]")
+```
+
+```
+12.50 TL
+[0007]
+```
+
+İfadenin içinde atama da yapılamaz. Biçimli metindeki hatalar program çalışmadan, derleme sırasında bildirilir (aşağıda "Sık yapılan hatalar" bölümüne bakın).
+
 ## Aramak ve değiştirmek
 
 - `bul(metin, aranan)` alt metnin ilk geçtiği karakter dizinini verir; yoksa `-1`.
@@ -335,6 +419,74 @@ ornek.jus:1: çalışma zamanı hatası: 'sola_doldur' fonksiyonu metin ister; s
 
 Çözüm: `sola_doldur(metin(5), 3)`.
 
+**Biçimli metinde `{` açıp kapatmamak.**
+
+```jus
+değişken ad = "Ali"
+yaz(f"Merhaba {ad")
+```
+
+```
+ornek.jus:2:5: sözdizimi hatası: Biçimli metinde '{' açıldı ama '}' ile kapatılmadı.
+    yaz(f"Merhaba {ad")
+        ^
+```
+
+Konum, biçimli metnin başını gösterir. Aynı ileti ifadenin içine çift tırnak yazdığınızda da çıkar: `f"{kişi["ad"]}"` yazılışında ifade ilk iç tırnakta bittiği için `}` bulunamaz. Çözüm: tırnaklı değeri önce bir değişkene alın.
+
+**Tek başına `}` yazmak.**
+
+```jus
+değişken ad = "Ali"
+yaz(f"Merhaba ad}")
+```
+
+```
+ornek.jus:2:5: sözdizimi hatası: Biçimli metinde tek başına '}' kullanılamaz; '}' yazmak için '}}' yazın.
+    yaz(f"Merhaba ad}")
+        ^
+```
+
+**Boş `{}` yazmak.**
+
+```jus
+yaz(f"Merhaba {}")
+```
+
+```
+ornek.jus:1:5: sözdizimi hatası: Biçimli metinde '{' ile '}' arasında bir ifade bekleniyor.
+    yaz(f"Merhaba {}")
+        ^
+```
+
+**Biçim belirteci kullanmak.**
+
+```jus
+değişken x = 2
+yaz(f"{x:.2f}")
+```
+
+```
+ornek.jus:2:9: sözdizimi hatası: Biçimli metindeki ifadeden sonra '}' bekleniyor.
+    yaz(f"{x:.2f}")
+            ^
+```
+
+Çözüm: `f"{biçimle(x, 2)}"`.
+
+**Süslü parantezin içinde eksik bir ifade yazmak.** İçteki ifadenin hatası sıradan bir sözdizimi hatası gibi, doğru satır ve sütunla bildirilir:
+
+```jus
+değişken x = 1
+yaz(f"toplam {x +}")
+```
+
+```
+ornek.jus:2:18: sözdizimi hatası: İfade bekleniyor.
+    yaz(f"toplam {x +}")
+                     ^
+```
+
 **Metin fonksiyonlarını nokta ile çağırmak.** JUS'ta metin işlemleri nesne yöntemi değil, sıradan fonksiyonlardır. `m.büyük_harf()` yerine `büyük_harf(m)` yazın.
 
 ```jus
@@ -343,7 +495,7 @@ yaz(m.büyük_harf())
 ```
 
 ```
-ornek.jus:2: çalışma zamanı hatası: metin türündeki değerlerin 'büyük_harf' adında bir yöntemi yok.
+ornek.jus:2: çalışma zamanı hatası: metin türündeki değerlerin 'büyük_harf' adında bir yöntemi yok. 'büyük_harf' bir yerleşik fonksiyondur; büyük_harf(metin) biçiminde çağrılır.
 ```
 
 ## Alıştırmalar
@@ -354,6 +506,7 @@ ornek.jus:2: çalışma zamanı hatası: metin türündeki değerlerin 'büyük_
 4. Kullanıcıdan adını isteyin; başındaki sonundaki boşlukları atıp büyük harfle `Merhaba, ...!` yazdırın ve harf sayısını belirtin.
 5. `["Şanlıurfa", "İzmir", "Ankara", "Çorum", "Iğdır", "Ordu"]` listesini alfabetik sıralayın.
 6. `tekrarla` ile bir üst ve alt çizgi çizerek şu çıktıyı üretin: `Fiş` başlığı yaklaşık ortada olsun, altında `Ekmek` ve `Süt` satırlarının fiyatları (`7.50` ve `32.00`) sağa yaslı olsun.
+7. `ad`, `yaş`, `fiyat` ve `adet` değişkenlerini tanımlayın. Biçimli metinle `Ayşe, 25 yaşında.` satırını ve `Toplam: 37.50 TL` satırını (fiyat 12.5, adet 3) yazdırın.
 
 ## Çözümler
 
@@ -454,6 +607,25 @@ Ekmek.....    7.50
 Süt.......   32.00
 ==================
 ```
+
+**7.**
+
+```jus
+değişken ad = "Ayşe"
+değişken yaş = 25
+değişken fiyat = 12.5
+değişken adet = 3
+
+yaz(f"{ad}, {yaş} yaşında.")
+yaz(f"Toplam: {biçimle(fiyat * adet, 2)} TL")
+```
+
+```
+Ayşe, 25 yaşında.
+Toplam: 37.50 TL
+```
+
+Toplam, `{}` içinde hesaplandı ve `biçimle` ile iki ondalık basamağa getirildi.
 
 ---
 

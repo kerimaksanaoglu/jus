@@ -1,0 +1,17 @@
+# Nesnede bulunamayan alan ya da yöntem için öneri.
+# kod: 70
+# hata: 'Kişi' nesnesinde 'yas' adında bir alan ya da yöntem yok. 'yaş' mı demek istediniz?
+sınıf Kişi:
+    fonksiyon kur(ad, yaş):
+        bu.ad = ad
+        bu.yaş = yaş
+
+    fonksiyon tanıt():
+        dön bu.ad
+
+değişken k = Kişi("Ayşe", 30)
+dene:
+    k.tanit()
+yakala hata:
+    yaz(hata)   # bekle: 'Kişi' nesnesinde 'tanit' adında bir yöntem yok. 'tanıt' mı demek istediniz?
+yaz(k.yas)

@@ -1,4 +1,4 @@
 # kod: 70
-# hata: 'her' döngüsü liste, metin ya da sözlük üzerinde gezinir; sayı verildi.
+# hata: 'her' döngüsü liste, metin, baytlar ya da sözlük üzerinde gezinir; sayı verildi.
 her x içinde 5:
     yaz(x)

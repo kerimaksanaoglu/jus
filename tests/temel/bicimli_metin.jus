@@ -1,0 +1,42 @@
+# Biçimli metin: f"..." içindeki {ifade} parçaları metne çevrilip yerleştirilir.
+değişken ad = "Ayşe"
+değişken yaş = 30
+yaz(f"Merhaba, {ad}!")                       # bekle: Merhaba, Ayşe!
+yaz(f"{ad} {yaş} yaşında; gelecek yıl {yaş + 1}.")  # bekle: Ayşe 30 yaşında; gelecek yıl 31.
+
+# Her türden değer metne çevrilir (metin() ile aynı biçimde).
+değişken l = [1, "a"]
+yaz(f"{doğru} {boş} {3.5} {l} {{{l[1]}}}")  # bekle: doğru boş 3.5 [1, "a"] {a}
+
+# Süslü parantezin kendisi için çift yazılır.
+yaz(f"{{ad}} = {ad}")                        # bekle: {ad} = Ayşe
+yaz(f"{{{yaş}}}")                            # bekle: {30}
+
+# Çağrı, dizin, dilim ve karşılaştırma gibi her ifade kullanılabilir.
+yaz(f"{büyük_harf(ad)} {ad[0]} {ad[1:]} {yaş > 18}")  # bekle: AYŞE A yşe doğru
+# İfadenin içinde çift tırnak kullanılamaz; metin orada biter. İç metin bir değişkene alınır.
+değişken iç = f"iç {ad}"
+yaz(f"{iç} dış")                             # bekle: iç Ayşe dış
+
+# Kaçış dizileri ve boş biçimli metin.
+yaz(f"satır1\n\t{ad}\\")                     # bekle: satır1
+# bekle: 	Ayşe\
+yaz(f"" + "|" + f"{yaş}")                    # bekle: |30
+yaz(tür(f"{yaş}"))                           # bekle: metin
+
+# Fonksiyon içinde, parametre varsayılanında ve döngüde.
+fonksiyon etiket(öğe, sıra = 1):
+    dön f"{sıra}. {öğe}"
+
+her i içinde aralık(3):
+    yaz(etiket(f"madde {i}", i + 1))
+# bekle: 1. madde 0
+# bekle: 2. madde 1
+# bekle: 3. madde 2
+
+# Bir satırı ortadan bölen uzun biçimli metin parantez içinde devam edebilir.
+değişken toplam = (
+    f"{ad}: " +
+    f"{yaş}"
+)
+yaz(toplam)                                  # bekle: Ayşe: 30

@@ -1,0 +1,5 @@
+# Sözlükte bulunamayan anahtar için yakın anahtar önerisi.
+# kod: 70
+# hata: Sözlükte "sehir" anahtarı yok. "şehir" anahtarı var; onu mu demek istediniz?
+değişken kişi = {"ad": "Ayşe", "şehir": "Ankara"}
+yaz(kişi["sehir"])

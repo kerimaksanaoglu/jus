@@ -1,0 +1,5 @@
+# Parantezsiz fonksiyon çağrısı için ipucu.
+# kod: 65
+# hata: sözdizimi hatası: Deyimden sonra satır sonu bekleniyor.
+# hata: İpucu: Fonksiyon çağrısında argümanlar parantez içine yazılır: yaz(...)
+yaz "merhaba"

@@ -1,0 +1,10 @@
+# Fonksiyonun yerel değişkenleri ve parametreleri de öneriye girer.
+# kod: 70
+# hata: 'toplm' adında bir değişken ya da fonksiyon tanımlı değil. 'toplam' mı demek istediniz?
+fonksiyon topla(sayılar):
+    değişken toplam = 0
+    her s içinde sayılar:
+        toplam += s
+    dön toplm
+
+yaz(topla([1, 2, 3]))

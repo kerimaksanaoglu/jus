@@ -1,0 +1,5 @@
+# Varsayılan değerli parametreden sonra zorunlu parametre gelemez.
+# kod: 65
+# hata: Varsayılan değeri olan parametreden sonra varsayılan değeri olmayan parametre gelemez.
+fonksiyon f(a = 1, b):
+    dön a + b

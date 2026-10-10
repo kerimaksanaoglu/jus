@@ -5,12 +5,14 @@
 #include <string.h>
 
 #include "builtins.h"
+#include "bytes.h"
 #include "common.h"
 #include "compiler.h"
 #include "io.h"
 #include "memory.h"
 #include "object.h"
 #include "stdlib_modules.h"
+#include "suggest.h"
 #include "text.h"
 #include "vm.h"
 
@@ -191,9 +193,19 @@ static Value peek(int distance) {
 }
 
 static bool call(ObjClosure *closure, int argCount) {
-    if (argCount != closure->function->arity) {
-        runtimeError("'%s' fonksiyonu %d argüman bekliyor, %d verildi.",
-                     closure->function->name->chars, closure->function->arity, argCount);
+    ObjFunction *function = closure->function;
+    int fixed = function->arity + function->optionalCount; /* adıyla verilen parametre sayısı */
+    if (argCount < function->arity || (!function->hasRest && argCount > fixed)) {
+        const char *name = function->name->chars;
+        if (function->optionalCount == 0 && !function->hasRest) {
+            runtimeError("'%s' fonksiyonu %d argüman bekliyor, %d verildi.", name, fixed, argCount);
+        } else if (function->hasRest) {
+            runtimeError("'%s' fonksiyonu en az %d argüman bekliyor, %d verildi.", name, function->arity,
+                         argCount);
+        } else {
+            runtimeError("'%s' fonksiyonu en az %d, en çok %d argüman bekliyor, %d verildi.", name,
+                         function->arity, fixed, argCount);
+        }
         return false;
     }
 
@@ -203,10 +215,28 @@ static bool call(ObjClosure *closure, int argCount) {
         return false;
     }
 
+    Value *base = vm.stackTop - argCount - 1;
+    if (function->hasRest && argCount > fixed) {
+        /* Fazla argümanlar bir listeye toplanır; liste son parametrenin yuvasına konur. */
+        ObjList *rest = newList();
+        push(OBJ_VAL(rest));
+        for (int i = fixed; i < argCount; i++) listAppend(rest, base[1 + i]);
+        vm.stackTop = base + 1 + fixed;
+        push(OBJ_VAL(rest));
+    } else {
+        /* Verilmeyen isteğe bağlı parametreler boş ile doldurulur; varsayılanı fonksiyon başında hesaplanır. */
+        while (vm.stackTop < base + 1 + fixed) push(NIL_VAL);
+        if (function->hasRest) {
+            ObjList *rest = newList();
+            push(OBJ_VAL(rest));
+        }
+    }
+
     CallFrame *frame = &vm.frames[vm.frameCount++];
     frame->closure = closure;
-    frame->ip = closure->function->chunk.code;
-    frame->slots = vm.stackTop - argCount - 1;
+    frame->ip = function->chunk.code;
+    frame->slots = base;
+    frame->argCount = argCount;
     return true;
 }
 
@@ -352,6 +382,225 @@ static void concatenate(void) {
     push(OBJ_VAL(result));
 }
 
+/* Biçimli metin: yığının tepesindeki count değeri metne çevirip birleştirir. */
+static void buildString(int count) {
+    Value *parts = vm.stackTop - count;
+    char **pieces = (char **)malloc(sizeof(char *) * (size_t)(count > 0 ? count : 1));
+    int *lengths = (int *)malloc(sizeof(int) * (size_t)(count > 0 ? count : 1));
+    if (pieces == NULL || lengths == NULL) {
+        fprintf(stderr, "jus: bellek yetersiz.\n");
+        exit(JUS_EXIT_OUT_OF_MEMORY);
+    }
+
+    int total = 0;
+    for (int i = 0; i < count; i++) {
+        if (IS_STRING(parts[i])) {
+            pieces[i] = NULL;
+            lengths[i] = AS_STRING(parts[i])->length;
+        } else {
+            pieces[i] = valueToChars(parts[i], false, &lengths[i]);
+        }
+        total += lengths[i];
+    }
+
+    /* Parçalar yığında durduğu için ayırma sırasında çöp toplayıcıdan korunur. */
+    char *chars = ALLOCATE(char, total + 1);
+    int offset = 0;
+    for (int i = 0; i < count; i++) {
+        const char *source = pieces[i] != NULL ? pieces[i] : AS_STRING(parts[i])->chars;
+        memcpy(chars + offset, source, (size_t)lengths[i]);
+        offset += lengths[i];
+        free(pieces[i]);
+    }
+    chars[total] = '\0';
+    free(pieces);
+    free(lengths);
+
+    ObjString *result = takeString(chars, total);
+    vm.stackTop -= count;
+    push(OBJ_VAL(result));
+}
+
+/* ---- Hata iletilerindeki öneriler ---- */
+
+#define HINT_SIZE 160
+
+static void considerTable(Suggestion *suggestion, Table *table) {
+    for (int i = 0; i < table->capacity; i++) {
+        ObjString *key = table->entries[i].key;
+        if (key != NULL) suggestionConsider(suggestion, key->chars, key->length);
+    }
+}
+
+/* Tanımsız bir ad için öneri: fonksiyonun yerelleri, modülün adları, yerleşikler, anahtar kelimeler. */
+static void hintForName(ObjString *name, char *out) {
+    Suggestion suggestion;
+    suggestionInit(&suggestion, name->chars, name->length);
+
+    ObjFunction *function = vm.frames[vm.frameCount - 1].closure->function;
+    for (int i = 0; i < function->localNames.count; i++) {
+        ObjString *local = AS_STRING(function->localNames.values[i]);
+        suggestionConsider(&suggestion, local->chars, local->length);
+    }
+    considerTable(&suggestion, &function->module->globals);
+    considerTable(&suggestion, &vm.builtins);
+    suggestionConsiderKeywords(&suggestion);
+    suggestionSentence(&suggestion, out, HINT_SIZE);
+}
+
+/* Bir nesnede bulunamayan üye için öneri: alanlar ve sınıfın yöntemleri. */
+static void hintForMember(ObjString *name, Value receiver, ObjClass *klass, char *out) {
+    Suggestion suggestion;
+    suggestionInit(&suggestion, name->chars, name->length);
+    if (IS_INSTANCE(receiver)) considerTable(&suggestion, &AS_INSTANCE(receiver)->fields);
+    if (klass != NULL) considerTable(&suggestion, &klass->methods);
+    out[0] = '\0';
+    if (suggestionFound(&suggestion)) suggestionSentence(&suggestion, out, HINT_SIZE);
+}
+
+static void hintForTable(ObjString *name, Table *table, char *out) {
+    Suggestion suggestion;
+    suggestionInit(&suggestion, name->chars, name->length);
+    considerTable(&suggestion, table);
+    out[0] = '\0';
+    if (suggestionFound(&suggestion)) suggestionSentence(&suggestion, out, HINT_SIZE);
+}
+
+/*
+ * Yerleşik türlerde (liste, metin, sözlük ...) yöntem çağrısı için öneri. Bu
+ * türlerin yöntemi yoktur; başka dillerden gelen l.append(x) ya da Türkçe harf
+ * kullanılmadan yazılmış l.uzunlugu() gibi çağrılar yerleşik fonksiyona yönlendirilir.
+ */
+/* Yerleşik fonksiyonun örnek çağrı yazımı: tek parametreliyse ad(tür), değilse ad(tür, ...). */
+static const char *builtinCallSuffix(const char *name, int length) {
+    Value builtin;
+    ObjString *key = copyString(name, length);
+    if (tableGet(&vm.builtins, key, &builtin) && IS_NATIVE(builtin) && AS_NATIVE(builtin)->arity == 1) {
+        return "";
+    }
+    return ", ...";
+}
+
+static void hintForBuiltinMethod(ObjString *name, Value receiver, char *out) {
+    out[0] = '\0';
+    Value builtin;
+    if (tableGet(&vm.builtins, name, &builtin)) {
+        snprintf(out, HINT_SIZE, " '%s' bir yerleşik fonksiyondur; %s(%s%s) biçiminde çağrılır.", name->chars,
+                 name->chars, valueTypeName(receiver), builtinCallSuffix(name->chars, name->length));
+        return;
+    }
+    const char *equivalent = foreignEquivalent(name->chars, name->length);
+    if (equivalent != NULL) {
+        snprintf(out, HINT_SIZE, " JUS'ta bunun karşılığı '%s' yerleşik fonksiyonudur: %s(%s, ...).", equivalent,
+                 equivalent, valueTypeName(receiver));
+        return;
+    }
+    Suggestion suggestion;
+    suggestionInit(&suggestion, name->chars, name->length);
+    considerTable(&suggestion, &vm.builtins);
+    if (suggestionFound(&suggestion)) {
+        snprintf(out, HINT_SIZE, " '%.*s' yerleşik fonksiyonunu mu demek istediniz? Yerleşik fonksiyonlar "
+                 "%.*s(%s%s) biçiminde çağrılır.", suggestion.bestLength, suggestion.best,
+                 suggestion.bestLength, suggestion.best, valueTypeName(receiver),
+                 builtinCallSuffix(suggestion.best, suggestion.bestLength));
+        return;
+    }
+    snprintf(out, HINT_SIZE, " Bu türün yöntemi yoktur; uzunluk(%s) gibi yerleşik fonksiyonlar kullanılır.",
+             valueTypeName(receiver));
+}
+
+/* Sözlükte bulunamayan metin anahtarı için öneri. */
+static void hintForKey(Value key, ObjMap *map, char *out) {
+    out[0] = '\0';
+    if (!IS_STRING(key)) return;
+    Suggestion suggestion;
+    suggestionInit(&suggestion, AS_STRING(key)->chars, AS_STRING(key)->length);
+    for (int i = 0; i < map->used; i++) {
+        if (!map->entries[i].live || !IS_STRING(map->entries[i].key)) continue;
+        ObjString *candidate = AS_STRING(map->entries[i].key);
+        suggestionConsider(&suggestion, candidate->chars, candidate->length);
+    }
+    if (suggestionFound(&suggestion)) {
+        snprintf(out, HINT_SIZE, " \"%.*s\" anahtarı var; onu mu demek istediniz?", suggestion.bestLength,
+                 suggestion.best);
+    }
+}
+
+/* ---- Bit işleçleri ----
+ *
+ * İşlenenler tam değerli ve ±2^53 aralığında olmalıdır: ondalık gösterimde bu
+ * sınırın ötesi kesin değildir ve kesin olmayan bir sayıda bit işlemi anlamsızdır.
+ * Kırpma ya da sarma yapılmaz; aralık dışı değer hatadır. Hesap 64 bit ikiye
+ * tümleyen üzerinde yapılır ve sonucun da aynı aralıkta olması istenir.
+ */
+
+#define BIT_LIMIT 9007199254740992.0 /* 2^53 */
+
+static bool bitOperand(const char *symbol, Value value, int64_t *out) {
+    if (!IS_NUMBER(value)) {
+        runtimeError("'%s' işleci tam sayı ister; %s verildi.", symbol, valueTypeName(value));
+        return false;
+    }
+    double number = AS_NUMBER(value);
+    if (number != floor(number)) {
+        char shown[32];
+        formatNumber(number, shown, sizeof(shown));
+        runtimeError("'%s' işleci tam sayı ister; %s ondalık kısmı olan bir sayı.", symbol, shown);
+        return false;
+    }
+    if (fabs(number) > BIT_LIMIT) {
+        runtimeError("'%s' işlecinin işleneni 2^53'ten büyük olamaz; bu büyüklükteki sayılar kesin değildir.",
+                     symbol);
+        return false;
+    }
+    *out = (int64_t)number;
+    return true;
+}
+
+static bool bitResult(const char *symbol, int64_t result) {
+    if (result > (int64_t)BIT_LIMIT || result < -(int64_t)BIT_LIMIT) {
+        runtimeError("'%s' işlecinin sonucu 2^53'ü aşıyor; bu büyüklükteki sayılar kesin değildir.", symbol);
+        return false;
+    }
+    push(NUMBER_VAL((double)result));
+    return true;
+}
+
+/* [a, b] -> sonuç */
+static bool bitBinary(uint8_t op) {
+    const char *symbol = op == OP_BIT_AND ? "&" : op == OP_BIT_OR ? "|" : op == OP_BIT_XOR ? "^" :
+                         op == OP_SHIFT_LEFT ? "<<" : ">>";
+    int64_t a, b;
+    if (!bitOperand(symbol, peek(1), &a) || !bitOperand(symbol, peek(0), &b)) return false;
+    pop();
+    pop();
+
+    int64_t result = 0;
+    switch (op) {
+        case OP_BIT_AND: result = a & b; break;
+        case OP_BIT_OR: result = a | b; break;
+        case OP_BIT_XOR: result = a ^ b; break;
+        case OP_SHIFT_LEFT:
+        case OP_SHIFT_RIGHT:
+            if (b < 0 || b > 63) {
+                runtimeError("Kaydırma miktarı 0 ile 63 arasında olmalı; %lld verildi.", (long long)b);
+                return false;
+            }
+            if (op == OP_SHIFT_RIGHT) {
+                /* Aritmetik kaydırma: işaret korunur. */
+                result = a < 0 ? ~((~a) >> b) : a >> b;
+            } else {
+                /* Taşmayı bit kaymadan önce yakala: sonuç 2^53'ü aşacaksa hata. */
+                double scaled = (double)a * pow(2.0, (double)b);
+                if (fabs(scaled) > BIT_LIMIT) return bitResult(symbol, scaled > 0 ? INT64_MAX : INT64_MIN);
+                result = (int64_t)scaled;
+            }
+            break;
+        default: break;
+    }
+    return bitResult(symbol, result);
+}
+
 static bool integerValue(Value value, int *out) {
     if (!IS_NUMBER(value)) return false;
     double number = AS_NUMBER(value);
@@ -405,16 +654,23 @@ static bool getIndex(void) {
         uint32_t codePoint;
         int size = utf8Decode(string->chars + start, string->length - start, &codePoint);
         result = OBJ_VAL(copyString(string->chars + start, size));
+    } else if (IS_BYTES(container)) {
+        ObjBytes *bytes = AS_BYTES(container);
+        int i;
+        if (!checkIndex(index, bytes->count, "Bayt dizisi", &i)) return false;
+        result = NUMBER_VAL(bytes->data[i]);
     } else if (IS_MAP(container)) {
         if (!checkKey(index)) return false;
         if (!mapGet(AS_MAP(container), index, &result)) {
             char *shown = valueToChars(index, true, NULL);
-            runtimeError("Sözlükte %s anahtarı yok.", shown);
+            char hint[HINT_SIZE];
+            hintForKey(index, AS_MAP(container), hint);
+            runtimeError("Sözlükte %s anahtarı yok.%s", shown, hint);
             free(shown);
             return false;
         }
     } else {
-        runtimeError("Yalnızca liste, metin ve sözlük dizinlenebilir; %s verildi.",
+        runtimeError("Yalnızca liste, metin, baytlar ve sözlük dizinlenebilir; %s verildi.",
                      valueTypeName(container));
         return false;
     }
@@ -436,6 +692,16 @@ static bool setIndex(void) {
         int i;
         if (!checkIndex(index, list->count, "Liste", &i)) return false;
         list->items[i] = value;
+    } else if (IS_BYTES(container)) {
+        ObjBytes *bytes = AS_BYTES(container);
+        int i;
+        if (!checkIndex(index, bytes->count, "Bayt dizisi", &i)) return false;
+        uint8_t byte;
+        if (!bytesElement("Bayt değeri", value, &byte)) {
+            runtimeError("%s", vm.nativeError);
+            return false;
+        }
+        bytes->data[i] = byte;
     } else if (IS_MAP(container)) {
         if (!checkKey(index)) return false;
         mapSet(AS_MAP(container), index, value);
@@ -443,7 +709,7 @@ static bool setIndex(void) {
         runtimeError("Metinler değiştirilemez; yeni bir metin oluşturun.");
         return false;
     } else {
-        runtimeError("Yalnızca liste ve sözlük öğelerine değer atanabilir; %s verildi.",
+        runtimeError("Yalnızca liste, baytlar ve sözlük öğelerine değer atanabilir; %s verildi.",
                      valueTypeName(container));
         return false;
     }
@@ -501,8 +767,17 @@ static bool slice(void) {
         int startByte = utf8Offset(string->chars, string->length, start);
         int endByte = utf8Offset(string->chars, string->length, end);
         result = OBJ_VAL(copyString(string->chars + startByte, endByte - startByte));
+    } else if (IS_BYTES(container)) {
+        ObjBytes *bytes = AS_BYTES(container);
+        int start, end;
+        if (!sliceBound(peek(1), bytes->count, 0, &start)) return false;
+        if (!sliceBound(peek(0), bytes->count, bytes->count, &end)) return false;
+        if (end < start) end = start;
+        ObjBytes *sliced = newBytes(end - start);
+        if (end > start) memcpy(sliced->data, bytes->data + start, (size_t)(end - start));
+        result = OBJ_VAL(sliced);
     } else {
-        runtimeError("Yalnızca liste ve metinden dilim alınabilir; %s verildi.",
+        runtimeError("Yalnızca liste, metin ve baytlardan dilim alınabilir; %s verildi.",
                      valueTypeName(container));
         return false;
     }
@@ -536,11 +811,26 @@ static bool contains(void) {
         for (int i = 0; i + needle->length <= haystack->length && !found; i++) {
             found = memcmp(haystack->chars + i, needle->chars, (size_t)needle->length) == 0;
         }
+    } else if (IS_BYTES(container)) {
+        ObjBytes *haystack = AS_BYTES(container);
+        if (IS_BYTES(item)) {
+            ObjBytes *needle = AS_BYTES(item);
+            for (int i = 0; i + needle->count <= haystack->count && !found; i++) {
+                found = needle->count == 0 || memcmp(haystack->data + i, needle->data, (size_t)needle->count) == 0;
+            }
+        } else {
+            uint8_t byte;
+            if (!bytesElement("Baytların içinde aranan değer", item, &byte)) {
+                runtimeError("%s", vm.nativeError);
+                return false;
+            }
+            for (int i = 0; i < haystack->count && !found; i++) found = haystack->data[i] == byte;
+        }
     } else if (IS_MAP(container)) {
         Value ignored;
         found = isHashable(item) && mapGet(AS_MAP(container), item, &ignored);
     } else {
-        runtimeError("'içinde' işlecinin sağ tarafı liste, metin ya da sözlük olmalı; %s verildi.",
+        runtimeError("'içinde' işlecinin sağ tarafı liste, metin, baytlar ya da sözlük olmalı; %s verildi.",
                      valueTypeName(container));
         return false;
     }
@@ -578,6 +868,14 @@ static bool forNext(bool *done) {
         int size = utf8Decode(string->chars + cursor, string->length - cursor, &codePoint);
         vm.stackTop[-1] = NUMBER_VAL(cursor + size);
         push(OBJ_VAL(copyString(string->chars + cursor, size)));
+    } else if (IS_BYTES(container)) {
+        ObjBytes *bytes = AS_BYTES(container);
+        if (cursor >= bytes->count) {
+            *done = true;
+            return true;
+        }
+        vm.stackTop[-1] = NUMBER_VAL(cursor + 1);
+        push(NUMBER_VAL(bytes->data[cursor]));
     } else if (IS_MAP(container)) {
         ObjMap *map = AS_MAP(container);
         while (cursor < map->used && !map->entries[cursor].live) cursor++;
@@ -588,7 +886,7 @@ static bool forNext(bool *done) {
         vm.stackTop[-1] = NUMBER_VAL(cursor + 1);
         push(map->entries[cursor].key);
     } else {
-        runtimeError("'her' döngüsü liste, metin ya da sözlük üzerinde gezinir; %s verildi.",
+        runtimeError("'her' döngüsü liste, metin, baytlar ya da sözlük üzerinde gezinir; %s verildi.",
                      valueTypeName(container));
         return false;
     }
@@ -741,8 +1039,10 @@ static bool importModule(ObjModule *importer, ObjString *name) {
 static bool bindMethod(ObjClass *klass, ObjString *name) {
     Value method;
     if (!tableGet(&klass->methods, name, &method)) {
-        runtimeError("'%s' nesnesinde '%s' adında bir alan ya da yöntem yok.", klass->name->chars,
-                     name->chars);
+        char hint[HINT_SIZE];
+        hintForMember(name, peek(0), klass, hint);
+        runtimeError("'%s' nesnesinde '%s' adında bir alan ya da yöntem yok.%s", klass->name->chars,
+                     name->chars, hint);
         return false;
     }
 
@@ -769,8 +1069,10 @@ static bool getProperty(ObjString *name) {
     if (IS_MODULE(object)) {
         Value value;
         if (!tableGet(&AS_MODULE(object)->globals, name, &value)) {
-            runtimeError("'%s' modülünde '%s' adında bir üye yok.", AS_MODULE(object)->name->chars,
-                         name->chars);
+            char hint[HINT_SIZE];
+            hintForTable(name, &AS_MODULE(object)->globals, hint);
+            runtimeError("'%s' modülünde '%s' adında bir üye yok.%s", AS_MODULE(object)->name->chars,
+                         name->chars, hint);
             return false;
         }
         pop();
@@ -778,8 +1080,10 @@ static bool getProperty(ObjString *name) {
         return true;
     }
 
-    runtimeError("%s türündeki değerlerin '%s' adında bir üyesi yok.", valueTypeName(object),
-                 name->chars);
+    char hint[HINT_SIZE];
+    hintForBuiltinMethod(name, object, hint);
+    runtimeError("%s türündeki değerlerin '%s' adında bir üyesi yok.%s", valueTypeName(object),
+                 name->chars, hint);
     return false;
 }
 
@@ -802,7 +1106,10 @@ static bool setProperty(ObjString *name) {
 static bool invokeFromClass(ObjClass *klass, ObjString *name, int argCount) {
     Value method;
     if (!tableGet(&klass->methods, name, &method)) {
-        runtimeError("'%s' nesnesinde '%s' adında bir yöntem yok.", klass->name->chars, name->chars);
+        char hint[HINT_SIZE];
+        hintForMember(name, peek(argCount), klass, hint);
+        runtimeError("'%s' nesnesinde '%s' adında bir yöntem yok.%s", klass->name->chars, name->chars,
+                     hint);
         return false;
     }
     return call(AS_CLOSURE(method), argCount);
@@ -825,17 +1132,32 @@ static bool invoke(ObjString *name, int argCount) {
     if (IS_MODULE(receiver)) {
         Value value;
         if (!tableGet(&AS_MODULE(receiver)->globals, name, &value)) {
-            runtimeError("'%s' modülünde '%s' adında bir üye yok.", AS_MODULE(receiver)->name->chars,
-                         name->chars);
+            char hint[HINT_SIZE];
+            hintForTable(name, &AS_MODULE(receiver)->globals, hint);
+            runtimeError("'%s' modülünde '%s' adında bir üye yok.%s", AS_MODULE(receiver)->name->chars,
+                         name->chars, hint);
             return false;
         }
         vm.stackTop[-argCount - 1] = value;
         return callValue(value, argCount);
     }
 
-    runtimeError("%s türündeki değerlerin '%s' adında bir yöntemi yok.", valueTypeName(receiver),
-                 name->chars);
+    char hint[HINT_SIZE];
+    hintForBuiltinMethod(name, receiver, hint);
+    runtimeError("%s türündeki değerlerin '%s' adında bir yöntemi yok.%s", valueTypeName(receiver),
+                 name->chars, hint);
     return false;
+}
+
+static void concatenateBytes(void) {
+    ObjBytes *b = AS_BYTES(peek(0));
+    ObjBytes *a = AS_BYTES(peek(1));
+    ObjBytes *result = newBytes(a->count + b->count);
+    if (a->count > 0) memcpy(result->data, a->data, (size_t)a->count);
+    if (b->count > 0) memcpy(result->data + a->count, b->data, (size_t)b->count);
+    pop();
+    pop();
+    push(OBJ_VAL(result));
 }
 
 static void concatenateLists(void) {
@@ -920,8 +1242,10 @@ static InterpretResult run(int stopAt, bool script) {
                 Value value;
                 if (!tableGet(&frame->closure->function->module->globals, name, &value) &&
                     !tableGet(&vm.builtins, name, &value)) {
-                    runtimeError("'%s' adında bir değişken ya da fonksiyon tanımlı değil.",
-                                 name->chars);
+                    char hint[HINT_SIZE];
+                    hintForName(name, hint);
+                    runtimeError("'%s' adında bir değişken ya da fonksiyon tanımlı değil.%s",
+                                 name->chars, hint);
                     goto on_error;
                 }
                 push(value);
@@ -979,8 +1303,10 @@ static InterpretResult run(int stopAt, bool script) {
                     push(NUMBER_VAL(a + b));
                 } else if (IS_LIST(peek(0)) && IS_LIST(peek(1))) {
                     concatenateLists();
+                } else if (IS_BYTES(peek(0)) && IS_BYTES(peek(1))) {
+                    concatenateBytes();
                 } else {
-                    runtimeError("'+' işleci iki sayı, iki metin ya da iki liste ister; %s ve %s verildi. "
+                    runtimeError("'+' işleci iki sayı, iki metin, iki liste ya da iki baytlar ister; %s ve %s verildi. "
                                  "Dönüştürmek için metin() ya da sayı() kullanılabilir.",
                                  valueTypeName(peek(1)), valueTypeName(peek(0)));
                     goto on_error;
@@ -1013,6 +1339,20 @@ static InterpretResult run(int stopAt, bool script) {
                 double result = fmod(a, b);
                 if (result != 0 && (result < 0) != (b < 0)) result += b;
                 push(NUMBER_VAL(result));
+                break;
+            }
+            case OP_BIT_AND:
+            case OP_BIT_OR:
+            case OP_BIT_XOR:
+            case OP_SHIFT_LEFT:
+            case OP_SHIFT_RIGHT:
+                if (!bitBinary(instruction)) goto on_error;
+                break;
+            case OP_BIT_NOT: {
+                int64_t a;
+                if (!bitOperand("~", peek(0), &a)) goto on_error;
+                pop();
+                if (!bitResult("~", ~a)) goto on_error;
                 break;
             }
             case OP_NOT:
@@ -1243,6 +1583,17 @@ static InterpretResult run(int stopAt, bool script) {
             case OP_DUP:
                 push(peek(0));
                 break;
+            case OP_BUILD_STRING: {
+                int count = READ_SHORT();
+                buildString(count);
+                break;
+            }
+            case OP_ARG_GIVEN: {
+                uint8_t index = READ_BYTE();
+                uint16_t offset = READ_SHORT();
+                if (frame->argCount > index) frame->ip += offset;
+                break;
+            }
             case OP_TRY_BEGIN: {
                 uint16_t offset = READ_SHORT();
                 if (vm.handlerCount == HANDLERS_MAX) {

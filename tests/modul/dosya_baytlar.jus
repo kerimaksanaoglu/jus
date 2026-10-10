@@ -1,0 +1,26 @@
+# dosya.baytları_yaz ve dosya.baytları_oku ikili veriyle çalışır.
+kullan dosya
+kullan bayt
+kullan sistem
+
+değişken yol = sistem.betik_klasörü + "/_gecici_baytlar.bin"
+değişken veri = baytlar([0, 1, 2, 255, 10, 13, 0])
+dosya.baytları_yaz(yol, veri)
+değişken okunan = dosya.baytları_oku(yol)
+yaz(okunan == veri, uzunluk(okunan))        # bekle: doğru 7
+yaz(okunan)                                 # bekle: <baytlar 7: 00 01 02 ff 0a 0d 00>
+
+# Metin dosyası da bayt olarak okunabilir; UTF-8 baytları aynen gelir.
+dosya.yaz(yol, "çay")
+yaz(dosya.baytları_oku(yol))                # bekle: <baytlar 4: c3 a7 61 79>
+yaz(bayt.metne(dosya.baytları_oku(yol)))    # bekle: çay
+dosya.sil(yol)
+
+dene:
+    dosya.baytları_oku(yol)
+yakala hata:
+    yaz("okunamadı")                        # bekle: okunamadı
+dene:
+    dosya.baytları_yaz(yol, "metin")
+yakala hata:
+    yaz(hata)   # bekle: 'dosya.baytları_yaz' baytlar ister; metin verildi.

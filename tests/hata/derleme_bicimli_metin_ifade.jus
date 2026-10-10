@@ -1,0 +1,9 @@
+# Biçimli metnin içindeki ifade hatası, ifadenin tam konumuyla bildirilir.
+# kod: 65
+# hata: derleme_bicimli_metin_ifade.jus:6:14: sözdizimi hatası: İfade bekleniyor.
+# hata: derleme_bicimli_metin_ifade.jus:7:5: sözdizimi hatası: Biçimli metinde tek başına '}' kullanılamaz; '}' yazmak için '}}' yazın.
+değişken x = 1
+yaz(f"x: {x +} son")
+yaz(f"a } b")
+yaz(f"a {} b")
+# hata: derleme_bicimli_metin_ifade.jus:8:5: sözdizimi hatası: Biçimli metinde '{' ile '}' arasında bir ifade bekleniyor.

@@ -4,10 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JUS Deneme Alanı</title>
+<link rel="icon" href="simge.png">
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --ink: #1c2330; --muted: #5d6778;
-    --line: #d5dae2; --accent: #1f5fbf; --error: #b3261e;
+    --line: #d5dae2; --accent: #2f6fed; --error: #b3261e;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -51,9 +52,17 @@
   }
   textarea { resize: none; outline: none; white-space: pre; overflow: auto; }
   pre { overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+  [hidden] { display: none !important; }
+  #baglantiKutusu { display: flex; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  #baglanti {
+    flex: 1; min-width: 0; font: 13px ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace;
+    color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 6px 10px;
+  }
   .err { color: var(--error); }
   .note { color: var(--muted); }
   footer { padding: 8px 16px 14px; color: var(--muted); font-size: 13px; }
+  footer a { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -64,7 +73,11 @@
   </label>
   <button id="calistir" class="primary">Çalıştır</button>
   <button id="durdur" disabled>Durdur</button>
+  <button id="paylas" title="Programı bağlantının içine yazar ve bağlantıyı kopyalar">Paylaş</button>
 </header>
+<div id="baglantiKutusu" hidden>
+  <input id="baglanti" type="text" readonly aria-label="Paylaşım bağlantısı (kopyalamak için seçin)">
+</div>
 <main>
   <section>
     <h2>Program</h2>
@@ -78,7 +91,10 @@
 <footer>
   Program tarayıcınızda çalışır; hiçbir yere gönderilmez. Bu ortamda <code>oku</code>,
   <code>dosya</code>, <code>ağ</code> ve <code>http</code> kullanılamaz. Kısayol: Ctrl+Enter.
+  Dili öğrenmek için <a href="belgeler/">belgelere</a> bakın.
+  Paylaş düğmesi programı bağlantının içine yazar; sunucuya hiçbir şey gönderilmez.
 </footer>
+<script src="paylas.js"></script>
 <script>
 const ORNEKLER = {
   'Merhaba': [
@@ -152,13 +168,58 @@ const cikti = document.getElementById('cikti');
 const calistir = document.getElementById('calistir');
 const durdur = document.getElementById('durdur');
 const ornekler = document.getElementById('ornekler');
+const paylas = document.getElementById('paylas');
+const baglantiKutusu = document.getElementById('baglantiKutusu');
+const baglanti = document.getElementById('baglanti');
 let calisan = null;
+
+const PAYLASILAN = '#paylasilan';  // örnek adlarıyla çakışmayan seçenek değeri
+const ANAHTAR = 'jus.sonProgram';
+const ONEK = 'program=';
+const PARCA_SINIRI = 8000;
+let paylasilanMetin = null;
+let paylasilanParca = null;
+let kayitZamanlayici = null;
 
 for (const ad of Object.keys(ORNEKLER)) {
   ornekler.add(new Option(ad, ad));
 }
-ornekler.onchange = () => { kod.value = ORNEKLER[ornekler.value].join('\n') + '\n'; };
-ornekler.onchange();
+
+// localStorage özel pencerede ya da site verisi kapalıyken hata verebilir.
+function kaydet() {
+  try { localStorage.setItem(ANAHTAR, kod.value); } catch (hata) { /* kullanılamıyor */ }
+}
+
+function kayitliProgram() {
+  try { return localStorage.getItem(ANAHTAR); } catch (hata) { return null; }
+}
+
+function parcayiTemizle() {
+  if (location.hash.startsWith('#' + ONEK)) {
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+}
+
+function secileniYukle() {
+  if (ornekler.value === PAYLASILAN) {
+    kod.value = paylasilanMetin;
+    history.replaceState(null, '', '#' + ONEK + paylasilanParca);
+  } else {
+    kod.value = ORNEKLER[ornekler.value].join('\n') + '\n';
+    parcayiTemizle();
+  }
+  baglantiKutusu.hidden = true;
+}
+
+ornekler.onchange = () => {
+  secileniYukle();
+  kaydet();
+};
+
+kod.addEventListener('input', () => {
+  clearTimeout(kayitZamanlayici);
+  kayitZamanlayici = setTimeout(kaydet, 300);
+});
 
 function satirEkle(metin, sinif) {
   const satir = document.createElement('span');
@@ -213,6 +274,62 @@ kod.addEventListener('keydown', (olay) => {
     kod.setRangeText('    ', kod.selectionStart, kod.selectionEnd, 'end');
   }
 });
+
+let paylasZamanlayici = null;
+
+paylas.onclick = async () => {
+  baglantiKutusu.hidden = true;
+  const parca = await JUSPaylas.programiKodla(kod.value);
+  if (parca.length > PARCA_SINIRI) {
+    satirEkle('Program paylaşım bağlantısı için çok uzun.', 'note');
+    return;
+  }
+  history.replaceState(null, '', '#' + ONEK + parca);
+  const adres = location.href;
+  try {
+    await navigator.clipboard.writeText(adres);
+    paylas.textContent = 'Kopyalandı';
+    clearTimeout(paylasZamanlayici);
+    paylasZamanlayici = setTimeout(() => { paylas.textContent = 'Paylaş'; }, 2000);
+  } catch (hata) {
+    // Pano erişimi yok (izin verilmedi ya da güvenli olmayan bağlam): bağlantıyı elle kopyalanmak üzere göster.
+    baglanti.value = adres;
+    baglantiKutusu.hidden = false;
+    baglanti.focus();
+    baglanti.select();
+  }
+};
+
+async function baslat() {
+  const hash = location.hash.startsWith('#' + ONEK) ? location.hash.slice(1 + ONEK.length) : null;
+  if (hash !== null) {
+    const metin = await JUSPaylas.programiCoz(hash);
+    if (metin !== null) {
+      paylasilanMetin = metin;
+      paylasilanParca = hash;
+      ornekler.add(new Option('(paylaşılan program)', PAYLASILAN, true, true));
+      kod.value = metin;
+      return;
+    }
+    satirEkle('Bağlantıdaki program okunamadı.', 'note');
+  } else {
+    const kayitli = kayitliProgram();
+    if (kayitli !== null) {
+      kod.value = kayitli;
+      return;
+    }
+  }
+  // İlk örnek yüklenir; kullanıcı düzenleyene kadar kayıtlı programın üzerine yazılmaz.
+  secileniYukle();
+}
+
+if (typeof JUSPaylas === 'undefined') {
+  paylas.disabled = true;
+  paylas.title = 'paylas.js yüklenemedi';
+  secileniYukle();
+} else {
+  baslat();
+}
 </script>
 </body>
 </html>

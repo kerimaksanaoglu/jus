@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+
+PackageIdentifier: JUSBil.JUS
+PackageVersion: 1.0.0
+InstallerType: zip
+NestedInstallerType: portable
+NestedInstallerFiles:
+- RelativeFilePath: jus-1.0.0-windows-x64\jus.exe
+  PortableCommandAlias: jus
+Installers:
+- Architecture: x64
+  InstallerUrl: https://github.com/kerimaksanaoglu/jus/releases/download/v1.0.0/jus-1.0.0-windows-x64.zip
+  InstallerSha256: 623B878874F29545F2EF69CBC87BE5751B0641F16A86C9F7633B8339D9824792
+ManifestType: installer
+ManifestVersion: 1.6.0

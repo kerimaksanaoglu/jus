@@ -10,7 +10,7 @@
 
 #define ALLOCATE_OBJ(type, objectType) (type *)allocateObject(sizeof(type), objectType)
 
-static Obj *allocateObject(size_t size, ObjType type) {
+Obj *allocateObject(size_t size, ObjType type) {
     Obj *object = (Obj *)reallocate(NULL, 0, size);
     object->type = type;
     object->isMarked = false;
@@ -58,9 +58,12 @@ ObjClosure *newClosure(ObjFunction *function) {
 ObjFunction *newFunction(void) {
     ObjFunction *function = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
     function->arity = 0;
+    function->optionalCount = 0;
+    function->hasRest = false;
     function->upvalueCount = 0;
     function->name = NULL;
     function->module = NULL;
+    initValueArray(&function->localNames);
     initChunk(&function->chunk);
     return function;
 }

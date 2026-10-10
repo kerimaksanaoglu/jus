@@ -1,0 +1,30 @@
+# Varsayılanlı ve değişken sayıda parametreli fonksiyonlarda argüman sayısı iletileri.
+fonksiyon f(a, b = 2):
+    dön a + b
+
+dene:
+    f()
+yakala hata:
+    yaz(hata)   # bekle: 'f' fonksiyonu en az 1, en çok 2 argüman bekliyor, 0 verildi.
+dene:
+    f(1, 2, 3)
+yakala hata:
+    yaz(hata)   # bekle: 'f' fonksiyonu en az 1, en çok 2 argüman bekliyor, 3 verildi.
+
+fonksiyon g(a, *kalan):
+    dön a
+
+dene:
+    g()
+yakala hata:
+    yaz(hata)   # bekle: 'g' fonksiyonu en az 1 argüman bekliyor, 0 verildi.
+
+# Varsayılan değerin hesabındaki hata, çağrı satırında bildirilir ve yakalanabilir.
+fonksiyon h(x = 1 / 0):
+    dön x
+
+dene:
+    h()
+yakala hata:
+    yaz(hata)   # bekle: Sıfıra bölünemez.
+yaz(h(5))       # bekle: 5

@@ -83,7 +83,84 @@ n negatif değil
 
 `sadeceYaz` bir şey döndürmediği için `x` değişkeni `boş` oldu. `erken(-1)` hemen çıktığı için ekrana yalnızca `boş` yazıldı (bu, `yaz(erken(-1))`'in sonucudur).
 
-Argüman sayısı parametre sayısına eşit olmalıdır. Az ya da çok argüman vermek hatadır (aşağıda göreceğiz).
+Varsayılan değeri olmayan her parametre için çağrıda bir argüman vermelisiniz; parametre sayısından fazla argüman vermek de hatadır (aşağıda göreceğiz). Varsayılan değeri olan parametreler ise isteğe bağlıdır; bir sonraki bölüm onları anlatıyor.
+
+## Varsayılan değerler
+
+Bir parametrenin adından sonra `=` ve bir ifade yazarsanız o parametre **isteğe bağlı** olur. Çağrıda argüman verilmezse varsayılan değer kullanılır, verilirse onun yerine verilen değer:
+
+```jus
+fonksiyon selamla(ad, selam = "Merhaba"):
+    yaz(selam + ", " + ad + "!")
+
+selamla("Ayşe")
+selamla("Mehmet", "Günaydın")
+```
+
+```
+Merhaba, Ayşe!
+Günaydın, Mehmet!
+```
+
+Kurallar şunlardır:
+
+- Varsayılan değeri olan parametrelerden sonra varsayılan değeri olmayan parametre gelemez. `fonksiyon f(a = 1, b)` yazılamaz; isteğe bağlı parametreler listenin sonunda toplanır.
+- Varsayılan ifade, argüman verilmediğinde **her çağrıda**, fonksiyonun gövdesi başlamadan önce yeniden hesaplanır. Argüman verilirse hiç hesaplanmaz.
+- Varsayılan ifade kendinden önceki parametreleri kullanabilir.
+- Açıkça `boş` vermek varsayılanı devreye sokmaz: parametre `boş` olur.
+- Varsayılan değerler yöntemlerde (`kur` dahil, 11. bölüme bakın) ve iç fonksiyonlarda da aynı biçimde çalışır.
+
+İlk iki kuralı bir arada görelim. `yeniNo` her hesaplandığında sayacı bir artırır; sonuçta kaç kez hesaplandığına bakarak varsayılanın ne zaman çalıştığını anlarız:
+
+```jus
+değişken sayaç = 0
+
+fonksiyon yeniNo():
+    sayaç += 1
+    dön sayaç
+
+fonksiyon fiş(ad, no = yeniNo()):
+    dön ad + " #" + metin(no)
+
+yaz(fiş("elma"))
+yaz(fiş("armut"))
+yaz(fiş("kiraz", 99))
+yaz(fiş("üzüm"))
+yaz(sayaç)
+```
+
+```
+elma #1
+armut #2
+kiraz #99
+üzüm #3
+3
+```
+
+`fiş("kiraz", 99)` çağrısında argüman verildiği için `yeniNo()` çalışmadı; sayaç yalnızca üç kez arttı. Üçüncü ve dördüncü kurallar için:
+
+```jus
+fonksiyon kayıt(ad, etiket = ad + "-1"):
+    dön ad + ":" + etiket
+
+yaz(kayıt("a"))
+yaz(kayıt("b", "özel"))
+
+fonksiyon göster(x = 5):
+    yaz(x)
+
+göster()
+göster(boş)
+```
+
+```
+a:a-1
+b:özel
+5
+boş
+```
+
+`etiket` varsayılanı `ad` parametresini kullandı. `göster(boş)` çağrısında `x` varsayılan olan 5 değil, açıkça verilen `boş` oldu.
 
 ## Kapsam: değişkenler nerede geçerlidir?
 
@@ -258,6 +335,57 @@ yaz(kısayol(99))
 
 `sayaçYap` her çağrıldığında kendine ait yeni bir `sayı5` değişkeni oluşturur. `a` ve `b` ayrı sayaçlardır; biri diğerini etkilemez. Fonksiyonun adı (`ekleBir`) parantezsiz yazılınca fonksiyonun kendisidir; `ikiKat(ekleBir, 10)` çağrısında fonksiyon argüman olarak taşındı. Bu konu ileri düzeydir; ilk okumada anlamadıysanız sonraya bırakabilirsiniz.
 
+## Değişken sayıda argüman
+
+Bazen bir fonksiyona kaç argüman verileceği önceden bilinmez. Son parametrenin adının önüne `*` koyarsanız, adlı parametrelerden sonra gelen bütün argümanlar **yeni bir liste** olarak o parametreye toplanır. Listeleri altıncı bölümde ayrıntılı göreceksiniz; burada `her` ile gezmek ve `yaz` ile yazdırmak yeterli.
+
+```jus
+fonksiyon topla(*sayılar):
+    değişken t = 0
+    her s içinde sayılar:
+        t += s
+    dön t
+
+yaz(topla())
+yaz(topla(5))
+yaz(topla(1, 2, 3, 4))
+
+fonksiyon etiketle(etiket, *öğeler):
+    yaz(etiket + ":", öğeler)
+
+etiketle("meyveler", "elma", "armut")
+etiketle("boş")
+```
+
+```
+0
+5
+10
+meyveler: ["elma", "armut"]
+boş: []
+```
+
+- `*` yalnızca **son** parametrenin önüne yazılabilir.
+- Toplanacak argüman kalmadıysa parametre boş listedir (`[]`); `topla()` bu yüzden 0 verir.
+- `*` parametresi varsayılan değerli parametrelerle birlikte kullanılabilir. Sıra: önce zorunlu parametreler, sonra varsayılanlı olanlar, en sonda `*` parametresi.
+
+```jus
+fonksiyon f(a, b = 2, *kalan):
+    yaz(a, b, kalan)
+
+f(1)
+f(1, 5)
+f(1, 5, 7, 9)
+```
+
+```
+1 2 []
+1 5 []
+1 5 [7, 9]
+```
+
+Argümanlar önce `a`'ya, sonra `b`'ye, artanlar `kalan` listesine gider. `*` çağrının tarafında kullanılamaz: elinizdeki bir listeyi `f(*liste)` biçiminde argümanlara açamazsınız. Listeyi gezmek istiyorsanız onu sıradan bir parametre olarak, tek argüman halinde verin.
+
 ## Sık yapılan hatalar
 
 **Yanlış sayıda argüman vermek.**
@@ -272,6 +400,67 @@ yaz(topla(1))
 ```
 ornek.jus:4: çalışma zamanı hatası: 'topla' fonksiyonu 2 argüman bekliyor, 1 verildi.
 ```
+
+Varsayılan değerli ya da `*` parametreli fonksiyonlarda ileti, kabul edilen aralığı söyler:
+
+```jus
+fonksiyon alan(en, boy = 1):
+    dön en * boy
+
+yaz(alan(4, 3, 2))
+```
+
+```
+ornek.jus:4: çalışma zamanı hatası: 'alan' fonksiyonu en az 1, en çok 2 argüman bekliyor, 3 verildi.
+```
+
+`*` parametresi olan fonksiyonun üst sınırı olmadığı için ileti yalnızca alt sınırı söyler: `'etiketle' fonksiyonu en az 1 argüman bekliyor, 0 verildi.`
+
+**Varsayılanı olmayan parametreyi varsayılanlıdan sonra yazmak.**
+
+```jus
+fonksiyon alan(en = 1, boy):
+    dön en * boy
+```
+
+```
+ornek.jus:1:24: sözdizimi hatası: Varsayılan değeri olan parametreden sonra varsayılan değeri olmayan parametre gelemez.
+    fonksiyon alan(en = 1, boy):
+                           ^
+```
+
+Çözüm: `fonksiyon alan(boy, en = 1)`.
+
+**`*` parametresinden sonra başka parametre yazmak.**
+
+```jus
+fonksiyon topla(*sayılar, ek):
+    dön ek
+```
+
+```
+ornek.jus:1:27: sözdizimi hatası: '*' ile işaretlenen parametre sonuncu olmalıdır.
+    fonksiyon topla(*sayılar, ek):
+                              ^
+```
+
+**Çağrıda listeyi `*` ile açmaya çalışmak.**
+
+```jus
+fonksiyon topla(*sayılar):
+    dön uzunluk(sayılar)
+
+değişken liste = [1, 2, 3]
+yaz(topla(*liste))
+```
+
+```
+ornek.jus:5:11: sözdizimi hatası: İfade bekleniyor.
+    yaz(topla(*liste))
+              ^
+```
+
+`*` yalnızca parametre listesinde anlam taşır. Çağrıda yazılan `*` çarpma işleci sayılır ve solunda bir ifade beklenir.
 
 **Yerel değişkeni dışarıda kullanmak.**
 
@@ -349,6 +538,8 @@ Bu iletiye çağrı zinciri de denir: hatanın hangi fonksiyonun, hangi fonksiyo
 3. `üssü(taban, üs)` fonksiyonunu özyinelemeyle yazın (üs sıfırsa sonuç 1'dir). `üssü(2, 10)` ve `üssü(5, 3)` sonuçlarını yazdırın.
 4. Sayının çift olup olmadığını `doğru`/`yanlış` olarak veren `çiftMi(n)` fonksiyonunu yazın. 1'den 5'e kadar her sayı için sonucu yazdırın.
 5. 1'den `n`'e kadar sayıların toplamını özyinelemeyle bulan `topla(n)` fonksiyonunu yazın. `topla(10)` ve `topla(100)` ne verir?
+6. `indirim(fiyat, oran = 10)` fonksiyonunu yazın: fiyattan yüzde `oran` kadar indirim yapılmış tutarı versin. `indirim(200)` ve `indirim(200, 25)` ne verir?
+7. En az bir sayı alan `enBüyük(ilk, *diğerleri)` fonksiyonunu yazın; aldığı sayıların en büyüğünü versin. `enBüyük(3)` ve `enBüyük(4, 9, 2)` ile deneyin.
 
 ## Çözümler
 
@@ -433,6 +624,42 @@ yaz(topla(100))
 55
 5050
 ```
+
+**6.**
+
+```jus
+fonksiyon indirim(fiyat, oran = 10):
+    dön fiyat - fiyat * oran / 100
+
+yaz(indirim(200))
+yaz(indirim(200, 25))
+```
+
+```
+180
+150
+```
+
+**7.**
+
+```jus
+fonksiyon enBüyük(ilk, *diğerleri):
+    değişken büyük = ilk
+    her s içinde diğerleri:
+        eğer s > büyük:
+            büyük = s
+    dön büyük
+
+yaz(enBüyük(3))
+yaz(enBüyük(4, 9, 2))
+```
+
+```
+3
+9
+```
+
+`ilk` parametresi en az bir argüman verilmesini zorunlu kılar; böylece karşılaştıracak bir başlangıç değeri hep vardır.
 
 ---
 

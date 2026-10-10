@@ -11,8 +11,10 @@
 #include "common.h"
 #include "format.h"
 #include "io.h"
+#include "lineedit.h"
 #include "package.h"
 #include "stdlib_modules.h"
+#include "table.h"
 #include "vm.h"
 
 static void printUsage(FILE *out) {
@@ -207,41 +209,129 @@ static bool endsWithColon(const char *text, size_t length) {
     return length > 0 && text[length - 1] == ':';
 }
 
+/* ---- Etkileşimli kipte Tab tamamlama ---- */
+
+static const char *const replKeywords[] = {
+    "boş", "bu", "değil", "değilse", "değişken", "dene", "devam", "doğru", "dön",
+    "eğer", "fırlat", "fonksiyon", "geç", "her", "içinde", "iken", "kır", "kullan",
+    "olarak", "sınıf", "üst", "ve", "veya", "yakala", "yanlış", "çıkış",
+};
+
+static void addTableKeys(Table *table, LineEditAddFn add, void *context) {
+    for (int i = 0; i < table->capacity; i++) {
+        if (table->entries[i].key != NULL) add(table->entries[i].key->chars, context);
+    }
+}
+
+/* Anahtar kelimeler, yerleşik fonksiyonlar, etkileşimli kipte tanımlanan adlar ve yüklü modüller. */
+static void replComplete(const char *prefix, int prefixLength, LineEditAddFn add, void *context) {
+    (void)prefix;
+    (void)prefixLength;
+    for (size_t i = 0; i < sizeof(replKeywords) / sizeof(replKeywords[0]); i++) add(replKeywords[i], context);
+    addTableKeys(&vm.builtins, add, context);
+    if (vm.mainModule != NULL) addTableKeys(&vm.mainModule->globals, add, context);
+    addTableKeys(&vm.modules, add, context);
+}
+
+/* Geçmiş dosyası: kullanıcının ev klasöründe .jus_gecmis. Ev klasörü bilinmiyorsa NULL. */
+static char *historyPath(void) {
+    const char *home = getenv("HOME");
+#ifdef _WIN32
+    if (home == NULL) home = getenv("USERPROFILE");
+#endif
+    if (home == NULL || home[0] == '\0') return NULL;
+    const char *name = "/.jus_gecmis";
+    char *path = (char *)malloc(strlen(home) + strlen(name) + 1);
+    if (path == NULL) return NULL;
+    strcpy(path, home);
+    strcat(path, name);
+    return path;
+}
+
+/*
+ * Bir satır okur. Uçbirimdeyse satır düzenleyici (ok tuşları, geçmiş, Tab
+ * tamamlama) kullanılır; girdi yönlendirilmişse düz okuma yapılır. Dönen metin
+ * malloc ile ayrılmıştır; girdi bittiyse NULL.
+ */
+static char *readReplLine(const char *prompt, bool editing) {
+    if (editing) return lineEdit(prompt, replComplete);
+
+    fputs(prompt, stdout);
+    fflush(stdout);
+    char *buffer = NULL;
+    size_t length = 0;
+    size_t capacity = 0;
+    if (!readLine(&buffer, &length, &capacity)) {
+        free(buffer);
+        fputc('\n', stdout);
+        return NULL;
+    }
+    if (buffer == NULL) {
+        buffer = (char *)malloc(1);
+        if (buffer == NULL) {
+            fprintf(stderr, "jus: bellek yetersiz.\n");
+            exit(JUS_EXIT_OUT_OF_MEMORY);
+        }
+        buffer[0] = '\0';
+    }
+    return buffer;
+}
+
+/* text'in sonuna '\n' ve line'ı ekler; text yeniden ayrılır. */
+static char *appendLine(char *text, const char *line) {
+    size_t length = strlen(text);
+    char *grown = (char *)realloc(text, length + strlen(line) + 2);
+    if (grown == NULL) {
+        fprintf(stderr, "jus: bellek yetersiz.\n");
+        exit(JUS_EXIT_OUT_OF_MEMORY);
+    }
+    grown[length] = '\n';
+    strcpy(grown + length + 1, line);
+    return grown;
+}
+
 static void repl(void) {
     printf("JUS %s - çıkmak için 'çıkış' yazın.\n", JUS_VERSION);
     initVM();
 
-    char *buffer = NULL;
-    size_t capacity = 0;
+    bool editing = lineEditSupported();
+    char *history = editing ? historyPath() : NULL;
+    if (history != NULL) lineEditHistoryLoad(history);
 
     for (;;) {
-        size_t length = 0;
-        fputs(">>> ", stdout);
-        fflush(stdout);
-        if (!readLine(&buffer, &length, &capacity)) {
-            fputc('\n', stdout);
+        char *text = readReplLine(">>> ", editing);
+        if (text == NULL) break;
+        if (text[0] == '\0') {
+            free(text);
+            continue;
+        }
+        if (strcmp(text, "çıkış") == 0) {
+            free(text);
             break;
         }
-        if (buffer == NULL || length == 0) continue;
-        if (strcmp(buffer, "çıkış") == 0) break;
 
         /* ':' ile biten satır bir blok açar; boş satıra kadar okumayı sürdür. */
-        if (endsWithColon(buffer, length)) {
+        if (endsWithColon(text, strlen(text))) {
             for (;;) {
-                buffer[length++] = '\n';
-                size_t lineStart = length;
-                fputs("... ", stdout);
-                fflush(stdout);
-                if (!readLine(&buffer, &length, &capacity)) break;
-                if (length == lineStart) break;
+                char *line = readReplLine("... ", editing);
+                if (line == NULL || line[0] == '\0') {
+                    free(line);
+                    break;
+                }
+                text = appendLine(text, line);
+                free(line);
             }
-            buffer[length] = '\0';
         }
 
-        interpret("<etkileşimli>", buffer, true);
+        if (editing) {
+            lineEditHistoryAdd(text);
+            if (history != NULL) lineEditHistorySave(history);
+        }
+        interpret("<etkileşimli>", text, true);
+        free(text);
     }
 
-    free(buffer);
+    free(history);
     freeVM();
 }
 

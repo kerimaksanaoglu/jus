@@ -1,0 +1,46 @@
+# '*ad' parametresi kalan argümanları liste olarak alır.
+fonksiyon topla(*sayılar):
+    değişken toplam = 0
+    her s içinde sayılar:
+        toplam += s
+    dön toplam
+
+yaz(topla())                            # bekle: 0
+yaz(topla(5))                           # bekle: 5
+yaz(topla(1, 2, 3, 4))                  # bekle: 10
+
+fonksiyon etiketle(etiket, *öğeler):
+    dön etiket + ": " + birleştir(öğeler, ", ")
+
+yaz(etiketle("Meyveler") + "|")         # bekle: Meyveler: |
+yaz(etiketle("Meyveler", "elma"))       # bekle: Meyveler: elma
+yaz(etiketle("Meyveler", "elma", "armut", "kiraz"))  # bekle: Meyveler: elma, armut, kiraz
+
+# Varsayılan ve değişken sayıda parametre birlikte.
+fonksiyon biçimle_satır(ayraç = " | ", *hücreler):
+    dön birleştir(hücreler, ayraç)
+
+yaz(biçimle_satır() + "|")              # bekle: |
+yaz(biçimle_satır(", ", 1, 2, 3))       # bekle: 1, 2, 3
+
+# Liste yeni bir listedir; değiştirilmesi çağıranı etkilemez.
+fonksiyon ilkini_sil(*l):
+    çıkar(l)
+    dön l
+
+değişken a = [1, 2]
+yaz(ilkini_sil(a, 3), a)                # bekle: [[1, 2]] [1, 2]
+
+# Yöntemlerde de çalışır.
+sınıf Günlük:
+    fonksiyon kur():
+        bu.kayıtlar = []
+
+    fonksiyon yaz(*parçalar):
+        ekle(bu.kayıtlar, birleştir(parçalar, " "))
+        dön uzunluk(bu.kayıtlar)
+
+değişken g = Günlük()
+g.yaz("başladı")
+yaz(g.yaz("iş", 3, "bitti"))            # bekle: 2
+yaz(g.kayıtlar)                         # bekle: ["başladı", "iş 3 bitti"]
