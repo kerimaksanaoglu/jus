@@ -17,6 +17,8 @@
  */
 char *readSource(const char *path, const char **problem);
 
+/* Dosyayı olduğu gibi okur; malloc ile ayrılmış veri döner, *size bayt sayısıdır. Hata: NULL ve *problem. */
+unsigned char *readBinaryFile(const char *path, size_t *size, const char **problem);
 FILE *openFile(const char *path, const char *mode);
 bool removeFile(const char *path);
 bool makeDirectory(const char *path);

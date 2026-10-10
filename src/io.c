@@ -149,6 +149,37 @@ bool listDirectory(const char *path, void (*each)(const char *name, void *contex
 
 #endif
 
+unsigned char *readBinaryFile(const char *path, size_t *size, const char **problem) {
+    FILE *file = openFile(path, "rb");
+    if (file == NULL) {
+        *problem = "dosya açılamadı";
+        return NULL;
+    }
+    fseek(file, 0L, SEEK_END);
+    long fileSize = ftell(file);
+    rewind(file);
+    if (fileSize < 0) {
+        *problem = "dosya okunamadı";
+        fclose(file);
+        return NULL;
+    }
+    unsigned char *buffer = (unsigned char *)malloc((size_t)fileSize + 1);
+    if (buffer == NULL) {
+        *problem = "bellek yetersiz";
+        fclose(file);
+        return NULL;
+    }
+    size_t bytesRead = fread(buffer, 1, (size_t)fileSize, file);
+    fclose(file);
+    if (bytesRead < (size_t)fileSize) {
+        *problem = "dosya okunamadı";
+        free(buffer);
+        return NULL;
+    }
+    *size = bytesRead;
+    return buffer;
+}
+
 char *readSource(const char *path, const char **problem) {
     FILE *file = openFile(path, "rb");
     if (file == NULL) {

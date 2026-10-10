@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "builtins.h"
+#include "bytes.h"
 #include "common.h"
 #include "compiler.h"
 #include "io.h"
@@ -653,6 +654,11 @@ static bool getIndex(void) {
         uint32_t codePoint;
         int size = utf8Decode(string->chars + start, string->length - start, &codePoint);
         result = OBJ_VAL(copyString(string->chars + start, size));
+    } else if (IS_BYTES(container)) {
+        ObjBytes *bytes = AS_BYTES(container);
+        int i;
+        if (!checkIndex(index, bytes->count, "Bayt dizisi", &i)) return false;
+        result = NUMBER_VAL(bytes->data[i]);
     } else if (IS_MAP(container)) {
         if (!checkKey(index)) return false;
         if (!mapGet(AS_MAP(container), index, &result)) {
@@ -664,7 +670,7 @@ static bool getIndex(void) {
             return false;
         }
     } else {
-        runtimeError("Yalnızca liste, metin ve sözlük dizinlenebilir; %s verildi.",
+        runtimeError("Yalnızca liste, metin, baytlar ve sözlük dizinlenebilir; %s verildi.",
                      valueTypeName(container));
         return false;
     }
@@ -686,6 +692,16 @@ static bool setIndex(void) {
         int i;
         if (!checkIndex(index, list->count, "Liste", &i)) return false;
         list->items[i] = value;
+    } else if (IS_BYTES(container)) {
+        ObjBytes *bytes = AS_BYTES(container);
+        int i;
+        if (!checkIndex(index, bytes->count, "Bayt dizisi", &i)) return false;
+        uint8_t byte;
+        if (!bytesElement("Bayt değeri", value, &byte)) {
+            runtimeError("%s", vm.nativeError);
+            return false;
+        }
+        bytes->data[i] = byte;
     } else if (IS_MAP(container)) {
         if (!checkKey(index)) return false;
         mapSet(AS_MAP(container), index, value);
@@ -693,7 +709,7 @@ static bool setIndex(void) {
         runtimeError("Metinler değiştirilemez; yeni bir metin oluşturun.");
         return false;
     } else {
-        runtimeError("Yalnızca liste ve sözlük öğelerine değer atanabilir; %s verildi.",
+        runtimeError("Yalnızca liste, baytlar ve sözlük öğelerine değer atanabilir; %s verildi.",
                      valueTypeName(container));
         return false;
     }
@@ -751,8 +767,17 @@ static bool slice(void) {
         int startByte = utf8Offset(string->chars, string->length, start);
         int endByte = utf8Offset(string->chars, string->length, end);
         result = OBJ_VAL(copyString(string->chars + startByte, endByte - startByte));
+    } else if (IS_BYTES(container)) {
+        ObjBytes *bytes = AS_BYTES(container);
+        int start, end;
+        if (!sliceBound(peek(1), bytes->count, 0, &start)) return false;
+        if (!sliceBound(peek(0), bytes->count, bytes->count, &end)) return false;
+        if (end < start) end = start;
+        ObjBytes *sliced = newBytes(end - start);
+        if (end > start) memcpy(sliced->data, bytes->data + start, (size_t)(end - start));
+        result = OBJ_VAL(sliced);
     } else {
-        runtimeError("Yalnızca liste ve metinden dilim alınabilir; %s verildi.",
+        runtimeError("Yalnızca liste, metin ve baytlardan dilim alınabilir; %s verildi.",
                      valueTypeName(container));
         return false;
     }
@@ -786,11 +811,26 @@ static bool contains(void) {
         for (int i = 0; i + needle->length <= haystack->length && !found; i++) {
             found = memcmp(haystack->chars + i, needle->chars, (size_t)needle->length) == 0;
         }
+    } else if (IS_BYTES(container)) {
+        ObjBytes *haystack = AS_BYTES(container);
+        if (IS_BYTES(item)) {
+            ObjBytes *needle = AS_BYTES(item);
+            for (int i = 0; i + needle->count <= haystack->count && !found; i++) {
+                found = needle->count == 0 || memcmp(haystack->data + i, needle->data, (size_t)needle->count) == 0;
+            }
+        } else {
+            uint8_t byte;
+            if (!bytesElement("Baytların içinde aranan değer", item, &byte)) {
+                runtimeError("%s", vm.nativeError);
+                return false;
+            }
+            for (int i = 0; i < haystack->count && !found; i++) found = haystack->data[i] == byte;
+        }
     } else if (IS_MAP(container)) {
         Value ignored;
         found = isHashable(item) && mapGet(AS_MAP(container), item, &ignored);
     } else {
-        runtimeError("'içinde' işlecinin sağ tarafı liste, metin ya da sözlük olmalı; %s verildi.",
+        runtimeError("'içinde' işlecinin sağ tarafı liste, metin, baytlar ya da sözlük olmalı; %s verildi.",
                      valueTypeName(container));
         return false;
     }
@@ -828,6 +868,14 @@ static bool forNext(bool *done) {
         int size = utf8Decode(string->chars + cursor, string->length - cursor, &codePoint);
         vm.stackTop[-1] = NUMBER_VAL(cursor + size);
         push(OBJ_VAL(copyString(string->chars + cursor, size)));
+    } else if (IS_BYTES(container)) {
+        ObjBytes *bytes = AS_BYTES(container);
+        if (cursor >= bytes->count) {
+            *done = true;
+            return true;
+        }
+        vm.stackTop[-1] = NUMBER_VAL(cursor + 1);
+        push(NUMBER_VAL(bytes->data[cursor]));
     } else if (IS_MAP(container)) {
         ObjMap *map = AS_MAP(container);
         while (cursor < map->used && !map->entries[cursor].live) cursor++;
@@ -838,7 +886,7 @@ static bool forNext(bool *done) {
         vm.stackTop[-1] = NUMBER_VAL(cursor + 1);
         push(map->entries[cursor].key);
     } else {
-        runtimeError("'her' döngüsü liste, metin ya da sözlük üzerinde gezinir; %s verildi.",
+        runtimeError("'her' döngüsü liste, metin, baytlar ya da sözlük üzerinde gezinir; %s verildi.",
                      valueTypeName(container));
         return false;
     }
@@ -1101,6 +1149,17 @@ static bool invoke(ObjString *name, int argCount) {
     return false;
 }
 
+static void concatenateBytes(void) {
+    ObjBytes *b = AS_BYTES(peek(0));
+    ObjBytes *a = AS_BYTES(peek(1));
+    ObjBytes *result = newBytes(a->count + b->count);
+    if (a->count > 0) memcpy(result->data, a->data, (size_t)a->count);
+    if (b->count > 0) memcpy(result->data + a->count, b->data, (size_t)b->count);
+    pop();
+    pop();
+    push(OBJ_VAL(result));
+}
+
 static void concatenateLists(void) {
     ObjList *b = AS_LIST(peek(0));
     ObjList *a = AS_LIST(peek(1));
@@ -1244,8 +1303,10 @@ static InterpretResult run(int stopAt, bool script) {
                     push(NUMBER_VAL(a + b));
                 } else if (IS_LIST(peek(0)) && IS_LIST(peek(1))) {
                     concatenateLists();
+                } else if (IS_BYTES(peek(0)) && IS_BYTES(peek(1))) {
+                    concatenateBytes();
                 } else {
-                    runtimeError("'+' işleci iki sayı, iki metin ya da iki liste ister; %s ve %s verildi. "
+                    runtimeError("'+' işleci iki sayı, iki metin, iki liste ya da iki baytlar ister; %s ve %s verildi. "
                                  "Dönüştürmek için metin() ya da sayı() kullanılabilir.",
                                  valueTypeName(peek(1)), valueTypeName(peek(0)));
                     goto on_error;

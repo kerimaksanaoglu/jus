@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include "builtins.h"
+#include "bytes.h"
 #include "object.h"
 #include "text.h"
 #include "value.h"
@@ -213,8 +214,10 @@ static bool uzunlukNative(int argCount, Value *args, Value *result) {
         *result = NUMBER_VAL(AS_LIST(args[0])->count);
     } else if (IS_MAP(args[0])) {
         *result = NUMBER_VAL(AS_MAP(args[0])->count);
+    } else if (IS_BYTES(args[0])) {
+        *result = NUMBER_VAL(AS_BYTES(args[0])->count);
     } else {
-        return nativeFail("'uzunluk' fonksiyonu metin, liste ya da sözlük ister; %s verildi.",
+        return nativeFail("'uzunluk' fonksiyonu metin, liste, baytlar ya da sözlük ister; %s verildi.",
                           valueTypeName(args[0]));
     }
     return true;
@@ -399,6 +402,12 @@ static bool aralikNative(int argCount, Value *args, Value *result) {
 static bool ekleNative(int argCount, Value *args, Value *result) {
     (void)argCount;
     (void)result;
+    if (IS_BYTES(args[0])) {
+        uint8_t byte;
+        if (!bytesElement("Bayt değeri", args[1], &byte)) return false;
+        bytesAppend(AS_BYTES(args[0]), byte);
+        return true;
+    }
     if (!requireList("ekle", args[0])) return false;
     listAppend(AS_LIST(args[0]), args[1]);
     return true;
@@ -974,6 +983,7 @@ void defineBuiltins(void) {
     defineNative("aralık", -1, aralikNative);
 
     defineNative("ekle", 2, ekleNative);
+    defineBytesBuiltins();
     defineNative("araya_ekle", 3, arayaEkleNative);
     defineNative("çıkar", 1, cikarNative);
     defineNative("sil", 2, silNative);

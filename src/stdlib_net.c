@@ -29,6 +29,7 @@ typedef int Socket;
 #define closeSocket close
 #endif
 
+#include "bytes.h"
 #include "object.h"
 #include "stdlib_modules.h"
 #include "value.h"
@@ -282,6 +283,30 @@ static bool gonderNative(int argCount, Value *args, Value *result) {
     return true;
 }
 
+/* ağ.bayt_gönder(bağlantı, baytlar): baytların tamamını gönderir. */
+static bool baytGonderNative(int argCount, Value *args, Value *result) {
+    (void)argCount;
+    (void)result;
+    Connection *connection = findConnection("ağ.bayt_gönder", args[0], false);
+    if (connection == NULL) return false;
+    if (!IS_BYTES(args[1])) {
+        return nativeFail("'ağ.bayt_gönder' baytlar gönderir; %s verildi.", valueTypeName(args[1]));
+    }
+    ObjBytes *data = AS_BYTES(args[1]);
+    int sent = 0;
+    while (sent < data->count) {
+#ifdef MSG_NOSIGNAL
+        int flags = MSG_NOSIGNAL;
+#else
+        int flags = 0;
+#endif
+        int count = (int)send(connection->socket, (const char *)data->data + sent, data->count - sent, flags);
+        if (count <= 0) return nativeFail("Veri gönderilemedi; bağlantı kopmuş olabilir.");
+        sent += count;
+    }
+    return true;
+}
+
 /* Bağlantıdan bir parça daha okuyup arabelleğe ekler. 1: veri geldi, 0: bağlantı kapandı, -1: hata. */
 static int receiveMore(Connection *connection) {
     if (connection->capacity < connection->length + RECEIVE_CHUNK) {
@@ -336,6 +361,32 @@ static bool alNative(int argCount, Value *args, Value *result) {
         }
     }
     *result = takeBytes(connection, connection->length < limit ? connection->length : limit, 0);
+    return true;
+}
+
+/* ağ.bayt_al(bağlantı, en_çok): en çok verilen bayt kadar veri, baytlar olarak; bağlantı kapandıysa boş. */
+static bool baytAlNative(int argCount, Value *args, Value *result) {
+    (void)argCount;
+    Connection *connection = findConnection("ağ.bayt_al", args[0], false);
+    if (connection == NULL) return false;
+    if (!IS_NUMBER(args[1]) || AS_NUMBER(args[1]) < 1 || AS_NUMBER(args[1]) > 1e9) {
+        return nativeFail("'ağ.bayt_al' için bayt sayısı pozitif bir sayı olmalı.");
+    }
+    int limit = (int)AS_NUMBER(args[1]);
+    if (connection->length == 0) {
+        int status = receiveMore(connection);
+        if (status < 0) return receiveFailed();
+        if (status == 0) {
+            *result = NIL_VAL;
+            return true;
+        }
+    }
+    int count = connection->length < limit ? connection->length : limit;
+    ObjBytes *bytes = newBytes(count);
+    memcpy(bytes->data, connection->buffer, (size_t)count);
+    memmove(connection->buffer, connection->buffer + count, (size_t)(connection->length - count));
+    connection->length -= count;
+    *result = OBJ_VAL(bytes);
     return true;
 }
 
@@ -508,6 +559,8 @@ void defineNetworkModule(void) {
     moduleDefineNative(net, "kabul_et", 1, kabulEtNative);
     moduleDefineNative(net, "gönder", 2, gonderNative);
     moduleDefineNative(net, "al", 2, alNative);
+    moduleDefineNative(net, "bayt_gönder", 2, baytGonderNative);
+    moduleDefineNative(net, "bayt_al", 2, baytAlNative);
     moduleDefineNative(net, "tam_al", 2, tamAlNative);
     moduleDefineNative(net, "satır_al", 1, satirAlNative);
     moduleDefineNative(net, "zaman_aşımı", 2, zamanAsimiNative);

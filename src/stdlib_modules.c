@@ -11,6 +11,7 @@
 #endif
 
 #include "io.h"
+#include "bytes.h"
 #include "object.h"
 #include "stdlib_modules.h"
 #include "value.h"
@@ -334,6 +335,44 @@ static bool dosyaEkleNative(int argCount, Value *args, Value *result) {
     return writeFile("dosya.ekle", "ab", args);
 }
 
+/* dosya.baytları_oku(yol): dosyanın içeriği baytlar olarak. */
+static bool dosyaBaytlariOkuNative(int argCount, Value *args, Value *result) {
+    (void)argCount;
+    if (!requireString("dosya.baytları_oku", args[0])) return false;
+    const char *problem = NULL;
+    size_t size = 0;
+    unsigned char *content = readBinaryFile(AS_CSTRING(args[0]), &size, &problem);
+    if (content == NULL) return nativeFail("'%.200s' okunamadı: %s.", AS_CSTRING(args[0]), problem);
+    if (size > 1000000000) {
+        free(content);
+        return nativeFail("'%.200s' baytlar olarak okunamayacak kadar büyük.", AS_CSTRING(args[0]));
+    }
+    ObjBytes *bytes = newBytes((int)size);
+    if (size > 0) memcpy(bytes->data, content, size);
+    free(content);
+    *result = OBJ_VAL(bytes);
+    return true;
+}
+
+/* dosya.baytları_yaz(yol, baytlar): dosyayı verilen baytlarla oluşturur; varsa üzerine yazar. */
+static bool dosyaBaytlariYazNative(int argCount, Value *args, Value *result) {
+    (void)argCount;
+    (void)result;
+    if (!requireString("dosya.baytları_yaz", args[0])) return false;
+    if (!IS_BYTES(args[1])) {
+        return nativeFail("'dosya.baytları_yaz' baytlar ister; %s verildi.", valueTypeName(args[1]));
+    }
+    FILE *file = openFile(AS_CSTRING(args[0]), "wb");
+    if (file == NULL) return nativeFail("'%.200s' yazmak için açılamadı.", AS_CSTRING(args[0]));
+    ObjBytes *bytes = AS_BYTES(args[1]);
+    size_t written = bytes->count == 0 ? 0 : fwrite(bytes->data, 1, (size_t)bytes->count, file);
+    bool closed = fclose(file) == 0;
+    if (written != (size_t)bytes->count || !closed) {
+        return nativeFail("'%.200s' dosyasına yazılamadı.", AS_CSTRING(args[0]));
+    }
+    return true;
+}
+
 /* dosya.satırlar(yol): dosyanın satırları, liste olarak (satır sonları atılmış). */
 static bool dosyaSatirlarNative(int argCount, Value *args, Value *result) {
     (void)argCount;
@@ -518,6 +557,9 @@ void defineStandardModules(void) {
     moduleDefineNative(dosya, "klasör_sil", 1, klasorSilNative);
     moduleDefineNative(dosya, "klasör_mü", 1, klasorMuNative);
     moduleDefineNative(dosya, "listele", 1, listeleNative);
+    moduleDefineNative(dosya, "baytları_oku", 1, dosyaBaytlariOkuNative);
+    moduleDefineNative(dosya, "baytları_yaz", 2, dosyaBaytlariYazNative);
+    defineBytesModule();
 
     ObjModule *sistem = defineModule("sistem");
     moduleDefineNative(sistem, "çık", -1, cikNative);
