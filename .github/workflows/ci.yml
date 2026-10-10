@@ -43,13 +43,16 @@ jobs:
       - name: Derle
         run: bash playground/derle.sh
       - name: Test
-        run: node playground/dene.cjs
+        run: |
+          node playground/dene.cjs
+          node playground/dene_paylas.cjs
       - uses: actions/upload-artifact@v4
         with:
           name: deneme-alani
           path: |
             playground/index.html
             playground/calisan.js
+            playground/paylas.js
             playground/sun.py
             playground/simge.png
             playground/jus.js

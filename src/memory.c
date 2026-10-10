@@ -96,6 +96,7 @@ static void blackenObject(Obj *object) {
             markObject((Obj *)function->name);
             markObject((Obj *)function->module);
             markArray(&function->chunk.constants);
+            markArray(&function->localNames);
             break;
         }
         case OBJ_MODULE: {
@@ -155,6 +156,7 @@ static void freeObject(Obj *object) {
         case OBJ_FUNCTION: {
             ObjFunction *function = (ObjFunction *)object;
             freeChunk(&function->chunk);
+            freeValueArray(&function->localNames);
             FREE(ObjFunction, object);
             break;
         }

@@ -6,6 +6,7 @@
 #include "compiler.h"
 #include "memory.h"
 #include "scanner.h"
+#include "suggest.h"
 #include "table.h"
 #include "vm.h"
 
@@ -109,6 +110,46 @@ static Chunk *currentChunk(void) {
 
 /* ---- Hata bildirimi ---- */
 
+static bool startsValue(TokenKind type) {
+    return type == TOKEN_STRING || type == TOKEN_NUMBER || type == TOKEN_IDENTIFIER ||
+           type == TOKEN_TRUE || type == TOKEN_FALSE || type == TOKEN_NIL;
+}
+
+/*
+ * Hatanın yanındaki ad bir anahtar kelimeye benziyorsa (ör. Türkçe harf
+ * kullanılmadan yazılmışsa) ya da başka bir dilden geliyorsa bir ipucu yazar.
+ */
+static void printHint(const Token *token) {
+    const Token *nearby[2] = {token, &parser.previous};
+    for (int i = 0; i < 2; i++) {
+        const Token *name = nearby[i];
+        if (name->type != TOKEN_IDENTIFIER) continue;
+
+        const char *equivalent = foreignEquivalent(name->start, name->length);
+        if (equivalent != NULL) {
+            fprintf(stderr, "    İpucu: JUS'ta '%.*s' yerine '%s' yazılır.\n", name->length, name->start,
+                    equivalent);
+            return;
+        }
+
+        Suggestion suggestion;
+        suggestionInit(&suggestion, name->start, name->length);
+        suggestionConsiderKeywords(&suggestion);
+        if (suggestionFound(&suggestion)) {
+            fprintf(stderr, "    İpucu: '%.*s' yerine '%.*s' yazmak istemiş olabilirsiniz.\n", name->length,
+                    name->start, suggestion.bestLength, suggestion.best);
+            return;
+        }
+    }
+
+    /* yaz "merhaba" gibi: fonksiyon adından sonra parantezsiz argüman. */
+    if (token != &parser.previous && parser.previous.type == TOKEN_IDENTIFIER &&
+        parser.previous.line == token->line && startsValue(token->type)) {
+        fprintf(stderr, "    İpucu: Fonksiyon çağrısında argümanlar parantez içine yazılır: %.*s(...)\n",
+                parser.previous.length, parser.previous.start);
+    }
+}
+
 static void errorAt(const Token *token, const char *message) {
     if (parser.panicMode) return;
     parser.panicMode = true;
@@ -134,6 +175,7 @@ static void errorAt(const Token *token, const char *message) {
         fputc(*p == '\t' ? '\t' : ' ', stderr);
     }
     fputs("^\n", stderr);
+    printHint(token);
 }
 
 static void error(const char *message) {
@@ -270,6 +312,20 @@ static void patchJump(int offset) {
     currentChunk()->code[offset + 1] = (uint8_t)(jump & 0xff);
 }
 
+/* Yerel adı, çalışma zamanındaki "şunu mu demek istediniz?" önerileri için kaydeder. */
+static void recordLocalName(ObjFunction *function, const char *start, int length) {
+    if (length == 0) return;
+    ObjString *name = copyString(start, length);
+    ValueArray *names = &function->localNames;
+    for (int i = 0; i < names->count; i++) {
+        if (AS_OBJ(names->values[i]) == (Obj *)name) return;
+    }
+    /* Dizi büyürken çöp toplayıcı çalışabilir; adı yığında koru. */
+    push(OBJ_VAL(name));
+    writeValueArray(names, OBJ_VAL(name));
+    pop();
+}
+
 static void initCompiler(Compiler *compiler, FunctionType type) {
     compiler->enclosing = current;
     compiler->function = NULL;
@@ -284,6 +340,13 @@ static void initCompiler(Compiler *compiler, FunctionType type) {
     current = compiler;
     if (type != TYPE_SCRIPT) {
         current->function->name = copyString(parser.previous.start, parser.previous.length);
+    }
+
+    /* İç fonksiyon, kendisini saran fonksiyonların yerellerini de görebilir. */
+    for (Compiler *outer = compiler->enclosing; outer != NULL; outer = outer->enclosing) {
+        for (int i = 0; i < outer->localCount; i++) {
+            recordLocalName(compiler->function, outer->locals[i].name.start, outer->locals[i].name.length);
+        }
     }
 
     /* 0 numaralı yuva yöntemlerde 'bu' nesnesini, diğerlerinde fonksiyonun kendisini tutar. */
@@ -404,6 +467,7 @@ static void addLocal(Token name) {
     local->name = name;
     local->depth = -1;
     local->isCaptured = false;
+    recordLocalName(current->function, name.start, name.length);
 }
 
 static void declareVariable(const Token *name) {
@@ -1285,13 +1349,26 @@ static void returnStatement(void) {
     }
 }
 
-/* Hatadan sonra bir sonraki satırın başına kadar ilerle. */
+/*
+ * Hatadan sonra bir sonraki satırın başına kadar ilerle. Hatalı satır bir blok
+ * açıyorsa (ör. 'eger x > 2:') bloğun gövdesi de atlanır; yoksa gövdenin her
+ * satırı "beklenmeyen girinti" diye ayrıca bildirilirdi.
+ */
 static void synchronize(void) {
     parser.panicMode = false;
 
     while (parser.current.type != TOKEN_EOF) {
-        if (parser.previous.type == TOKEN_NEWLINE) return;
+        if (parser.previous.type == TOKEN_NEWLINE) break;
         advance();
+    }
+    if (check(TOKEN_INDENT)) {
+        advance();
+        int depth = 1;
+        while (depth > 0 && !check(TOKEN_EOF)) {
+            if (check(TOKEN_INDENT)) depth++;
+            if (check(TOKEN_DEDENT)) depth--;
+            advance();
+        }
     }
 }
 
@@ -1356,6 +1433,13 @@ ObjFunction *compile(const char *name, const char *source, bool repl, ObjModule 
     lastExpressionWasAssignment = false;
     parser.hadError = false;
     parser.panicMode = false;
+    /* Önceki derlemeden kalan belirteçler eski kaynağı gösterir; sıfırla. */
+    parser.previous.type = TOKEN_EOF;
+    parser.previous.start = source;
+    parser.previous.length = 0;
+    parser.previous.line = 1;
+    parser.previous.message = NULL;
+    parser.current = parser.previous;
     initCompiler(&compiler, TYPE_SCRIPT);
 
     advance();

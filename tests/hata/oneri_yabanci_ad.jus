@@ -1,0 +1,4 @@
+# Başka dilden gelen ad için JUS karşılığı.
+# kod: 70
+# hata: 'print' adında bir değişken ya da fonksiyon tanımlı değil. JUS'ta bunun karşılığı 'yaz'.
+print("merhaba")

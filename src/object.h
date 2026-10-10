@@ -66,6 +66,8 @@ typedef struct {
     Chunk chunk;
     ObjString *name; /* modülün üst düzey kodu için NULL */
     ObjModule *module; /* fonksiyonun tanımlandığı modül */
+    /* Fonksiyonda ve onu saran fonksiyonlarda tanımlı yerel adlar; hata önerileri için. */
+    ValueArray localNames;
 } ObjFunction;
 
 /*

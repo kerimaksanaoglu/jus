@@ -61,6 +61,7 @@ ObjFunction *newFunction(void) {
     function->upvalueCount = 0;
     function->name = NULL;
     function->module = NULL;
+    initValueArray(&function->localNames);
     initChunk(&function->chunk);
     return function;
 }

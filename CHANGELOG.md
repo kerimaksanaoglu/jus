@@ -6,6 +6,18 @@ uyar.
 
 ## [Yayımlanmadı]
 
+### Eklendi
+
+- Hata iletilerinde "şunu mu demek istediniz?" önerileri: tanımsız ad,
+  nesne üyesi, modül üyesi ve sözlük anahtarı için en yakın bilinen ad;
+  Türkçe harf kullanılmadan yazılmış adlar (`sayac` → `sayaç`, `eger` → `eğer`)
+  ve başka dillerden gelen adlar (`print` → `yaz`, `l.append(x)` → `ekle(l, x)`)
+  tanınır; parantezsiz fonksiyon çağrısı için ipucu
+- Öğretmen kiti: 10 haftalık ders planı, cevap anahtarı, değerlendirme ve dönem
+  projesi (`docs/ogretmen`), belge sitesinde
+- Deneme alanında "Paylaş" düğmesi: program bağlantının içine yazılır, sunucuya
+  gönderilmez; son düzenlenen program tarayıcıda saklanır
+
 ## [1.1.0] - 2026-10-10
 
 ### Eklendi

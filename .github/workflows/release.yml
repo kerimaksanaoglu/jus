@@ -93,10 +93,11 @@ jobs:
         run: |
           bash playground/derle.sh
           node playground/dene.cjs
+          node playground/dene_paylas.cjs
       - name: Paketle
         run: |
           mkdir jus-deneme-alani
-          cp playground/index.html playground/calisan.js playground/sun.py playground/simge.png \
+          cp playground/index.html playground/calisan.js playground/paylas.js playground/sun.py playground/simge.png \
              playground/jus.js playground/jus.wasm playground/README.md jus-deneme-alani/
           zip -qr jus-deneme-alani.zip jus-deneme-alani
       - uses: actions/upload-artifact@v4

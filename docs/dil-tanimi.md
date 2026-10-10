@@ -650,6 +650,24 @@ ornek.jus:2: çalışma zamanı hatası: Sıfıra bölünemez.
 
 Çıkış kodu 70 olur.
 
+### 7.3 Öneriler
+
+Hata iletileri, bulunamayan ad için bilinen adlar arasından en yakınını önerir:
+tanımsız bir değişken için kapsamdaki değişkenler, yerleşik fonksiyonlar ve
+anahtar kelimeler; nesnede bulunamayan üye için alanlar ve yöntemler; modülde
+bulunamayan üye için modülün üyeleri; sözlükte bulunamayan metin anahtarı için
+sözlüğün anahtarları. Yakınlık ölçülürken Türkçe harfler ASCII karşılıklarıyla
+eş sayılır; `sayac` yazılmışsa `sayaç` önerilir. Başka dillerden gelen adlar
+(`print`, `len`, `append`, `if` ...) için JUS karşılığı söylenir; parantezsiz
+fonksiyon çağrısı için parantez hatırlatılır.
+
+```
+ornek.jus:2: çalışma zamanı hatası: 'sayac' adında bir değişken ya da fonksiyon tanımlı değil. 'sayaç' mı demek istediniz?
+```
+
+Öneriler iletinin parçasıdır ve 1.0'daki güvencenin dışındadır; `dene` ile
+yakalanan hata değeri de öneriyi içerir.
+
 ## 8. Etkileşimli kip
 
 `jus` argümansız çalıştırıldığında etkileşimli kip başlar.

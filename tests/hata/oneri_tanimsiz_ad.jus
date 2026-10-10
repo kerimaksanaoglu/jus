@@ -1,0 +1,5 @@
+# Türkçe harf kullanılmadan yazılmış ad için öneri.
+# kod: 70
+# hata: 'sayac' adında bir değişken ya da fonksiyon tanımlı değil. 'sayaç' mı demek istediniz?
+değişken sayaç = 1
+yaz(sayac)

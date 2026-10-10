@@ -11,6 +11,7 @@
 #include "memory.h"
 #include "object.h"
 #include "stdlib_modules.h"
+#include "suggest.h"
 #include "text.h"
 #include "vm.h"
 
@@ -352,6 +353,94 @@ static void concatenate(void) {
     push(OBJ_VAL(result));
 }
 
+/* ---- Hata iletilerindeki öneriler ---- */
+
+#define HINT_SIZE 160
+
+static void considerTable(Suggestion *suggestion, Table *table) {
+    for (int i = 0; i < table->capacity; i++) {
+        ObjString *key = table->entries[i].key;
+        if (key != NULL) suggestionConsider(suggestion, key->chars, key->length);
+    }
+}
+
+/* Tanımsız bir ad için öneri: fonksiyonun yerelleri, modülün adları, yerleşikler, anahtar kelimeler. */
+static void hintForName(ObjString *name, char *out) {
+    Suggestion suggestion;
+    suggestionInit(&suggestion, name->chars, name->length);
+
+    ObjFunction *function = vm.frames[vm.frameCount - 1].closure->function;
+    for (int i = 0; i < function->localNames.count; i++) {
+        ObjString *local = AS_STRING(function->localNames.values[i]);
+        suggestionConsider(&suggestion, local->chars, local->length);
+    }
+    considerTable(&suggestion, &function->module->globals);
+    considerTable(&suggestion, &vm.builtins);
+    suggestionConsiderKeywords(&suggestion);
+    suggestionSentence(&suggestion, out, HINT_SIZE);
+}
+
+/* Bir nesnede bulunamayan üye için öneri: alanlar ve sınıfın yöntemleri. */
+static void hintForMember(ObjString *name, Value receiver, ObjClass *klass, char *out) {
+    Suggestion suggestion;
+    suggestionInit(&suggestion, name->chars, name->length);
+    if (IS_INSTANCE(receiver)) considerTable(&suggestion, &AS_INSTANCE(receiver)->fields);
+    if (klass != NULL) considerTable(&suggestion, &klass->methods);
+    out[0] = '\0';
+    if (suggestionFound(&suggestion)) suggestionSentence(&suggestion, out, HINT_SIZE);
+}
+
+static void hintForTable(ObjString *name, Table *table, char *out) {
+    Suggestion suggestion;
+    suggestionInit(&suggestion, name->chars, name->length);
+    considerTable(&suggestion, table);
+    out[0] = '\0';
+    if (suggestionFound(&suggestion)) suggestionSentence(&suggestion, out, HINT_SIZE);
+}
+
+/*
+ * Yerleşik türlerde (liste, metin, sözlük ...) yöntem çağrısı için öneri. Bu
+ * türlerin yöntemi yoktur; başka dillerden gelen l.append(x) ya da Türkçe harf
+ * kullanılmadan yazılmış l.uzunlugu() gibi çağrılar yerleşik fonksiyona yönlendirilir.
+ */
+static void hintForBuiltinMethod(ObjString *name, Value receiver, char *out) {
+    out[0] = '\0';
+    const char *equivalent = foreignEquivalent(name->chars, name->length);
+    if (equivalent != NULL) {
+        snprintf(out, HINT_SIZE, " JUS'ta bunun karşılığı '%s' yerleşik fonksiyonudur: %s(%s, ...).", equivalent,
+                 equivalent, valueTypeName(receiver));
+        return;
+    }
+    Suggestion suggestion;
+    suggestionInit(&suggestion, name->chars, name->length);
+    considerTable(&suggestion, &vm.builtins);
+    if (suggestionFound(&suggestion)) {
+        snprintf(out, HINT_SIZE, " '%.*s' yerleşik fonksiyonunu mu demek istediniz? Yerleşik fonksiyonlar "
+                 "%.*s(%s, ...) biçiminde çağrılır.", suggestion.bestLength, suggestion.best,
+                 suggestion.bestLength, suggestion.best, valueTypeName(receiver));
+        return;
+    }
+    snprintf(out, HINT_SIZE, " Bu türün yöntemi yoktur; uzunluk(%s) gibi yerleşik fonksiyonlar kullanılır.",
+             valueTypeName(receiver));
+}
+
+/* Sözlükte bulunamayan metin anahtarı için öneri. */
+static void hintForKey(Value key, ObjMap *map, char *out) {
+    out[0] = '\0';
+    if (!IS_STRING(key)) return;
+    Suggestion suggestion;
+    suggestionInit(&suggestion, AS_STRING(key)->chars, AS_STRING(key)->length);
+    for (int i = 0; i < map->used; i++) {
+        if (!map->entries[i].live || !IS_STRING(map->entries[i].key)) continue;
+        ObjString *candidate = AS_STRING(map->entries[i].key);
+        suggestionConsider(&suggestion, candidate->chars, candidate->length);
+    }
+    if (suggestionFound(&suggestion)) {
+        snprintf(out, HINT_SIZE, " \"%.*s\" anahtarı var; onu mu demek istediniz?", suggestion.bestLength,
+                 suggestion.best);
+    }
+}
+
 static bool integerValue(Value value, int *out) {
     if (!IS_NUMBER(value)) return false;
     double number = AS_NUMBER(value);
@@ -409,7 +498,9 @@ static bool getIndex(void) {
         if (!checkKey(index)) return false;
         if (!mapGet(AS_MAP(container), index, &result)) {
             char *shown = valueToChars(index, true, NULL);
-            runtimeError("Sözlükte %s anahtarı yok.", shown);
+            char hint[HINT_SIZE];
+            hintForKey(index, AS_MAP(container), hint);
+            runtimeError("Sözlükte %s anahtarı yok.%s", shown, hint);
             free(shown);
             return false;
         }
@@ -741,8 +832,10 @@ static bool importModule(ObjModule *importer, ObjString *name) {
 static bool bindMethod(ObjClass *klass, ObjString *name) {
     Value method;
     if (!tableGet(&klass->methods, name, &method)) {
-        runtimeError("'%s' nesnesinde '%s' adında bir alan ya da yöntem yok.", klass->name->chars,
-                     name->chars);
+        char hint[HINT_SIZE];
+        hintForMember(name, peek(0), klass, hint);
+        runtimeError("'%s' nesnesinde '%s' adında bir alan ya da yöntem yok.%s", klass->name->chars,
+                     name->chars, hint);
         return false;
     }
 
@@ -769,8 +862,10 @@ static bool getProperty(ObjString *name) {
     if (IS_MODULE(object)) {
         Value value;
         if (!tableGet(&AS_MODULE(object)->globals, name, &value)) {
-            runtimeError("'%s' modülünde '%s' adında bir üye yok.", AS_MODULE(object)->name->chars,
-                         name->chars);
+            char hint[HINT_SIZE];
+            hintForTable(name, &AS_MODULE(object)->globals, hint);
+            runtimeError("'%s' modülünde '%s' adında bir üye yok.%s", AS_MODULE(object)->name->chars,
+                         name->chars, hint);
             return false;
         }
         pop();
@@ -778,8 +873,10 @@ static bool getProperty(ObjString *name) {
         return true;
     }
 
-    runtimeError("%s türündeki değerlerin '%s' adında bir üyesi yok.", valueTypeName(object),
-                 name->chars);
+    char hint[HINT_SIZE];
+    hintForBuiltinMethod(name, object, hint);
+    runtimeError("%s türündeki değerlerin '%s' adında bir üyesi yok.%s", valueTypeName(object),
+                 name->chars, hint);
     return false;
 }
 
@@ -802,7 +899,10 @@ static bool setProperty(ObjString *name) {
 static bool invokeFromClass(ObjClass *klass, ObjString *name, int argCount) {
     Value method;
     if (!tableGet(&klass->methods, name, &method)) {
-        runtimeError("'%s' nesnesinde '%s' adında bir yöntem yok.", klass->name->chars, name->chars);
+        char hint[HINT_SIZE];
+        hintForMember(name, peek(argCount), klass, hint);
+        runtimeError("'%s' nesnesinde '%s' adında bir yöntem yok.%s", klass->name->chars, name->chars,
+                     hint);
         return false;
     }
     return call(AS_CLOSURE(method), argCount);
@@ -825,16 +925,20 @@ static bool invoke(ObjString *name, int argCount) {
     if (IS_MODULE(receiver)) {
         Value value;
         if (!tableGet(&AS_MODULE(receiver)->globals, name, &value)) {
-            runtimeError("'%s' modülünde '%s' adında bir üye yok.", AS_MODULE(receiver)->name->chars,
-                         name->chars);
+            char hint[HINT_SIZE];
+            hintForTable(name, &AS_MODULE(receiver)->globals, hint);
+            runtimeError("'%s' modülünde '%s' adında bir üye yok.%s", AS_MODULE(receiver)->name->chars,
+                         name->chars, hint);
             return false;
         }
         vm.stackTop[-argCount - 1] = value;
         return callValue(value, argCount);
     }
 
-    runtimeError("%s türündeki değerlerin '%s' adında bir yöntemi yok.", valueTypeName(receiver),
-                 name->chars);
+    char hint[HINT_SIZE];
+    hintForBuiltinMethod(name, receiver, hint);
+    runtimeError("%s türündeki değerlerin '%s' adında bir yöntemi yok.%s", valueTypeName(receiver),
+                 name->chars, hint);
     return false;
 }
 
@@ -920,8 +1024,10 @@ static InterpretResult run(int stopAt, bool script) {
                 Value value;
                 if (!tableGet(&frame->closure->function->module->globals, name, &value) &&
                     !tableGet(&vm.builtins, name, &value)) {
-                    runtimeError("'%s' adında bir değişken ya da fonksiyon tanımlı değil.",
-                                 name->chars);
+                    char hint[HINT_SIZE];
+                    hintForName(name, hint);
+                    runtimeError("'%s' adında bir değişken ya da fonksiyon tanımlı değil.%s",
+                                 name->chars, hint);
                     goto on_error;
                 }
                 push(value);

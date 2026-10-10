@@ -84,7 +84,8 @@ Kaynak dosyalar UTF-8 olmalıdır.
 - Modüller (`kullan`) ve standart kütüphane: `matematik`, `rastgele`, `zaman`,
   `dosya`, `sistem`, `json`, `ağ`, `http`, `tr`
 - 30'dan fazla yerleşik fonksiyon
-- Satır ve sütun gösteren Türkçe hata iletileri
+- Satır ve sütun gösteren Türkçe hata iletileri; yazım yanlışlarında "şunu mu
+  demek istediniz?" önerileri
 - Otomatik bellek yönetimi (çöp toplayıcı)
 
 Henüz olmayanlar (şifreli ağ bağlantıları ve diğerleri) için
@@ -97,6 +98,8 @@ Belgelerin tamamı aranabilir biçimde
 
 - [Başlangıç rehberi](docs/rehber/README.md): programlamaya sıfırdan başlayanlar
   için adım adım anlatım
+- [Öğretmen kiti](docs/ogretmen/README.md): 10 haftalık ders planı, dönem projesi ve
+  değerlendirme
 - [JUS'tan Python'a](docs/python-koprusu.md): iki dilin yan yana karşılaştırması
 - [Dil tanımı](docs/dil-tanimi.md): sözdizimi ve davranışın tam tanımı
 - [VS Code eklentisi](editors/vscode/): sözdizimi renklendirme

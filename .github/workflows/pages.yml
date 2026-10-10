@@ -32,6 +32,7 @@ jobs:
         run: |
           bash playground/derle.sh
           node playground/dene.cjs
+          node playground/dene_paylas.cjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -41,7 +42,7 @@ jobs:
           mkdocs build --strict --site-dir site/belgeler
       - name: Deneme alanını siteye ekle
         run: |
-          cp playground/index.html playground/calisan.js playground/simge.png \
+          cp playground/index.html playground/calisan.js playground/paylas.js playground/simge.png \
              playground/jus.js playground/jus.wasm site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

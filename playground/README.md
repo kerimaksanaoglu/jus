@@ -33,11 +33,38 @@ Ardından tarayıcıda `http://127.0.0.1:8000` adresini açın.
 bazı Windows kurulumlarında `.js` dosyalarını yanlış içerik türüyle gönderir ve
 tarayıcı yorumlayıcıyı yüklemeyi reddeder.
 
+## Paylaşım bağlantısı
+
+"Paylaş" düğmesi programı sıkıştırıp adres çubuğundaki `#program=` parçasına
+yazar ve bağlantıyı panoya kopyalar. Pano kullanılamıyorsa bağlantı, elle
+kopyalanabilmesi için salt okunur bir kutuda gösterilir. Program bağlantının
+içinde taşınır; sunucuya hiçbir şey gönderilmez. Böyle bir bağlantı açıldığında
+program düzenleyiciye yüklenir ve örnekler listesinde "(paylaşılan program)"
+olarak seçilir; çözülemezse çıktı alanına not düşülür ve ilk örnek açılır.
+
+Bağlantı yoksa son düzenlenen program tarayıcının `localStorage` alanında
+(`jus.sonProgram`) saklanır ve sayfa açılırken geri yüklenir. Örnek seçmek
+adresteki `#program=` parçasını temizler.
+
+Biçim `<önek>:<base64url>` şeklindedir: `z:` UTF-8 metnin `deflate-raw` ile
+sıkıştırılmış, `k:` sıkıştırılmamış hâlidir. Tarayıcıda `CompressionStream`
+yoksa sıkıştırmasız yazılır; çözerken her iki önek de kabul edilir.
+
+- `paylas.js`: kodlama ve çözme (`programiKodla`, `programiCoz`). Tarayıcıda
+  `window.JUSPaylas` olarak, Node.js'te `require` ile kullanılır.
+- `dene_paylas.cjs`: `paylas.js` sınaması. Emscripten gerektirmez.
+
+```sh
+node playground/dene_paylas.cjs
+```
+
 ## Sınırlar
 
 - `oku`, `dosya`, `ağ`, `http` ve `sistem.ortam` tarayıcıda kullanılamaz.
 - Program ayrı bir iş parçacığında çalışır; sonsuz döngüye giren program
   "Durdur" düğmesiyle sonlandırılabilir.
+- Paylaşım bağlantısı için kodlanmış parça en çok 8000 karakter olabilir; daha
+  uzun programlar paylaşılamaz. Çözülürken açılmış program 1 MiB ile sınırlıdır.
 - Node.js sınaması yorumlayıcının WebAssembly derlemesini doğrular. Sayfanın
   kendisi (düğmeler, çıktı alanı) otomatik olarak sınanmaz; Chrome'da elle
   denenmiştir.

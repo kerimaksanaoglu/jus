@@ -1,0 +1,7 @@
+# Türkçe harfsiz yazılmış anahtar kelime için derleme ipucu.
+# kod: 65
+# hata: oneri_anahtar_kelime.jus:6:6: sözdizimi hatası
+# hata: İpucu: 'eger' yerine 'eğer' yazmak istemiş olabilirsiniz.
+değişken x = 3
+eger x > 2:
+    yaz("büyük")
