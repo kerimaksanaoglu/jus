@@ -1,0 +1,61 @@
+# Varsayılan parametre değerleri: argüman verilmezse hesaplanır.
+fonksiyon selamla(ad, selam = "Merhaba", noktalama = "!"):
+    dön selam + ", " + ad + noktalama
+
+yaz(selamla("Ayşe"))                    # bekle: Merhaba, Ayşe!
+yaz(selamla("Ayşe", "Günaydın"))        # bekle: Günaydın, Ayşe!
+yaz(selamla("Ayşe", "İyi akşamlar", "."))  # bekle: İyi akşamlar, Ayşe.
+
+# Varsayılan değer her çağrıda yeniden hesaplanır ve önceki parametreleri görebilir.
+değişken sayaç = 0
+fonksiyon sıradaki():
+    sayaç += 1
+    dön sayaç
+
+fonksiyon kayıt(ad, no = sıradaki(), etiket = ad + "-" + metin(no)):
+    dön etiket
+
+yaz(kayıt("a"))                         # bekle: a-1
+yaz(kayıt("b"))                         # bekle: b-2
+yaz(kayıt("c", 10))                     # bekle: c-10
+yaz(kayıt("d", 10, "özel"))             # bekle: özel
+
+# Açıkça verilen boş, varsayılanı tetiklemez.
+fonksiyon göster(x = "varsayılan"):
+    dön x
+
+yaz(göster())                           # bekle: varsayılan
+yaz(göster(boş))                        # bekle: boş
+
+# Varsayılan değerli parametre bir liste olabilir; her çağrıda yeni liste oluşur.
+fonksiyon ekle_ve_ver(öğe, liste = []):
+    ekle(liste, öğe)
+    dön liste
+
+yaz(ekle_ve_ver(1))                     # bekle: [1]
+yaz(ekle_ve_ver(2))                     # bekle: [2]
+
+# Yöntemlerde ve kapanımlarda da çalışır.
+sınıf Sayaç:
+    fonksiyon kur(başlangıç = 0, adım = 1):
+        bu.değer = başlangıç
+        bu.adım = adım
+
+    fonksiyon artır(kaç = 1):
+        bu.değer += bu.adım * kaç
+        dön bu.değer
+
+değişken s = Sayaç()
+yaz(s.artır(), s.artır(5))              # bekle: 1 6
+değişken t = Sayaç(100, 10)
+yaz(t.artır())                          # bekle: 110
+
+fonksiyon çarpan_yap(k = 2):
+    fonksiyon çarp(x, kat = k):
+        dön x * kat
+    dön çarp
+
+yaz(çarpan_yap()(7), çarpan_yap(3)(7))  # bekle: 14 21
+
+# Fonksiyon değer olarak geçirildiğinde de varsayılanlar korunur.
+yaz(eşle([1, 2, 3], çarpan_yap(10)))    # bekle: [10, 20, 30]

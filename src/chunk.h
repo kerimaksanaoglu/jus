@@ -63,6 +63,8 @@ typedef enum {
     OP_GET_SUPER,      /* (u16 ad sabiti) [bu, üst sınıf] -> bağlı yöntem */
     OP_SUPER_INVOKE,   /* (u16 ad sabiti, u8 argüman sayısı) üst.ad(...) çağrısı */
     OP_DUP,            /* yığının tepesindeki değeri çoğaltır */
+    OP_ARG_GIVEN,      /* (u8 parametre sırası, u16 uzaklık) argüman verildiyse atlar; verilmediyse varsayılan değer kodu izler */
+    OP_BUILD_STRING,   /* (u16 parça sayısı) parçaları metne çevirip birleştirir (biçimli metin) */
     OP_RETURN
 } OpCode;
 

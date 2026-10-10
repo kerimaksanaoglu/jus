@@ -45,8 +45,8 @@ class JusLexer(RegexLexer):
     tokens = {
         "root": [
             (r"#.*?$", Comment.Single),
-            # Biçimli metin (b"...") ve sıradan metin.
-            (r'b"', String.Interpol, "string"),
+            # Biçimli metin (f"...") ve sıradan metin.
+            (r'f"', String.Interpol, "fstring"),
             (r'"', String, "string"),
             (r"\d+(?:\.\d+)?", Number),
             keyword_rule(DECLARATIONS, Keyword.Declaration),
@@ -61,6 +61,15 @@ class JusLexer(RegexLexer):
             (r"[()\[\]{},.:]", Punctuation),
             (r"\s+", Text),
             (r".", Text),
+        ],
+        "fstring": [
+            (r"\{\{|\}\}", String.Escape),
+            (r"\{[^{}\"\n]*\}", String.Interpol),
+            (r'\\[ntr"\\]', String.Escape),
+            (r'"', String.Interpol, "#pop"),
+            (r'[^"\\\n{}]+', String),
+            (r"\\.", String),
+            (r"\n", Text, "#pop"),
         ],
         "string": [
             (r'\\[ntr"\\]', String.Escape),

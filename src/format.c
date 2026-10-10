@@ -152,6 +152,17 @@ static TokenKind readToken(const char *p, const char *end, size_t *length) {
     char c = *p++;
     if (isAlpha(c)) {
         while (p < end && (isAlpha(*p) || isDigit(*p))) p++;
+        /* f"..." biçimli metin tek bir belirteçtir. */
+        if (p - start == 1 && c == 'f' && p < end && *p == '"') {
+            p++;
+            while (p < end && *p != '"') {
+                if (*p == '\\' && p + 1 < end) p++;
+                p++;
+            }
+            if (p < end) p++;
+            *length = (size_t)(p - start);
+            return TOKEN_STRING;
+        }
         *length = (size_t)(p - start);
         return identifierKind(start, *length);
     }
@@ -385,7 +396,8 @@ static void formatLine(Formatter *f, const char *p, const char *end) {
 
         bool unary = false;
         char colon = 0;
-        if (kind == TOKEN_MINUS) unary = !(st->hasPrev && endsValue(st->prev));
+        /* Tekli eksi ve parametre listesindeki '*ad' işaretinden sonra boşluk konmaz. */
+        if (kind == TOKEN_MINUS || kind == TOKEN_STAR) unary = !(st->hasPrev && endsValue(st->prev));
         if (kind == TOKEN_COLON) {
             colon = st->depth == 0 ? 'B' : (st->brackets[st->depth - 1] == '[' ? 'S' : 'D');
         }

@@ -192,9 +192,19 @@ static Value peek(int distance) {
 }
 
 static bool call(ObjClosure *closure, int argCount) {
-    if (argCount != closure->function->arity) {
-        runtimeError("'%s' fonksiyonu %d argüman bekliyor, %d verildi.",
-                     closure->function->name->chars, closure->function->arity, argCount);
+    ObjFunction *function = closure->function;
+    int fixed = function->arity + function->optionalCount; /* adıyla verilen parametre sayısı */
+    if (argCount < function->arity || (!function->hasRest && argCount > fixed)) {
+        const char *name = function->name->chars;
+        if (function->optionalCount == 0 && !function->hasRest) {
+            runtimeError("'%s' fonksiyonu %d argüman bekliyor, %d verildi.", name, fixed, argCount);
+        } else if (function->hasRest) {
+            runtimeError("'%s' fonksiyonu en az %d argüman bekliyor, %d verildi.", name, function->arity,
+                         argCount);
+        } else {
+            runtimeError("'%s' fonksiyonu en az %d, en çok %d argüman bekliyor, %d verildi.", name,
+                         function->arity, fixed, argCount);
+        }
         return false;
     }
 
@@ -204,10 +214,28 @@ static bool call(ObjClosure *closure, int argCount) {
         return false;
     }
 
+    Value *base = vm.stackTop - argCount - 1;
+    if (function->hasRest && argCount > fixed) {
+        /* Fazla argümanlar bir listeye toplanır; liste son parametrenin yuvasına konur. */
+        ObjList *rest = newList();
+        push(OBJ_VAL(rest));
+        for (int i = fixed; i < argCount; i++) listAppend(rest, base[1 + i]);
+        vm.stackTop = base + 1 + fixed;
+        push(OBJ_VAL(rest));
+    } else {
+        /* Verilmeyen isteğe bağlı parametreler boş ile doldurulur; varsayılanı fonksiyon başında hesaplanır. */
+        while (vm.stackTop < base + 1 + fixed) push(NIL_VAL);
+        if (function->hasRest) {
+            ObjList *rest = newList();
+            push(OBJ_VAL(rest));
+        }
+    }
+
     CallFrame *frame = &vm.frames[vm.frameCount++];
     frame->closure = closure;
-    frame->ip = closure->function->chunk.code;
-    frame->slots = vm.stackTop - argCount - 1;
+    frame->ip = function->chunk.code;
+    frame->slots = base;
+    frame->argCount = argCount;
     return true;
 }
 
@@ -350,6 +378,45 @@ static void concatenate(void) {
     ObjString *result = takeString(chars, length);
     pop();
     pop();
+    push(OBJ_VAL(result));
+}
+
+/* Biçimli metin: yığının tepesindeki count değeri metne çevirip birleştirir. */
+static void buildString(int count) {
+    Value *parts = vm.stackTop - count;
+    char **pieces = (char **)malloc(sizeof(char *) * (size_t)(count > 0 ? count : 1));
+    int *lengths = (int *)malloc(sizeof(int) * (size_t)(count > 0 ? count : 1));
+    if (pieces == NULL || lengths == NULL) {
+        fprintf(stderr, "jus: bellek yetersiz.\n");
+        exit(JUS_EXIT_OUT_OF_MEMORY);
+    }
+
+    int total = 0;
+    for (int i = 0; i < count; i++) {
+        if (IS_STRING(parts[i])) {
+            pieces[i] = NULL;
+            lengths[i] = AS_STRING(parts[i])->length;
+        } else {
+            pieces[i] = valueToChars(parts[i], false, &lengths[i]);
+        }
+        total += lengths[i];
+    }
+
+    /* Parçalar yığında durduğu için ayırma sırasında çöp toplayıcıdan korunur. */
+    char *chars = ALLOCATE(char, total + 1);
+    int offset = 0;
+    for (int i = 0; i < count; i++) {
+        const char *source = pieces[i] != NULL ? pieces[i] : AS_STRING(parts[i])->chars;
+        memcpy(chars + offset, source, (size_t)lengths[i]);
+        offset += lengths[i];
+        free(pieces[i]);
+    }
+    chars[total] = '\0';
+    free(pieces);
+    free(lengths);
+
+    ObjString *result = takeString(chars, total);
+    vm.stackTop -= count;
     push(OBJ_VAL(result));
 }
 
@@ -1366,6 +1433,17 @@ static InterpretResult run(int stopAt, bool script) {
             case OP_DUP:
                 push(peek(0));
                 break;
+            case OP_BUILD_STRING: {
+                int count = READ_SHORT();
+                buildString(count);
+                break;
+            }
+            case OP_ARG_GIVEN: {
+                uint8_t index = READ_BYTE();
+                uint16_t offset = READ_SHORT();
+                if (frame->argCount > index) frame->ip += offset;
+                break;
+            }
             case OP_TRY_BEGIN: {
                 uint16_t offset = READ_SHORT();
                 if (vm.handlerCount == HANDLERS_MAX) {

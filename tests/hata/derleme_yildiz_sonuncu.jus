@@ -1,0 +1,5 @@
+# '*ad' parametresi yalnızca sonuncu olabilir.
+# kod: 65
+# hata: '*' ile işaretlenen parametre sonuncu olmalıdır.
+fonksiyon f(*kalan, son):
+    dön son

@@ -68,6 +68,19 @@ else
     kalan=$((kalan + 1))
 fi
 denetle "biçimle: ikinci kez değişiklik yok" 0 "" "$JUS" bicimle --denetle "$bicim/a.jus"
+printf 'fonksiyon f(a,b=2,*kalan):
+    dön a*b
+' > "$bicim/param.jus"
+denetle "biçimle: parametre listesi" 0 "" "$JUS" bicimle "$bicim/param.jus"
+if [ "$(cat "$bicim/param.jus")" = "$(printf 'fonksiyon f(a, b = 2, *kalan):
+    dön a * b
+')" ]; then
+    gecen=$((gecen + 1))
+else
+    echo "BAŞARISIZ  biçimle: parametre listesi beklenenden farklı"
+    cat "$bicim/param.jus" | sed 's/^/  /'
+    kalan=$((kalan + 1))
+fi
 denetle "biçimle: sözcük hatası" 65 "biçimlendirilemedi" "$JUS" bicimle "$bicim/bozuk.jus"
 denetle "biçimle: dosya yok" 65 "dosya açılamadı" "$JUS" bicimle "$bicim/yok.jus"
 denetle "biçimle: kullanım" 64 "Kullanım:" "$JUS" bicimle

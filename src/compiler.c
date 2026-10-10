@@ -111,7 +111,7 @@ static Chunk *currentChunk(void) {
 /* ---- Hata bildirimi ---- */
 
 static bool startsValue(TokenKind type) {
-    return type == TOKEN_STRING || type == TOKEN_NUMBER || type == TOKEN_IDENTIFIER ||
+    return type == TOKEN_STRING || type == TOKEN_FSTRING || type == TOKEN_NUMBER || type == TOKEN_IDENTIFIER ||
            type == TOKEN_TRUE || type == TOKEN_FALSE || type == TOKEN_NIL;
 }
 
@@ -710,41 +710,149 @@ static void number(bool canAssign) {
     emitConstant(NUMBER_VAL(value));
 }
 
-static void string(bool canAssign) {
-    (void)canAssign;
-    /* Tırnakları at, kaçış dizilerini çöz. */
-    const char *source = parser.previous.start + 1;
-    int sourceLength = parser.previous.length - 2;
-
-    char *buffer = (char *)malloc((size_t)sourceLength + 1);
+static char *allocateBuffer(size_t size) {
+    char *buffer = (char *)malloc(size);
     if (buffer == NULL) {
         fprintf(stderr, "jus: bellek yetersiz.\n");
         exit(JUS_EXIT_OUT_OF_MEMORY);
     }
+    return buffer;
+}
 
+/* Kaçış dizisini çözer: *p ters bölüyü gösterir; ilerletir ve karakteri buffer'a yazar. */
+static void appendEscape(const char **p, const char *end, char *buffer, int *length) {
+    (*p)++;
+    char c = *p < end ? **p : '\0';
+    switch (c) {
+        case 'n': buffer[(*length)++] = '\n'; break;
+        case 't': buffer[(*length)++] = '\t'; break;
+        case 'r': buffer[(*length)++] = '\r'; break;
+        case '"': buffer[(*length)++] = '"'; break;
+        case '\\': buffer[(*length)++] = '\\'; break;
+        default:
+            error("Geçersiz kaçış dizisi. Kullanılabilenler: \\n \\t \\r \\\" \\\\");
+            break;
+    }
+    if (*p < end) (*p)++;
+}
+
+static void string(bool canAssign) {
+    (void)canAssign;
+    /* Tırnakları at, kaçış dizilerini çöz. */
+    const char *p = parser.previous.start + 1;
+    const char *end = parser.previous.start + parser.previous.length - 1;
+
+    char *buffer = allocateBuffer((size_t)(end - p) + 1);
     int length = 0;
-    for (int i = 0; i < sourceLength; i++) {
-        char c = source[i];
-        if (c != '\\') {
-            buffer[length++] = c;
-            continue;
-        }
-
-        i++;
-        switch (source[i]) {
-            case 'n': buffer[length++] = '\n'; break;
-            case 't': buffer[length++] = '\t'; break;
-            case 'r': buffer[length++] = '\r'; break;
-            case '"': buffer[length++] = '"'; break;
-            case '\\': buffer[length++] = '\\'; break;
-            default:
-                error("Geçersiz kaçış dizisi. Kullanılabilenler: \\n \\t \\r \\\" \\\\");
-                break;
+    while (p < end) {
+        if (*p == '\\') {
+            appendEscape(&p, end, buffer, &length);
+        } else {
+            buffer[length++] = *p++;
         }
     }
 
     emitConstant(OBJ_VAL(copyString(buffer, length)));
     free(buffer);
+}
+
+/*
+ * Biçimli metnin içindeki bir ifadeyi derler. Tarayıcı ve ayrıştırıcı durumu
+ * kaydedilir, kaynağın [start, end) aralığı ifade olarak taranır ve durum geri
+ * yüklenir. Hata konumları tüm kaynağa göre doğru kalır.
+ */
+static void embeddedExpression(const char *start, const char *end, int line) {
+    Token savedCurrent = parser.current;
+    Token savedPrevious = parser.previous;
+    ScannerState savedScanner;
+    scannerSave(&savedScanner);
+
+    initScannerRange(scannerSource(), start, end, line);
+    advance();
+    /* Atama bir ifade olsa da biçimli metnin içinde anlamsızdır; izin verilmez. */
+    parsePrecedence(PREC_OR);
+    if (!check(TOKEN_EOF)) {
+        errorAtCurrent("Biçimli metindeki ifadeden sonra '}' bekleniyor.");
+    }
+
+    scannerRestore(&savedScanner);
+    parser.current = savedCurrent;
+    parser.previous = savedPrevious;
+}
+
+/* f"metin {ifade} metin": parçalar yığına konur ve tek metinde birleştirilir. */
+static void fstring(bool canAssign) {
+    (void)canAssign;
+    Token token = parser.previous;
+    const char *p = token.start + 2; /* f ve açılış tırnağı */
+    const char *end = token.start + token.length - 1;
+
+    char *buffer = allocateBuffer((size_t)(end - p) + 1);
+    int length = 0;
+    int parts = 0;
+    bool lastIsLiteral = true;
+
+    while (p < end) {
+        if (*p == '{') {
+            if (p + 1 < end && p[1] == '{') {
+                buffer[length++] = '{';
+                p += 2;
+                continue;
+            }
+            if (length > 0) {
+                emitConstant(OBJ_VAL(copyString(buffer, length)));
+                length = 0;
+                parts++;
+            }
+            const char *exprStart = p + 1;
+            const char *q = exprStart;
+            int depth = 1;
+            while (q < end && depth > 0) {
+                if (*q == '{') depth++;
+                else if (*q == '}') depth--;
+                if (depth > 0) q++;
+            }
+            if (depth > 0) {
+                errorAt(&token, "Biçimli metinde '{' açıldı ama '}' ile kapatılmadı.");
+                break;
+            }
+            const char *exprEnd = q;
+            while (exprStart < exprEnd && (*exprStart == ' ' || *exprStart == '\t')) exprStart++;
+            if (exprStart == exprEnd) {
+                errorAt(&token, "Biçimli metinde '{' ile '}' arasında bir ifade bekleniyor.");
+                break;
+            }
+            embeddedExpression(exprStart, exprEnd, token.line);
+            parts++;
+            lastIsLiteral = false;
+            p = q + 1;
+        } else if (*p == '}') {
+            if (p + 1 < end && p[1] == '}') {
+                buffer[length++] = '}';
+                p += 2;
+                continue;
+            }
+            errorAt(&token, "Biçimli metinde tek başına '}' kullanılamaz; '}' yazmak için '}}' yazın.");
+            break;
+        } else if (*p == '\\') {
+            appendEscape(&p, end, buffer, &length);
+        } else {
+            buffer[length++] = *p++;
+        }
+    }
+
+    if (length > 0 || parts == 0) {
+        emitConstant(OBJ_VAL(copyString(buffer, length)));
+        parts++;
+        lastIsLiteral = true;
+    }
+    free(buffer);
+
+    /* Tek bir metin sabiti zaten metindir; diğer durumlarda parçalar metne çevrilip birleştirilir. */
+    if (parts != 1 || !lastIsLiteral) {
+        emitByte(OP_BUILD_STRING);
+        emitShort(parts);
+    }
 }
 
 static void namedVariable(Token name, bool canAssign) {
@@ -878,6 +986,7 @@ static const ParseRule rules[] = {
     [TOKEN_LESS_EQUAL]    = {NULL,     binary, PREC_COMPARISON},
     [TOKEN_IDENTIFIER]    = {variable, NULL,   PREC_NONE},
     [TOKEN_STRING]        = {string,   NULL,   PREC_NONE},
+    [TOKEN_FSTRING]       = {fstring,  NULL,   PREC_NONE},
     [TOKEN_NUMBER]        = {number,   NULL,   PREC_NONE},
     [TOKEN_AND]           = {NULL,     and_,   PREC_AND},
     [TOKEN_AS]            = {NULL,     NULL,   PREC_NONE},
@@ -978,11 +1087,45 @@ static void function(FunctionType type) {
     consume(TOKEN_LEFT_PAREN, "Fonksiyon adından sonra '(' bekleniyor.");
     if (!check(TOKEN_RIGHT_PAREN)) {
         do {
-            current->function->arity++;
-            if (current->function->arity > 255) {
+            ObjFunction *fn = current->function;
+            if (fn->hasRest) {
+                errorAtCurrent("'*' ile işaretlenen parametre sonuncu olmalıdır.");
+            }
+            int index = fn->arity + fn->optionalCount; /* parametrenin sırası; yuvası index + 1 */
+            if (index >= 255) {
                 errorAtCurrent("Bir fonksiyonun en çok 255 parametresi olabilir.");
             }
+
+            if (match(TOKEN_STAR)) {
+                /* *ad: kalan argümanlar bu parametreye liste olarak gelir. */
+                int constant = parseVariable("'*' işaretinden sonra parametre adı bekleniyor.");
+                fn->hasRest = true;
+                defineVariable(constant);
+                continue;
+            }
+
             int constant = parseVariable("Parametre adı bekleniyor.");
+            if (match(TOKEN_EQUAL)) {
+                /*
+                 * Varsayılan değer: argüman verilmediyse fonksiyonun başında hesaplanır.
+                 * Önceki parametreler görülebilir; parametre kendisi henüz tanımsızdır.
+                 */
+                fn->optionalCount++;
+                emitByte(OP_ARG_GIVEN);
+                emitByte((uint8_t)index);
+                emitByte(0xff);
+                emitByte(0xff);
+                int skip = currentChunk()->count - 2;
+                expression();
+                emitBytes(OP_SET_LOCAL, (uint8_t)(index + 1));
+                emitByte(OP_POP);
+                patchJump(skip);
+            } else {
+                if (fn->optionalCount > 0) {
+                    error("Varsayılan değeri olan parametreden sonra varsayılan değeri olmayan parametre gelemez.");
+                }
+                fn->arity++;
+            }
             defineVariable(constant);
         } while (match(TOKEN_COMMA));
     }

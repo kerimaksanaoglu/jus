@@ -61,7 +61,9 @@ typedef struct ObjModule {
 
 typedef struct {
     Obj obj;
-    int arity;
+    int arity;         /* zorunlu parametre sayısı */
+    int optionalCount; /* varsayılan değeri olan parametre sayısı */
+    bool hasRest;      /* son parametre '*ad' biçiminde: kalan argümanları liste olarak alır */
     int upvalueCount;
     Chunk chunk;
     ObjString *name; /* modülün üst düzey kodu için NULL */

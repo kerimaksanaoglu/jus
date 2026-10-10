@@ -4,6 +4,7 @@
   "scopeName": "source.jus",
   "patterns": [
     { "include": "#comment" },
+    { "include": "#fstring" },
     { "include": "#string" },
     { "include": "#number" },
     { "include": "#function-definition" },
@@ -33,6 +34,26 @@
           "name": "invalid.illegal.escape.jus",
           "match": "\\\\."
         }
+      ]
+    },
+    "fstring": {
+      "name": "string.interpolated.jus",
+      "begin": "(?<![\\p{L}\\p{N}_])f\"",
+      "end": "\"|$",
+      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.jus" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.jus" } },
+      "patterns": [
+        { "name": "constant.character.escape.jus", "match": "\\{\\{|\\}\\}" },
+        {
+          "name": "meta.embedded.expression.jus",
+          "begin": "\\{",
+          "end": "\\}",
+          "beginCaptures": { "0": { "name": "punctuation.section.embedded.begin.jus" } },
+          "endCaptures": { "0": { "name": "punctuation.section.embedded.end.jus" } },
+          "patterns": [ { "include": "$self" } ]
+        },
+        { "name": "constant.character.escape.jus", "match": "\\\\[ntr\"\\\\]" },
+        { "name": "invalid.illegal.escape.jus", "match": "\\\\." }
       ]
     },
     "number": {

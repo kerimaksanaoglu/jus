@@ -1,0 +1,5 @@
+# Biçimli metinde kapatılmamış süslü parantez; hata biçimli metni gösterir.
+# kod: 65
+# hata: derleme_bicimli_metin.jus:5:5: sözdizimi hatası: Biçimli metinde '{' açıldı ama '}' ile kapatılmadı.
+değişken x = 1
+yaz(f"x: {x")

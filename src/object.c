@@ -58,6 +58,8 @@ ObjClosure *newClosure(ObjFunction *function) {
 ObjFunction *newFunction(void) {
     ObjFunction *function = ALLOCATE_OBJ(ObjFunction, OBJ_FUNCTION);
     function->arity = 0;
+    function->optionalCount = 0;
+    function->hasRest = false;
     function->upvalueCount = 0;
     function->name = NULL;
     function->module = NULL;
