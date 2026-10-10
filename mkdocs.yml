@@ -1,0 +1,81 @@
+# JUS belge sitesi. Yerelde denemek için:
+#   pip install -r tools/belge-sitesi/requirements.txt ./tools/pygments_jus
+#   mkdocs serve
+site_name: JUS Belgeleri
+site_description: JUS programlama dilinin rehberi, dil tanımı ve öğretmen kaynakları
+site_url: https://kerimaksanaoglu.github.io/jus/belgeler/
+repo_url: https://github.com/kerimaksanaoglu/jus
+repo_name: kerimaksanaoglu/jus
+edit_uri: edit/main/docs/
+docs_dir: docs
+copyright: MIT lisansı ile dağıtılır.
+
+theme:
+  name: material
+  language: tr
+  logo: simge.png
+  favicon: simge.png
+  # Yazı tipleri dış sunucudan yüklenmez; sistemin yazı tipleri kullanılır.
+  font: false
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Koyu görünüme geç
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Açık görünüme geç
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+
+extra_css:
+  - site.css
+
+plugins:
+  - search:
+      lang: tr
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+nav:
+  - Ana sayfa: index.md
+  - Kurulum: kurulum.md
+  - Başlangıç rehberi:
+      - Rehber hakkında: rehber/README.md
+      - 01 - İlk program: rehber/01-ilk-program.md
+      - 02 - Değişkenler ve değerler: rehber/02-degiskenler-ve-degerler.md
+      - 03 - Kararlar: rehber/03-kararlar.md
+      - 04 - Döngüler: rehber/04-donguler.md
+      - 05 - Fonksiyonlar: rehber/05-fonksiyonlar.md
+      - 06 - Listeler: rehber/06-listeler.md
+      - 07 - Metinler: rehber/07-metinler.md
+      - 08 - Sözlükler: rehber/08-sozlukler.md
+      - 09 - Hatalar: rehber/09-hatalar.md
+      - 10 - Modüller: rehber/10-moduller.md
+      - 11 - Sınıflar: rehber/11-siniflar.md
+      - 12 - Küçük projeler: rehber/12-kucuk-projeler.md
+      - 13 - JSON ve veri: rehber/13-json-ve-veri.md
+      - 14 - Ağ ve HTTP: rehber/14-ag-ve-http.md
+      - 15 - Test, biçim, paket: rehber/15-test-bicim-paket.md
+  - JUS'tan Python'a: python-koprusu.md
+  - Dil tanımı: dil-tanimi.md
+  - Yol haritası: yol-haritasi.md

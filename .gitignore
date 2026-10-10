@@ -18,3 +18,11 @@ Thumbs.db
 # WebAssembly derleme çıktıları
 /playground/jus.js
 /playground/jus.wasm
+
+# Belge sitesi çıktısı ve Python önbelleği
+/site/
+__pycache__/
+
+# Python paket derleme çıktıları
+/tools/pygments_jus/build/
+*.egg-info/

@@ -2,6 +2,7 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
@@ -29,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # ASan + UBSan; cop toplayici her bellek ayirmada calisir.
+      # ASan + UBSan; çöp toplayıcı her bellek ayırmada çalışır.
       - name: Test
         run: bash tests/bellek-denetimi.sh
 
@@ -50,5 +51,36 @@ jobs:
             playground/index.html
             playground/calisan.js
             playground/sun.py
+            playground/simge.png
             playground/jus.js
             playground/jus.wasm
+
+  belgeler:
+    name: Belge sitesi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # --strict: kırık bağlantı ya da gezinmede eksik sayfa varsa derleme başarısız olur.
+      - name: Üret
+        run: |
+          pip install -r tools/belge-sitesi/requirements.txt ./tools/pygments_jus
+          mkdocs build --strict --site-dir site/belgeler
+
+  eklenti:
+    name: VS Code eklentisi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Paketle
+        working-directory: editors/vscode
+        run: npx --yes @vscode/vsce package --out ../../jus-vscode.vsix
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vscode-eklentisi
+          path: jus-vscode.vsix

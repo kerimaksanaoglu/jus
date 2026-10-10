@@ -1,6 +1,9 @@
-name: Deneme alanı (GitHub Pages)
+name: Site (GitHub Pages)
 
-# main dalındaki her değişiklikte deneme alanını derler ve GitHub Pages'te yayımlar.
+# main dalındaki her değişiklikte deneme alanını ve belge sitesini üretip
+# GitHub Pages'te yayımlar:
+#   /            deneme alanı
+#   /belgeler/   belge sitesi
 on:
   push:
     branches: [main]
@@ -25,14 +28,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: mymindstorm/setup-emsdk@v14
-      - name: Derle ve sına
+      - name: Deneme alanını derle ve sına
         run: |
           bash playground/derle.sh
           node playground/dene.cjs
-      - name: Siteyi hazırla
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Belge sitesini üret
         run: |
-          mkdir site
-          cp playground/index.html playground/calisan.js playground/jus.js playground/jus.wasm site/
+          pip install -r tools/belge-sitesi/requirements.txt ./tools/pygments_jus
+          mkdocs build --strict --site-dir site/belgeler
+      - name: Deneme alanını siteye ekle
+        run: |
+          cp playground/index.html playground/calisan.js playground/simge.png \
+             playground/jus.js playground/jus.wasm site/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -1,0 +1,23 @@
+{
+    "version": "1.0.0",
+    "description": "JUS: Türkçe sözdizimli, genel amaçlı betik dili",
+    "homepage": "https://github.com/kerimaksanaoglu/jus",
+    "license": "MIT",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/kerimaksanaoglu/jus/releases/download/v1.0.0/jus-1.0.0-windows-x64.zip",
+            "hash": "623b878874f29545f2ef69cbc87be5751b0641f16a86c9f7633b8339d9824792",
+            "extract_dir": "jus-1.0.0-windows-x64"
+        }
+    },
+    "bin": "jus.exe",
+    "checkver": "github",
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/kerimaksanaoglu/jus/releases/download/v$version/jus-$version-windows-x64.zip",
+                "extract_dir": "jus-$version-windows-x64"
+            }
+        }
+    }
+}

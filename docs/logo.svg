@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-7.69 -10.50 302.19 121.00" role="img" aria-label="JUS">
+  <title>JUS</title>
+  <g fill="none" stroke="#16202e" stroke-width="21.00" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 48.00 0.00 L 48.00 76.00 A 24.00 24.00 0 0 1 2.81 87.27"/>
+    <path d="M 88.00 0.00 L 88.00 72.50 A 27.50 27.50 0 0 0 143.00 72.50 L 143.00 0.00"/>
+    <path d="M 226.25 12.47 A 23.50 23.50 0 1 0 205.50 47.00 A 26.50 26.50 0 1 1 182.10 85.94"/>
+  </g>
+  <rect x="256.50" y="89.50" width="38.00" height="21.00" fill="#2f6fed"/>
+</svg>

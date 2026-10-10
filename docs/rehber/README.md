@@ -64,7 +64,7 @@ jus --surum
 ```
 
 ```
-JUS 1.0.0
+JUS 1.1.0
 ```
 
 Komut bulunamazsa `jus` dosyasının bulunduğu klasörde olduğunuzdan emin olun. Linux ve macOS'ta `./jus`, Windows'ta `jus.exe` yazmanız gerekebilir. Rehberin geri kalanında kısalık için `jus` yazılmıştır.
@@ -117,7 +117,7 @@ Kısa denemeler için dosya yazmanız gerekmez. `jus` komutunu dosya adı vermed
 Aşağıda, `>>>` istemini izleyen satırlar sizin yazdıklarınızdır; altındaki satırlar JUS'un yanıtıdır:
 
 ```
-JUS 1.0.0 - çıkmak için 'çıkış' yazın.
+JUS 1.1.0 - çıkmak için 'çıkış' yazın.
 >>> 2 + 3
 5
 >>> değişken x = 10

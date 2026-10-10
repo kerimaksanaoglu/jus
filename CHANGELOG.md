@@ -6,6 +6,26 @@ uyar.
 
 ## [Yayımlanmadı]
 
+## [1.1.0] - 2026-10-10
+
+### Eklendi
+
+- Belge sitesi: rehber, dil tanımı ve diğer belgeler aranabilir biçimde
+  <https://kerimaksanaoglu.github.io/jus/belgeler/> adresinde
+- "JUS'tan Python'a" rehberi: iki dilin yan yana karşılaştırması, farklı
+  davranan yerler ve Python hata iletileri sözlüğü
+- Kurulum sayfası; Windows'ta Scoop ile kurulum (`scoop install jus`)
+- winget paket tanımları (`paketleme/winget`)
+- Sürüm numarası içermeyen indirme adresleri
+  (`.../releases/latest/download/jus-windows-x64.zip` gibi)
+- VS Code eklentisinin kurulabilir paketi (`jus-vscode.vsix`) sürüm dosyaları
+  arasında; eklenti simgesi
+- JUS logosu ve marka dosyaları (`marka/`)
+
+### Değişti
+
+- Yol haritası 1.1 - 1.5 sürümlerinin ve 2.0'ın planını içeriyor
+
 ## [1.0.0] - 2026-10-07
 
 İlk kararlı sürüm. Dil tanımı donduruldu: 1.x sürümleri yeni özellikler

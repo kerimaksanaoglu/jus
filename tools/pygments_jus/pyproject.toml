@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pygments-jus"
+version = "1.0.0"
+description = "JUS programlama dili için Pygments sözcük çözümleyicisi"
+requires-python = ">=3.8"
+dependencies = ["pygments>=2.10"]
+license = { text = "MIT" }
+
+[project.entry-points."pygments.lexers"]
+jus = "pygments_jus:JusLexer"
+
+[tool.setuptools]
+py-modules = ["pygments_jus"]
