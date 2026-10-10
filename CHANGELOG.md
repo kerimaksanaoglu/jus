@@ -6,6 +6,8 @@ uyar.
 
 ## [Yayımlanmadı]
 
+## [1.3.0] - 2026-10-10
+
 ### Eklendi
 
 - Varsayılan parametre değerleri: `fonksiyon selamla(ad, selam = "Merhaba"):`.

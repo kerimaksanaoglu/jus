@@ -11,7 +11,7 @@ JUS, Türkçe sözdizimli, genel amaçlı bir betik dilidir. Kaynak kod bayt kod
 derlenir ve bir sanal makinede çalışır. Yorumlayıcı C99 ile yazılmıştır ve dış
 bağımlılığı yoktur.
 
-Geçerli sürüm: **1.2.0**. Dil tanımı kararlıdır; 1.x sürümleri var olan
+Geçerli sürüm: **1.3.0**. Dil tanımı kararlıdır; 1.x sürümleri var olan
 programların davranışını değiştirmez.
 
 ```jus
