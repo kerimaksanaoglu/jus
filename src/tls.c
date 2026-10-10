@@ -18,6 +18,13 @@ static void setError(char *error, size_t size, const char *message) {
     if (error != NULL && size > 0) snprintf(error, size, "%s", message);
 }
 
+/* Üç arka uçta da aynı sözcüklerle bildirilen sertifika sorunları. */
+#define MSG_EXPIRED "Sunucunun sertifikasının süresi dolmuş."
+#define MSG_HOSTNAME "Sunucunun sertifikası verilen sunucu adına ait değil."
+#define MSG_UNTRUSTED "Sunucunun sertifikası güvenilir bir kök sertifikaya dayanmıyor."
+#define MSG_CERT "Sunucunun sertifikası doğrulanamadı."
+#define MSG_HANDSHAKE "TLS el sıkışması başarısız oldu."
+
 /* ======================================================================== */
 #if defined(__EMSCRIPTEN__)
 
@@ -118,14 +125,14 @@ static void dropEncrypted(Tls *tls, int consumed) {
 
 static const char *schannelMessage(SECURITY_STATUS status) {
     switch (status) {
-        case SEC_E_WRONG_PRINCIPAL: return "Sunucunun sertifikası verilen sunucu adına ait değil.";
-        case SEC_E_UNTRUSTED_ROOT: return "Sunucunun sertifikası güvenilir bir kök sertifikaya dayanmıyor.";
-        case SEC_E_CERT_EXPIRED: return "Sunucunun sertifikasının süresi dolmuş.";
-        case SEC_E_CERT_UNKNOWN: return "Sunucunun sertifikası doğrulanamadı.";
+        case SEC_E_WRONG_PRINCIPAL: return MSG_HOSTNAME;
+        case SEC_E_UNTRUSTED_ROOT: return MSG_UNTRUSTED;
+        case SEC_E_CERT_EXPIRED: return MSG_EXPIRED;
+        case SEC_E_CERT_UNKNOWN: return MSG_CERT;
         case SEC_E_ILLEGAL_MESSAGE: return "Sunucu geçersiz bir TLS iletisi gönderdi.";
         case SEC_E_ALGORITHM_MISMATCH: return "Sunucuyla ortak bir şifreleme yöntemi bulunamadı.";
         case SEC_E_UNSUPPORTED_FUNCTION: return "Sunucunun TLS sürümü desteklenmiyor.";
-        default: return "TLS el sıkışması başarısız oldu.";
+        default: return MSG_HANDSHAKE;
     }
 }
 
@@ -399,6 +406,7 @@ void tlsClose(Tls *tls) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #include <Security/SecureTransport.h>
+#include <Security/Security.h>
 #include <errno.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -452,18 +460,42 @@ static OSStatus writeCallback(SSLConnectionRef connection, const void *data, siz
     return noErr;
 }
 
-static const char *secureTransportMessage(OSStatus status) {
+/*
+ * Secure Transport sertifika sorunlarının çoğunu errSSLXCertChainInvalid ile
+ * bildirir; nedeni öğrenmek için sunucunun güven nesnesi yeniden değerlendirilir.
+ */
+static const char *certificateReason(SSLContextRef context) {
+    SecTrustRef trust = NULL;
+    if (SSLCopyPeerTrust(context, &trust) != noErr || trust == NULL) return MSG_CERT;
+    CFErrorRef failure = NULL;
+    const char *message = MSG_CERT;
+    if (!SecTrustEvaluateWithError(trust, &failure) && failure != NULL) {
+        switch (CFErrorGetCode(failure)) {
+            case errSecCertificateExpired: message = MSG_EXPIRED; break;
+            case errSecHostNameMismatch: message = MSG_HOSTNAME; break;
+            case errSecNotTrusted:
+            case errSecCreateChainFailed:
+            case errSecVerifyActionFailed: message = MSG_UNTRUSTED; break;
+            default: break;
+        }
+        CFRelease(failure);
+    }
+    CFRelease(trust);
+    return message;
+}
+
+static const char *secureTransportMessage(SSLContextRef context, OSStatus status) {
     switch (status) {
-        case errSSLXCertChainInvalid:
-        case errSSLBadCert: return "Sunucunun sertifikası doğrulanamadı.";
-        case errSSLHostNameMismatch: return "Sunucunun sertifikası verilen sunucu adına ait değil.";
-        case errSSLCertExpired: return "Sunucunun sertifikasının süresi dolmuş.";
+        case errSSLXCertChainInvalid: return certificateReason(context);
+        case errSSLBadCert: return MSG_CERT;
+        case errSSLHostNameMismatch: return MSG_HOSTNAME;
+        case errSSLCertExpired: return MSG_EXPIRED;
         case errSSLUnknownRootCert:
-        case errSSLNoRootCert: return "Sunucunun sertifikası güvenilir bir kök sertifikaya dayanmıyor.";
+        case errSSLNoRootCert: return MSG_UNTRUSTED;
         case errSSLNegotiation: return "Sunucuyla ortak bir şifreleme yöntemi bulunamadı.";
         case errSSLClosedGraceful:
         case errSSLClosedAbort: return "Sunucu TLS el sıkışması sırasında bağlantıyı kapattı.";
-        default: return "TLS el sıkışması başarısız oldu.";
+        default: return MSG_HANDSHAKE;
     }
 }
 
@@ -491,7 +523,7 @@ Tls *tlsConnect(intptr_t socket, const char *host, char *error, size_t errorSize
         else break;
     }
     if (status != noErr) {
-        setError(error, errorSize, secureTransportMessage(status));
+        setError(error, errorSize, secureTransportMessage(tls->context, status));
         CFRelease(tls->context);
         free(tls);
         return NULL;
@@ -549,6 +581,12 @@ typedef struct ssl_method_st SSL_METHOD;
 #define SSL_VERIFY_PEER 1
 #define SSL_ERROR_ZERO_RETURN 6
 #define X509_V_OK 0
+#define X509_V_ERR_CERT_HAS_EXPIRED 10
+#define X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT 18
+#define X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN 19
+#define X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY 20
+#define X509_V_ERR_CERT_UNTRUSTED 27
+#define X509_V_ERR_HOSTNAME_MISMATCH 62
 
 typedef const SSL_METHOD *(*fn_TLS_client_method)(void);
 typedef SSL_CTX *(*fn_SSL_CTX_new)(const SSL_METHOD *);
@@ -591,9 +629,15 @@ static struct {
     fn_X509_verify_cert_error_string X509_verify_cert_error_string;
 } openssl;
 
+/* dlsym nesne işaretçisi döndürür; işlev işaretçisine kopyalama ISO C'de dolaylı yapılır. */
+static void loadSymbol(void *target, const char *name) {
+    void *symbol = dlsym(openssl.library, name);
+    memcpy(target, &symbol, sizeof(symbol));
+}
+
 #define LOAD(name) \
     do { \
-        openssl.name = (fn_##name)dlsym(openssl.library, #name); \
+        loadSymbol(&openssl.name, #name); \
         if (openssl.name == NULL) { \
             openssl.failure = "Sistemdeki OpenSSL kütüphanesi beklenen işlevleri içermiyor (sürüm 1.1 ya da 3 gerekir)."; \
             return false; \
@@ -630,8 +674,7 @@ static bool loadOpenSsl(void) {
     LOAD(SSL_get_error);
     LOAD(SSL_get_verify_result);
     /* libcrypto içindedir; libssl onu yüklediği için RTLD_GLOBAL ile görülür. Yoksa genel ileti kullanılır. */
-    openssl.X509_verify_cert_error_string =
-        (fn_X509_verify_cert_error_string)dlsym(openssl.library, "X509_verify_cert_error_string");
+    loadSymbol(&openssl.X509_verify_cert_error_string, "X509_verify_cert_error_string");
     return true;
 }
 
@@ -681,16 +724,22 @@ Tls *tlsConnect(intptr_t socket, const char *host, char *error, size_t errorSize
 
     if (openssl.SSL_connect(tls->ssl) != 1) {
         long verify = openssl.SSL_get_verify_result(tls->ssl);
-        if (verify != X509_V_OK) {
+        if (verify == X509_V_ERR_CERT_HAS_EXPIRED) {
+            setError(error, errorSize, MSG_EXPIRED);
+        } else if (verify == X509_V_ERR_HOSTNAME_MISMATCH) {
+            setError(error, errorSize, MSG_HOSTNAME);
+        } else if (verify == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT || verify == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN ||
+                   verify == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY || verify == X509_V_ERR_CERT_UNTRUSTED) {
+            setError(error, errorSize, MSG_UNTRUSTED);
+        } else if (verify != X509_V_OK) {
             const char *detail = openssl.X509_verify_cert_error_string != NULL
                                      ? openssl.X509_verify_cert_error_string(verify)
                                      : "";
             char message[256];
-            snprintf(message, sizeof(message), "Sunucunun sertifikası doğrulanamadı%s%s.",
-                     detail[0] != '\0' ? ": " : "", detail);
+            snprintf(message, sizeof(message), "%s%s%s", MSG_CERT, detail[0] != '\0' ? " " : "", detail);
             setError(error, errorSize, message);
         } else {
-            setError(error, errorSize, "TLS el sıkışması başarısız oldu.");
+            setError(error, errorSize, MSG_HANDSHAKE);
         }
         tlsClose(tls);
         return NULL;
